@@ -1,16 +1,10 @@
 
 tmp.*
 
-disk/
 build/
-bin/
-mnt/
-tmp/
 .vscode
 .idea/
 .vim*
-compile_flags.txt
-hdd.dsk
 
 # Prerequisites
 *.d
