@@ -7,6 +7,7 @@ bin/
 mnt/
 tmp/
 .vscode
+.idea/
 .vim*
 compile_flags.txt
 hdd.dsk
