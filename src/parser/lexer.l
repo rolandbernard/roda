@@ -8,7 +8,7 @@ DIGIT   [0-9]
 ID      [_[:alpha:]][_[:alnum:]]*
 STR     \"([^"]|\\\")*\"
 INT     {DIGIT}+
-REAL    {DIGIT}(\.{DIGIT})?([eE][-+]?{DIGIT})?
+REAL    {DIGIT}+(\.{DIGIT}+)?([eE][-+]?{DIGIT}+)?
 
 %%
 
@@ -61,6 +61,7 @@ REAL    {DIGIT}(\.{DIGIT})?([eE][-+]?{DIGIT})?
 "=>"            { return ARROW; }
 ":"             { return ':'; }
 ";"             { return ';'; }
+","             { return ','; }
 "("             { return '('; }
 ")"             { return ')'; }
 "["             { return '['; }
@@ -68,9 +69,9 @@ REAL    {DIGIT}(\.{DIGIT})?([eE][-+]?{DIGIT})?
 "{"             { return '{'; }
 "}"             { return '}'; }
 
-{REAL}          { yylval.lexeme = yytext; return REAL; }
-
 {INT}           { yylval.lexeme = yytext; return INT; }
+
+{REAL}          { yylval.lexeme = yytext; return REAL; }
 
 {STR}           { yylval.lexeme = yytext; return STR; }
 

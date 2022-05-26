@@ -18,10 +18,12 @@ BINARY_DIR := $(BUILD_DIR)/$(BUILD)/bin
 # ==
 
 # == Common Flags
+SANITIZE := address,leak,undefined
+# SANITIZE ?= thread,undefined
 WARNINGS := -Wall -Wextra -Wno-unused-parameter
 
-CCFLAGS.debug   += -O0 -g -DDEBUG
-LDFLAGS.debug   += -O0 -g
+CCFLAGS.debug   += -O0 -g -fsanitize=$(SANITIZE) -DDEBUG
+LDFLAGS.debug   += -O0 -g -fsanitize=$(SANITIZE)
 CCFLAGS.release += -O3
 LDFLAGS.release += -O3
 
