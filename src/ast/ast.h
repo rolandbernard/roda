@@ -25,7 +25,6 @@ typedef enum {
     AST_LT,
     AST_GT,
     AST_ASSIGN,
-    AST_ARGDEF,
     AST_INDEX,
     AST_ARRAY,
 
@@ -52,6 +51,7 @@ typedef enum {
     AST_REAL,
     AST_STR,
     AST_TYPEDEF,
+    AST_ARGDEF,
 } AstNodeKind;
 
 #define AST_NODE_BASE \
@@ -103,12 +103,19 @@ typedef struct {
     AstNode* block;
 } AstWhile;
 
+typedef enum {
+    AST_FN_FLAG_NONE   = 0,
+    AST_FN_FLAG_EXPORT = 1 << 0,
+    AST_FN_FLAG_IMPORT = 1 << 1,
+} AstFnFlags;
+
 typedef struct {
     AST_NODE_BASE
     char* name;
     AstList* arguments;
     AstNode* ret_type;
     AstNode* body;
+    AstFnFlags flags;
 } AstFn;
 
 typedef struct {
@@ -138,6 +145,12 @@ typedef struct {
     AstNode* value;
 } AstTypeDef;
 
+typedef struct {
+    AST_NODE_BASE
+    char* name;
+    AstNode* arg_type;
+} AstArgDef;
+
 AstBinary* createAstBinary(AstNodeKind kind, AstNode* left, AstNode* right);
 
 AstUnary* createAstUnary(AstNodeKind kind, AstNode* operand);
@@ -146,23 +159,25 @@ AstList* createAstList(AstNodeKind kind, size_t count, AstNode** nodes);
 
 AstIfElse* createAstIfElse(AstNode* cond, AstNode* if_block, AstNode* else_block);
 
-AstVar* createAstVar(const char* name);
+AstVar* createAstVar(char* name);
 
 AstVarDef* createAstVarDef(AstNode* dst, AstNode* type, AstNode* val);
 
 AstWhile* createAstWhile(AstNode* cond, AstNode* block);
 
-AstFn* createAstFn(const char* name, AstList* arguments, AstNode* ret_type, AstNode* body);
+AstFn* createAstFn(char* name, AstList* arguments, AstNode* ret_type, AstNode* body, AstFnFlags flags);
 
 AstCall* createAstCall(AstNode* func, AstList* arguments);
 
-AstInt* createAstInt(const char* string);
+AstInt* createAstInt(char* string);
 
-AstReal* createAstReal(const char* string);
+AstReal* createAstReal(char* string);
 
-AstStr* createAstStr(const char* string);
+AstStr* createAstStr(char* string);
 
-AstTypeDef* createAstTypeDef(const char* name, AstNode* value);
+AstTypeDef* createAstTypeDef(char* name, AstNode* value);
+
+AstArgDef* createAstArgDef(char* name, AstNode* type);
 
 void freeAstNode(AstNode* node);
 

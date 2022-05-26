@@ -1,6 +1,8 @@
 %option noyywrap
 
 %{
+#include <string.h>
+
 #include "parser/parser.tab.h"
 %}
 
@@ -69,13 +71,13 @@ REAL    {DIGIT}+(\.{DIGIT}+)?([eE][-+]?{DIGIT}+)?
 "{"             { return '{'; }
 "}"             { return '}'; }
 
-{INT}           { yylval.lexeme = yytext; return INT; }
+{INT}           { yylval.lexeme = strdup(yytext); return INT; }
 
-{REAL}          { yylval.lexeme = yytext; return REAL; }
+{REAL}          { yylval.lexeme = strdup(yytext); return REAL; }
 
-{STR}           { yylval.lexeme = yytext; return STR; }
+{STR}           { yylval.lexeme = strdup(yytext); return STR; }
 
-{ID}            { yylval.lexeme = yytext; return ID; }
+{ID}            { yylval.lexeme = strdup(yytext); return ID; }
 
 .               { return YYUNDEF; }
 

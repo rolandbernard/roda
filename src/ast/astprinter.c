@@ -64,7 +64,6 @@ void printAstIndented(FILE* file, AstNode* node, int indent) {
         fprintf(file, "%sNode %s\n", indentation, ast_type_names[node->kind]);
         switch (node->kind) {
             case AST_ASSIGN:
-            case AST_ARGDEF:
             case AST_INDEX:
             case AST_SUB:
             case AST_MUL:
@@ -154,6 +153,18 @@ void printAstIndented(FILE* file, AstNode* node, int indent) {
                 printAstIndented(file, n->ret_type, indent + 3);
                 fprintf(file, "%s .body:\n", indentation);
                 printAstIndented(file, n->body, indent + 3);
+                fprintf(file, "%s .flags: ", indentation);
+                if (n->flags == AST_FN_FLAG_NONE) {
+                    fprintf(file, "none");
+                } else {
+                    if ((n->flags & AST_FN_FLAG_EXPORT) != 0) {
+                        fprintf(file, "export ");
+                    }
+                    if ((n->flags & AST_FN_FLAG_IMPORT) != 0) {
+                        fprintf(file, "import ");
+                    }
+                }
+                fprintf(file, "\n");
                 break;
             }
             case AST_CALL: {
@@ -184,6 +195,13 @@ void printAstIndented(FILE* file, AstNode* node, int indent) {
                 fprintf(file, "%s .name: %s\n", indentation, n->name);
                 fprintf(file, "%s .value:\n", indentation);
                 printAstIndented(file, n->value, indent + 3);
+                break;
+            }
+            case AST_ARGDEF: {
+                AstArgDef* n = (AstArgDef*)node;
+                fprintf(file, "%s .name: %s\n", indentation, n->name);
+                fprintf(file, "%s .type:\n", indentation);
+                printAstIndented(file, n->arg_type, indent + 3);
                 break;
             }
         }
