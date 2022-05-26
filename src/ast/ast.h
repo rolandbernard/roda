@@ -5,12 +5,6 @@
 #include <stdint.h>
 
 typedef enum {
-    AST_LIST,
-
-    // AstList
-    AST_ROOT,
-    AST_BLOCK,
-
     // AstBinary
     AST_ADD,
     AST_SUB,
@@ -31,15 +25,21 @@ typedef enum {
     AST_LT,
     AST_GT,
     AST_ASSIGN,
-    AST_TYPEDEF,
     AST_ARGDEF,
     AST_INDEX,
+    AST_ARRAY,
 
     // AstUnary
     AST_POS,
     AST_NEG,
     AST_ADDR,
     AST_DEREF,
+    AST_RETURN,
+
+    // AstList
+    AST_LIST,
+    AST_ROOT,
+    AST_BLOCK,
 
     // Other
     AST_VAR,
@@ -51,6 +51,7 @@ typedef enum {
     AST_INT,
     AST_REAL,
     AST_STR,
+    AST_TYPEDEF,
 } AstNodeKind;
 
 #define AST_NODE_BASE \
@@ -131,6 +132,12 @@ typedef struct {
     char* string;
 } AstStr;
 
+typedef struct {
+    AST_NODE_BASE
+    char* name;
+    AstNode* value;
+} AstTypeDef;
+
 AstBinary* createAstBinary(AstNodeKind kind, AstNode* left, AstNode* right);
 
 AstUnary* createAstUnary(AstNodeKind kind, AstNode* operand);
@@ -154,6 +161,8 @@ AstInt* createAstInt(const char* string);
 AstReal* createAstReal(const char* string);
 
 AstStr* createAstStr(const char* string);
+
+AstTypeDef* createAstTypeDef(const char* name, AstNode* value);
 
 void freeAstNode(AstNode* node);
 

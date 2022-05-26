@@ -3,12 +3,6 @@
 #include "ast/ast.h"
 
 static const char* ast_type_names[] = {
-    [AST_LIST] = "list",
-
-    // AstList
-    [AST_ROOT] = "root",
-    [AST_BLOCK] = "block",
-
     // AstBinary
     [AST_ADD] = "add",
     [AST_SUB] = "sub",
@@ -29,15 +23,21 @@ static const char* ast_type_names[] = {
     [AST_LT] = "lt",
     [AST_GT] = "gt",
     [AST_ASSIGN] = "assign",
-    [AST_TYPEDEF] = "typedef",
     [AST_ARGDEF] = "argdef",
     [AST_INDEX] = "index",
+    [AST_ARRAY] = "array",
 
     // AstUnary
     [AST_POS] = "pos",
     [AST_NEG] = "neg",
     [AST_ADDR] = "addr",
     [AST_DEREF] = "deref",
+    [AST_RETURN] = "return",
+
+    // AstList
+    [AST_LIST] = "list",
+    [AST_ROOT] = "root",
+    [AST_BLOCK] = "block",
 
     // Other
     [AST_VAR] = "var",
@@ -49,6 +49,7 @@ static const char* ast_type_names[] = {
     [AST_INT] = "int",
     [AST_REAL] = "real",
     [AST_STR] = "str",
+    [AST_TYPEDEF] = "typedef",
 };
 
 void printAstIndented(FILE* file, AstNode* node, int indent) {
@@ -62,18 +63,7 @@ void printAstIndented(FILE* file, AstNode* node, int indent) {
     } else {
         fprintf(file, "%sNode %s\n", indentation, ast_type_names[node->kind]);
         switch (node->kind) {
-            case AST_LIST:
-            case AST_ROOT:
-            case AST_BLOCK: {
-                AstList* n = (AstList*)node;
-                fprintf(file, "%s .nodes:\n", indentation);
-                for (size_t i = 0; i < n->count; i++) {
-                    printAstIndented(file, n->nodes[i], indent + 3);
-                }
-                break;
-            }
             case AST_ASSIGN:
-            case AST_TYPEDEF:
             case AST_ARGDEF:
             case AST_INDEX:
             case AST_SUB:
@@ -93,6 +83,7 @@ void printAstIndented(FILE* file, AstNode* node, int indent) {
             case AST_GE:
             case AST_LT:
             case AST_GT:
+            case AST_ARRAY:
             case AST_ADD: {
                 AstBinary* n = (AstBinary*)node;
                 fprintf(file, "%s .left:\n", indentation);
@@ -104,10 +95,21 @@ void printAstIndented(FILE* file, AstNode* node, int indent) {
             case AST_POS:
             case AST_NEG:
             case AST_ADDR:
+            case AST_RETURN:
             case AST_DEREF: {
                 AstUnary* n = (AstUnary*)node;
                 fprintf(file, "%s .op:\n", indentation);
                 printAstIndented(file, n->op, indent + 3);
+                break;
+            }
+            case AST_LIST:
+            case AST_ROOT:
+            case AST_BLOCK: {
+                AstList* n = (AstList*)node;
+                fprintf(file, "%s .nodes:\n", indentation);
+                for (size_t i = 0; i < n->count; i++) {
+                    printAstIndented(file, n->nodes[i], indent + 3);
+                }
                 break;
             }
             case AST_VAR: {
@@ -175,6 +177,13 @@ void printAstIndented(FILE* file, AstNode* node, int indent) {
             case AST_REAL: {
                 AstReal* n = (AstReal*)node;
                 fprintf(file, "%s .real: %lg\n", indentation, n->number);
+                break;
+            }
+            case AST_TYPEDEF: {
+                AstTypeDef* n = (AstTypeDef*)node;
+                fprintf(file, "%s .name: %s\n", indentation, n->name);
+                fprintf(file, "%s .value:\n", indentation);
+                printAstIndented(file, n->value, indent + 3);
                 break;
             }
         }

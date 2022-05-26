@@ -31,6 +31,7 @@ AstList* createAstList(AstNodeKind kind, size_t count, AstNode** nodes) {
 
 AstIfElse* createAstIfElse(AstNode* cond, AstNode* if_block, AstNode* else_block) {
     AstIfElse* node = NEW(AstIfElse);
+    node->kind = AST_IF_ELSE;
     node->condition = cond; 
     node->if_block = if_block;
     node->else_block = else_block;
@@ -63,6 +64,7 @@ AstWhile* createAstWhile(AstNode* cond, AstNode* block) {
 
 AstFn* createAstFn(const char* name, AstList* arguments, AstNode* ret_type, AstNode* body) {
     AstFn* node = NEW(AstFn);
+    node->kind = AST_FN;
     node->name = strdup(name);
     node->arguments = arguments;
     node->ret_type = ret_type;
@@ -99,20 +101,18 @@ AstStr* createAstStr(const char* string) {
     return node;
 }
 
+AstTypeDef* createAstTypeDef(const char* name, AstNode* value) {
+    AstTypeDef* node = NEW(AstTypeDef);
+    node->kind = AST_TYPEDEF;
+    node->name = strdup(name);
+    node->value = value;
+    return node;
+}
+
 void freeAstNode(AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
-            case AST_LIST:
-            case AST_ROOT:
-            case AST_BLOCK: {
-                AstList* n = (AstList*)node;
-                for (size_t i = 0; i < n->count; i++) {
-                    freeAstNode(n->nodes[i]);
-                }
-                break;
-            }
             case AST_ASSIGN:
-            case AST_TYPEDEF:
             case AST_ARGDEF:
             case AST_INDEX:
             case AST_SUB:
@@ -132,6 +132,7 @@ void freeAstNode(AstNode* node) {
             case AST_GE:
             case AST_LT:
             case AST_GT:
+            case AST_ARRAY:
             case AST_ADD: {
                 AstBinary* n = (AstBinary*)node;
                 freeAstNode(n->left);
@@ -141,9 +142,20 @@ void freeAstNode(AstNode* node) {
             case AST_POS:
             case AST_NEG:
             case AST_ADDR:
+            case AST_RETURN:
             case AST_DEREF: {
                 AstUnary* n = (AstUnary*)node;
                 freeAstNode(n->op);
+                break;
+            }
+            case AST_LIST:
+            case AST_ROOT:
+            case AST_BLOCK: {
+                AstList* n = (AstList*)node;
+                for (size_t i = 0; i < n->count; i++) {
+                    freeAstNode(n->nodes[i]);
+                }
+                FREE(n->nodes);
                 break;
             }
             case AST_VAR: {
@@ -189,6 +201,12 @@ void freeAstNode(AstNode* node) {
             case AST_STR: {
                 AstStr* n = (AstStr*)node;
                 FREE(n->string);
+                break;
+            }
+            case AST_TYPEDEF: {
+                AstTypeDef* n = (AstTypeDef*)node;
+                FREE(n->name);
+                freeAstNode(n->value);
                 break;
             }
             case AST_INT:

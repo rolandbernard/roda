@@ -23,9 +23,9 @@ extern int yylex();
 %destructor { freeAstNode((AstNode*)$$); } <list>
 %destructor { freeDynamicAstList($$); } <dynlist>
 
-%type <ast> root block stmt stmts type expr
+%type <ast> root block stmt type expr
 %type <list> args
-%type <dynlist> args_list 
+%type <dynlist> args_list stmts
 
 %token <lexeme> ID STR INT REAL
 %token IF ELSE FOR WHILE MATCH
@@ -54,7 +54,6 @@ extern int yylex();
 
 %%
 
-
 //todo:
 // chars
 // function definitions
@@ -66,29 +65,31 @@ extern int yylex();
 program : root  { *ast_result = $1; }
         ;
 
-root    : expr  { $$ = $1; }
+root    : stmt  { $$ = $1; }
         ;
 
-stmt    : expr                          {}
-        | RETURN                        {}
-        | expr '=' expr                 {}
-        | RETURN expr                   {}
-        | LET expr '=' expr             {}
-        | LET expr ':' type '=' expr    {}
-        | LET expr ':' type             {}
-        | TYPE ID '=' type              {}
+stmt    : expr                          { $$ = $1; }
+        | block                         { $$ = $1; }
+        | RETURN                        { $$ = (AstNode*)createAstUnary(AST_RETURN, NULL); }
+        | RETURN expr                   { $$ = (AstNode*)createAstUnary(AST_RETURN, $2); }
+        | expr '=' expr                 { $$ = (AstNode*)createAstBinary(AST_ASSIGN, $1, $3); }
+        | LET expr '=' expr             { $$ = (AstNode*)createAstVarDef($2, NULL, $4); }
+        | LET expr ':' type '=' expr    { $$ = (AstNode*)createAstVarDef($2, $4, $6); }
+        | LET expr ':' type             { $$ = (AstNode*)createAstVarDef($2, $4, NULL); }
+        | TYPE ID '=' type              { $$ = (AstNode*)createAstTypeDef($2, $4); }
         ;
 
-block   : '{' stmts '}'     {}
+block   : '{' stmts '}'     { $$ = (AstNode*)toStaticAstList($2); $$->kind = AST_BLOCK; }
         ;
 
-stmts   : %empty
-        | stmts stmt ';'
+stmts   : %empty                { $$ = createDynamicAstList(); }
+        | stmts stmt ';'        { $$ = $1; addToDynamicAstList($1, $2); }
+        | stmts ';'             { $$ = $1; }
         ;
 
-type    : ID                {}
-        | '*' ID            {}
-        | '[' expr ']' ID   {}
+type    : ID                                 { $$ = (AstNode*)createAstVar($1); }
+        | '*' type          %prec UNARY_PRE  { $$ = (AstNode*)createAstUnary(AST_ADDR, $2); }
+        | '[' expr ']' type %prec UNARY_PRE  { $$ = (AstNode*)createAstBinary(AST_ARRAY, $2, $4); }
         ;
 
 expr    : ID                                    { $$ = (AstNode*)createAstVar($1); }
