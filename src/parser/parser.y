@@ -19,6 +19,10 @@ extern int yylex();
     DynamicAstList* dynlist;
 }
 
+%destructor { freeAstNode($$); } <ast>
+%destructor { freeAstNode((AstNode*)$$); } <list>
+%destructor { freeDynamicAstList($$); } <dynlist>
+
 %type <ast> root block stmt stmts type expr
 %type <list> args
 %type <dynlist> args_list 

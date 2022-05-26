@@ -1,5 +1,5 @@
-#ifndef _PARSER_PARSER_H_
-#define _PARSER_PARSER_H_
+#ifndef _PARSER_WRAPPER_H_
+#define _PARSER_WRAPPER_H_
 
 #include "ast/ast.h"
 

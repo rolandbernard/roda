@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <locale.h>
 
-#include "parser/parser.h"
+#include "parser/wrapper.h"
 #include "ast/astprinter.h"
 
 int main(int argc, const char* const* argv) {

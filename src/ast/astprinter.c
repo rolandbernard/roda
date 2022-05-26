@@ -53,12 +53,12 @@ static const char* ast_type_names[] = {
 
 void printAstIndented(FILE* file, AstNode* node, int indent) {
     char indentation[indent + 1];
-    for(int i = 0; i < indent; i++) {
+    for (int i = 0; i < indent; i++) {
         indentation[i] = ' ';
     }
     indentation[indent] = 0;
     if (node == NULL) {
-        fprintf(file, "%snull", indentation);
+        fprintf(file, "%snull\n", indentation);
     } else {
         fprintf(file, "%sNode %s\n", indentation, ast_type_names[node->kind]);
         switch (node->kind) {
@@ -153,7 +153,6 @@ void printAstIndented(FILE* file, AstNode* node, int indent) {
                 fprintf(file, "%s .body:\n", indentation);
                 printAstIndented(file, n->body, indent + 3);
                 break;
-
             }
             case AST_CALL: {
                 AstCall* n = (AstCall*)node;
