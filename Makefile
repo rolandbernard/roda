@@ -14,7 +14,7 @@ LD := $(CC)
 ALL_SOURCES += $(SOURCE_DIR)/parser/lexer.yy.c $(SOURCE_DIR)/parser/parser.tab.c
 TO_CLEAN += $(SOURCE_DIR)/parser/lexer.yy.[ch] $(SOURCE_DIR)/parser/parser.tab.[ch]
 
-%.yy.c: %.l
+%.yy.c: %.l $(SOURCE_DIR)/parser/parser.tab.c $(SOURCE_DIR)/parser/parser.tab.h
 	flex --outfile=$*.yy.c --header-file=$*.yy.h $<
 
 %.tab.c: %.y
