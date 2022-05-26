@@ -10,16 +10,25 @@ CC ?= gcc
 LD := $(CC)
 # ==
 
-# == Parser generator
-ALL_SOURCES += $(SOURCE_DIR)/parser/lexer.yy.c $(SOURCE_DIR)/parser/parser.tab.c
-TO_CLEAN += $(SOURCE_DIR)/parser/lexer.yy.[ch] $(SOURCE_DIR)/parser/parser.tab.[ch]
+# == Parser generator files
+LEX_SRC := $(SOURCE_DIR)/parser/lexer.l
+LEX_C := $(SOURCE_DIR)/parser/lexer.yy.c
+LEX_H := $(SOURCE_DIR)/parser/lexer.yy.h
+YACC_SRC := $(SOURCE_DIR)/parser/parser.y
+YACC_C := $(SOURCE_DIR)/parser/parser.tab.c
+YACC_H := $(SOURCE_DIR)/parser/parser.tab.h
 
-%.yy.c: %.l $(SOURCE_DIR)/parser/parser.tab.c $(SOURCE_DIR)/parser/parser.tab.h
-	flex --outfile=$*.yy.c --header-file=$*.yy.h $<
-
-%.tab.c: %.y
-	bison -Wall --output=$*.tab.c --header=$*.tab.h $<
+ALL_SOURCES += $(LEX_C) $(YACC_C)
+TO_CLEAN += $(LEX_C) $(LEX_H) $(YACC_C) $(YACC_H)
 # ==
 
 include build.mk
+
+# == Parser generator rules
+$(LEX_C): $(LEX_SRC) $(YACC_C)
+	flex --outfile=$(LEX_C) --header-file=$(LEX_H) $<
+
+$(YACC_C): $(YACC_SRC)
+	bison -Wall --output=$(YACC_C) --header=$(YACC_H) $<
+# ==
 
