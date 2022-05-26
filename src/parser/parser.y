@@ -48,7 +48,7 @@ extern int yylex();
 %left '-' '+'
 %left '*' '/' '%'
 %precedence UNARY_PRE
-%precedence UNARY_POST
+%precedence '(' '['
 
 %start program
 
@@ -123,8 +123,8 @@ expr    : ID                                    { $$ = (AstNode*)createAstVar($1
         | '+' expr %prec UNARY_PRE              { $$ = (AstNode*)createAstUnary(AST_POS, $2); }
         | '*' expr %prec UNARY_PRE              { $$ = (AstNode*)createAstUnary(AST_ADDR, $2); }
         | '&' expr %prec UNARY_PRE              { $$ = (AstNode*)createAstUnary(AST_DEREF, $2); }
-        | expr '[' expr ']' %prec UNARY_POST    { $$ = (AstNode*)createAstBinary(AST_INDEX, $1, $3); }
-        | expr '(' args ')' %prec UNARY_POST    { $$ = (AstNode*)createAstCall($1, $3); }
+        | expr '[' expr ']'                     { $$ = (AstNode*)createAstBinary(AST_INDEX, $1, $3); }
+        | expr '(' args ')'                     { $$ = (AstNode*)createAstCall($1, $3); }
         | expr '+' expr                         { $$ = (AstNode*)createAstBinary(AST_ADD, $1, $3); }
         | expr '-' expr                         { $$ = (AstNode*)createAstBinary(AST_SUB, $1, $3); }
         | expr '*' expr                         { $$ = (AstNode*)createAstBinary(AST_MUL, $1, $3); }
