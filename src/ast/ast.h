@@ -5,13 +5,13 @@
 #include <stdint.h>
 
 typedef enum {
-    AST_NONE,
+    AST_LIST,
 
-// AstList
+    // AstList
     AST_ROOT,
     AST_BLOCK,
 
-// AstBinary
+    // AstBinary
     AST_ADD,
     AST_SUB,
     AST_MUL,
@@ -35,13 +35,13 @@ typedef enum {
     AST_ARGDEF,
     AST_INDEX,
 
-// AstUnary
+    // AstUnary
     AST_POS,
     AST_NEG,
     AST_ADDR,
     AST_DEREF,
 
-// Other
+    // Other
     AST_VAR,
     AST_VARDEF,
     AST_IF_ELSE,
@@ -86,7 +86,7 @@ typedef struct {
 
 typedef struct {
     AST_NODE_BASE
-    const char* name;
+    char* name;
 } AstVar;
 
 typedef struct {

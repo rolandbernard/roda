@@ -4,11 +4,13 @@
 #include "ast/astlist.h"
 #include <stdio.h>
 
-extern void yyerror(const char*);
+extern void yyerror(AstNode**, const char*);
 extern int yylex();
 }
 
 %define parse.error verbose
+
+%parse-param {AstNode** ast_result}
 
 %union {
     const char* lexeme;
@@ -57,10 +59,10 @@ extern int yylex();
 // top level definitions
 // 
 
-program : root  {}
+program : root  { *ast_result = $1; }
         ;
 
-root    : expr      {}
+root    : expr  { $$ = $1; }
         ;
 
 stmt    : expr                          {}
@@ -118,7 +120,7 @@ expr    : ID                                    { $$ = (AstNode*)createAstVar($1
         | IF expr block ELSE block              { $$ = (AstNode*)createAstIfElse($2, $3, $5); }
         ;
 
-args    : %empty    { $$ = createAstList(AST_NONE, 0, NULL); }
+args    : %empty    { $$ = createAstList(AST_LIST, 0, NULL); }
         | args_list { $$ = toStaticAstList($1); }
         ;
 
@@ -128,7 +130,7 @@ args_list : expr                { $$ = createDynamicAstList(); addToDynamicAstLi
 
 %%
 
-void yyerror(const char* s) {
+void yyerror(AstNode** ast_result, const char* s) {
     // TODO
     printf("ERROR %s\n", s);
 }
