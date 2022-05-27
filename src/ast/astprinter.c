@@ -90,37 +90,35 @@ void pushIndentStack(IndentStack* stack, size_t off, const char* chars) {
 static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack* indent);
 
 static void printAstChildNode(FILE* file, AstNode* node, bool colors, IndentStack* indent, const char* name, bool last) {
-    if (name == NULL || node != NULL) {
-        size_t indentation = indent->count;
-        if (name != NULL) {
-            fwrite(indent->data, 1, indentation, file);
-            if (colors) {
-                fprintf(file, " \e[97m│\e[m\e[2;3m%s:\e[m\n", name);
-            } else {
-                fprintf(file, " │%s:\n", name);
-            }
-        }
+    size_t indentation = indent->count;
+    if (name != NULL) {
         fwrite(indent->data, 1, indentation, file);
         if (colors) {
-            if (last) {
-                fprintf(file, " \e[97m└─\e[m");
-                pushIndentStack(indent, indentation, "   ");
-            } else {
-                fprintf(file, " \e[97m├─\e[m");
-                pushIndentStack(indent, indentation, " \e[97m│\e[m ");
-            }
+            fprintf(file, " \e[97m│\e[m\e[2;3m%s:\e[m\n", name);
         } else {
-            if (last) {
-                fprintf(file, " └─");
-                pushIndentStack(indent, indentation, "   ");
-            } else {
-                fprintf(file, " ├─");
-                pushIndentStack(indent, indentation, " │ ");
-            }
+            fprintf(file, " │%s:\n", name);
         }
-        printAstIndented(file, node, colors, indent);
-        indent->count = indentation;
     }
+    fwrite(indent->data, 1, indentation, file);
+    if (colors) {
+        if (last) {
+            fprintf(file, " \e[97m└─\e[m");
+            pushIndentStack(indent, indentation, "   ");
+        } else {
+            fprintf(file, " \e[97m├─\e[m");
+            pushIndentStack(indent, indentation, " \e[97m│\e[m ");
+        }
+    } else {
+        if (last) {
+            fprintf(file, " └─");
+            pushIndentStack(indent, indentation, "   ");
+        } else {
+            fprintf(file, " ├─");
+            pushIndentStack(indent, indentation, " │ ");
+        }
+    }
+    printAstIndented(file, node, colors, indent);
+    indent->count = indentation;
 }
 
 static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack* indent) {
