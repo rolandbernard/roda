@@ -12,7 +12,7 @@ extern void yyerror(AstNode**, MessageContext*, const char*);
 extern int yylex();
 }
 
-%define parse.error verbose
+%define parse.error detailed
 
 %parse-param {AstNode** ast_result} {MessageContext* context}
 
@@ -32,24 +32,49 @@ extern int yylex();
 %type <list> args args_defs
 %type <dynlist> args_list args_def_list stmts root_stmts
 
-%token <lexeme> ID STR INT REAL
-%token IF ELSE FOR WHILE MATCH
-%token EXPORT IMPORT
-%token CONST
-%token TYPE LET FN
-%token RETURN
-%token EQ NE LE GE
-%token ARROW
-%token ADD_EQ SUB_EQ MUL_EQ DIV_EQ MOD_EQ SHR_EQ SHL_EQ BOR_EQ BAND_EQ BXOR_EQ
-%token OR AND SHR SHL
+%token <lexeme> ID      "identifier"
+%token <lexeme> STR     "string"
+%token <lexeme> INT     "integer"
+%token <lexeme> REAL    "real"
+%token IF               "if"
+%token ELSE             "else"
+%token FOR              "for"
+%token WHILE            "while"
+%token MATCH            "match"
+%token EXPORT           "export"
+%token IMPORT           "import"
+%token CONST            "const"
+%token TYPE             "type"
+%token LET              "let"
+%token FN               "fn"
+%token RETURN           "return"
+%token EQ               "=="
+%token NE               "!="
+%token LE               "<="
+%token GE               ">="
+%token ARROW            "=>"
+%token ADD_EQ           "+="
+%token SUB_EQ           "-="
+%token MUL_EQ           "*="
+%token DIV_EQ           "/="
+%token MOD_EQ           "%="
+%token SHR_EQ           ">>="
+%token SHL_EQ           "<<="
+%token BOR_EQ           "|="
+%token BAND_EQ          "&="
+%token BXOR_EQ          "^="
+%token OR               "||"
+%token AND              "&&"
+%token SHR              ">>"
+%token SHL              "<<"
 
-%left OR
-%left AND
-%left '<' '>' EQ NE LE GE
+%left "||"
+%left "&&"
+%left '<' '>' "==" "!=" "<=" ">="
 %left '|'
 %left '^'
 %left '&'
-%left SHL SHR
+%left "<<" ">>"
 %left '-' '+'
 %left '*' '/' '%'
 %precedence UNARY_PRE
@@ -76,9 +101,9 @@ root_stmts : %empty                     { $$ = createDynamicAstList(); }
            | root_stmts root_stmt       { $$ = $1; addToDynamicAstList($1, $2); }
            ;
 
-root_stmt : EXPORT FN ID '(' args_defs ')' opt_type block   { $$ = (AstNode*)createAstFn($3, $5, $7, $8, AST_FN_FLAG_EXPORT); }
-          | IMPORT FN ID '(' args_defs ')' opt_type ';'     { $$ = (AstNode*)createAstFn($3, $5, $7, NULL, AST_FN_FLAG_IMPORT); }
-          | FN ID '(' args_defs ')' opt_type block          { $$ = (AstNode*)createAstFn($2, $4, $6, $7, AST_FN_FLAG_NONE); }
+root_stmt : "export" "fn" ID '(' args_defs ')' opt_type block   { $$ = (AstNode*)createAstFn($3, $5, $7, $8, AST_FN_FLAG_EXPORT); }
+          | "import" "fn" ID '(' args_defs ')' opt_type ';'     { $$ = (AstNode*)createAstFn($3, $5, $7, NULL, AST_FN_FLAG_IMPORT); }
+          | "fn" ID '(' args_defs ')' opt_type block          { $$ = (AstNode*)createAstFn($2, $4, $6, $7, AST_FN_FLAG_NONE); }
           ;
 
 opt_type : %empty   { $$ = NULL; }
@@ -99,27 +124,27 @@ arg_def : ID ':' type { $$ = (AstNode*)createAstArgDef($1, $3); }
 stmt    : expr ';'                       { $$ = $1; }
         | assign ';'                     { $$ = $1; }
         | block                          { $$ = $1; }
-        | RETURN ';'                     { $$ = (AstNode*)createAstUnary(AST_RETURN, NULL); }
-        | RETURN expr ';'                { $$ = (AstNode*)createAstUnary(AST_RETURN, $2); }
-        | LET ID opt_type '=' expr ';'   { $$ = (AstNode*)createAstVarDef($2, $3, $5); }
-        | LET ID opt_type ';'            { $$ = (AstNode*)createAstVarDef($2, $3, NULL); }
-        | TYPE ID '=' type ';'           { $$ = (AstNode*)createAstTypeDef($2, $4); }
-        | WHILE expr block               { $$ = (AstNode*)createAstWhile($2, $3); }
-        | IF expr block                  { $$ = (AstNode*)createAstIfElse($2, $3, NULL); }
-        | IF expr block ELSE block       { $$ = (AstNode*)createAstIfElse($2, $3, $5); }
+        | "return" ';'                     { $$ = (AstNode*)createAstUnary(AST_RETURN, NULL); }
+        | "return" expr ';'                { $$ = (AstNode*)createAstUnary(AST_RETURN, $2); }
+        | "let" ID opt_type '=' expr ';'   { $$ = (AstNode*)createAstVarDef($2, $3, $5); }
+        | "let" ID opt_type ';'            { $$ = (AstNode*)createAstVarDef($2, $3, NULL); }
+        | "type" ID '=' type ';'           { $$ = (AstNode*)createAstTypeDef($2, $4); }
+        | "while" expr block               { $$ = (AstNode*)createAstWhile($2, $3); }
+        | "if" expr block                  { $$ = (AstNode*)createAstIfElse($2, $3, NULL); }
+        | "if" expr block "else" block       { $$ = (AstNode*)createAstIfElse($2, $3, $5); }
         ;
 
 assign : expr '=' expr          { $$ = (AstNode*)createAstBinary(AST_ASSIGN, $1, $3); }
-       | expr ADD_EQ expr       { $$ = (AstNode*)createAstBinary(AST_ADD_ASSIGN, $1, $3); }
-       | expr SUB_EQ expr       { $$ = (AstNode*)createAstBinary(AST_SUB_ASSIGN, $1, $3); }
-       | expr MUL_EQ expr       { $$ = (AstNode*)createAstBinary(AST_MUL_ASSIGN, $1, $3); }
-       | expr DIV_EQ expr       { $$ = (AstNode*)createAstBinary(AST_DIV_ASSIGN, $1, $3); }
-       | expr MOD_EQ expr       { $$ = (AstNode*)createAstBinary(AST_MOD_ASSIGN, $1, $3); }
-       | expr SHR_EQ expr       { $$ = (AstNode*)createAstBinary(AST_SHR_ASSIGN, $1, $3); }
-       | expr SHL_EQ expr       { $$ = (AstNode*)createAstBinary(AST_SHL_ASSIGN, $1, $3); }
-       | expr BOR_EQ expr       { $$ = (AstNode*)createAstBinary(AST_BOR_ASSIGN, $1, $3); }
-       | expr BAND_EQ expr      { $$ = (AstNode*)createAstBinary(AST_BAND_ASSIGN, $1, $3); }
-       | expr BXOR_EQ expr      { $$ = (AstNode*)createAstBinary(AST_BXOR_ASSIGN, $1, $3); }
+       | expr "+=" expr       { $$ = (AstNode*)createAstBinary(AST_ADD_ASSIGN, $1, $3); }
+       | expr "-=" expr       { $$ = (AstNode*)createAstBinary(AST_SUB_ASSIGN, $1, $3); }
+       | expr "*=" expr       { $$ = (AstNode*)createAstBinary(AST_MUL_ASSIGN, $1, $3); }
+       | expr "/=" expr       { $$ = (AstNode*)createAstBinary(AST_DIV_ASSIGN, $1, $3); }
+       | expr "%=" expr       { $$ = (AstNode*)createAstBinary(AST_MOD_ASSIGN, $1, $3); }
+       | expr ">>=" expr       { $$ = (AstNode*)createAstBinary(AST_SHR_ASSIGN, $1, $3); }
+       | expr "<<=" expr       { $$ = (AstNode*)createAstBinary(AST_SHL_ASSIGN, $1, $3); }
+       | expr "|=" expr       { $$ = (AstNode*)createAstBinary(AST_BOR_ASSIGN, $1, $3); }
+       | expr "&=" expr      { $$ = (AstNode*)createAstBinary(AST_BAND_ASSIGN, $1, $3); }
+       | expr "^=" expr      { $$ = (AstNode*)createAstBinary(AST_BXOR_ASSIGN, $1, $3); }
        ; 
 
 block   : '{' stmts '}'     { $$ = (AstNode*)createAstBlock(AST_BLOCK, toStaticAstList($2)); }
@@ -154,14 +179,14 @@ expr    : ID                            { $$ = (AstNode*)createAstVar($1); }
         | expr '&' expr                 { $$ = (AstNode*)createAstBinary(AST_BAND, $1, $3); }
         | expr '|' expr                 { $$ = (AstNode*)createAstBinary(AST_BOR, $1, $3); }
         | expr '^' expr                 { $$ = (AstNode*)createAstBinary(AST_BXOR, $1, $3);}
-        | expr AND expr                 { $$ = (AstNode*)createAstBinary(AST_AND, $1, $3); }
-        | expr OR expr                  { $$ = (AstNode*)createAstBinary(AST_OR, $1, $3); }
-        | expr SHR expr                 { $$ = (AstNode*)createAstBinary(AST_SHR, $1, $3); }
-        | expr SHL expr                 { $$ = (AstNode*)createAstBinary(AST_SHL, $1, $3); }
-        | expr EQ expr                  { $$ = (AstNode*)createAstBinary(AST_EQ, $1, $3); }
-        | expr NE expr                  { $$ = (AstNode*)createAstBinary(AST_NE, $1, $3); }
-        | expr LE expr                  { $$ = (AstNode*)createAstBinary(AST_LE, $1, $3); }
-        | expr GE expr                  { $$ = (AstNode*)createAstBinary(AST_GE, $1, $3); }
+        | expr "&&" expr                { $$ = (AstNode*)createAstBinary(AST_AND, $1, $3); }
+        | expr "||" expr                { $$ = (AstNode*)createAstBinary(AST_OR, $1, $3); }
+        | expr ">>" expr                { $$ = (AstNode*)createAstBinary(AST_SHR, $1, $3); }
+        | expr "<<" expr                { $$ = (AstNode*)createAstBinary(AST_SHL, $1, $3); }
+        | expr "==" expr                { $$ = (AstNode*)createAstBinary(AST_EQ, $1, $3); }
+        | expr "!=" expr                { $$ = (AstNode*)createAstBinary(AST_NE, $1, $3); }
+        | expr "<=" expr                { $$ = (AstNode*)createAstBinary(AST_LE, $1, $3); }
+        | expr ">=" expr                { $$ = (AstNode*)createAstBinary(AST_GE, $1, $3); }
         | expr '>' expr                 { $$ = (AstNode*)createAstBinary(AST_GT, $1, $3); }
         | expr '<' expr                 { $$ = (AstNode*)createAstBinary(AST_LT, $1, $3); }
         ;
