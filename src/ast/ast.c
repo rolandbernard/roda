@@ -146,6 +146,16 @@ AstArgDef* createAstArgDef(String name, AstNode* type) {
 void freeAstNode(AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
+            case AST_ADD_ASSIGN:
+            case AST_SUB_ASSIGN:
+            case AST_MUL_ASSIGN:
+            case AST_DIV_ASSIGN:
+            case AST_MOD_ASSIGN:
+            case AST_SHL_ASSIGN:
+            case AST_SHR_ASSIGN:
+            case AST_BAND_ASSIGN:
+            case AST_BOR_ASSIGN:
+            case AST_BXOR_ASSIGN:
             case AST_ASSIGN:
             case AST_INDEX:
             case AST_SUB:

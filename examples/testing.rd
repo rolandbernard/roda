@@ -2,6 +2,10 @@
 import fn print(text: *u8);
 
 fn fma(a: uint, b: uint, c: uint): uint {
+    while a < b {
+        b += 1;
+        a *= 2;
+    }
     return a * b + c;
 }
 

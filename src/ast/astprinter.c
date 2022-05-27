@@ -32,6 +32,16 @@ static const char* ast_type_names[] = {
     [AST_ARGDEF] = "argdef",
     [AST_INDEX] = "index",
     [AST_ARRAY] = "array",
+    [AST_ADD_ASSIGN] = "add_assign",
+    [AST_SUB_ASSIGN] = "sub_assign",
+    [AST_MUL_ASSIGN] = "mul_assign",
+    [AST_DIV_ASSIGN] = "div_assign",
+    [AST_MOD_ASSIGN] = "mod_assign",
+    [AST_SHL_ASSIGN] = "shl_assign",
+    [AST_SHR_ASSIGN] = "shr_assign",
+    [AST_BAND_ASSIGN] = "band_assign",
+    [AST_BOR_ASSIGN] = "bor_assign",
+    [AST_BXOR_ASSIGN] = "bxor_assign",
 
     // AstUnary
     [AST_POS] = "pos",
@@ -135,6 +145,16 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
     }
     if (node != NULL) {
         switch (node->kind) {
+            case AST_ADD_ASSIGN:
+            case AST_SUB_ASSIGN:
+            case AST_MUL_ASSIGN:
+            case AST_DIV_ASSIGN:
+            case AST_MOD_ASSIGN:
+            case AST_SHL_ASSIGN:
+            case AST_SHR_ASSIGN:
+            case AST_BAND_ASSIGN:
+            case AST_BOR_ASSIGN:
+            case AST_BXOR_ASSIGN:
             case AST_ASSIGN:
             case AST_INDEX:
             case AST_SUB:

@@ -28,7 +28,7 @@ extern int yylex();
 %destructor { freeAstNode((AstNode*)$$); } <list>
 %destructor { freeDynamicAstList($$); } <dynlist>
 
-%type <ast> root block stmt type expr root_stmt arg_def opt_type
+%type <ast> root block stmt type expr root_stmt arg_def opt_type assign
 %type <list> args args_defs
 %type <dynlist> args_list args_def_list stmts root_stmts
 
@@ -61,7 +61,7 @@ extern int yylex();
 
 //todo:
 // chars
-// loops
+// for loop
 // match
 // top level definitions
 // 
@@ -96,21 +96,37 @@ args_def_list : arg_def                         { $$ = createDynamicAstList(); a
 arg_def : ID ':' type { $$ = (AstNode*)createAstArgDef($1, $3); }
         ;
 
-stmt    : expr                          { $$ = $1; }
-        | block                         { $$ = $1; }
-        | RETURN                        { $$ = (AstNode*)createAstUnary(AST_RETURN, NULL); }
-        | RETURN expr                   { $$ = (AstNode*)createAstUnary(AST_RETURN, $2); }
-        | expr '=' expr                 { $$ = (AstNode*)createAstBinary(AST_ASSIGN, $1, $3); }
-        | LET expr opt_type '=' expr    { $$ = (AstNode*)createAstVarDef($2, $3, $5); }
-        | LET expr opt_type             { $$ = (AstNode*)createAstVarDef($2, $3, NULL); }
-        | TYPE ID '=' type              { $$ = (AstNode*)createAstTypeDef($2, $4); }
+stmt    : expr ';'                       { $$ = $1; }
+        | assign ';'                     { $$ = $1; }
+        | block                          { $$ = $1; }
+        | RETURN ';'                     { $$ = (AstNode*)createAstUnary(AST_RETURN, NULL); }
+        | RETURN expr ';'                { $$ = (AstNode*)createAstUnary(AST_RETURN, $2); }
+        | LET expr opt_type '=' expr ';' { $$ = (AstNode*)createAstVarDef($2, $3, $5); }
+        | LET expr opt_type ';'          { $$ = (AstNode*)createAstVarDef($2, $3, NULL); }
+        | TYPE ID '=' type ';'           { $$ = (AstNode*)createAstTypeDef($2, $4); }
+        | WHILE expr block               { $$ = (AstNode*)createAstWhile($2, $3); }
+        | IF expr block                  { $$ = (AstNode*)createAstIfElse($2, $3, NULL); }
+        | IF expr block ELSE block       { $$ = (AstNode*)createAstIfElse($2, $3, $5); }
         ;
+
+assign : expr '=' expr                 { $$ = (AstNode*)createAstBinary(AST_ASSIGN, $1, $3); }
+       | expr ADD_EQ expr                 { $$ = (AstNode*)createAstBinary(AST_ADD_ASSIGN, $1, $3); }
+       | expr SUB_EQ expr                 { $$ = (AstNode*)createAstBinary(AST_SUB_ASSIGN, $1, $3); }
+       | expr MUL_EQ expr                 { $$ = (AstNode*)createAstBinary(AST_MUL_ASSIGN, $1, $3); }
+       | expr DIV_EQ expr                 { $$ = (AstNode*)createAstBinary(AST_DIV_ASSIGN, $1, $3); }
+       | expr MOD_EQ expr                 { $$ = (AstNode*)createAstBinary(AST_MOD_ASSIGN, $1, $3); }
+       | expr SHR_EQ expr                 { $$ = (AstNode*)createAstBinary(AST_SHR_ASSIGN, $1, $3); }
+       | expr SHL_EQ expr                 { $$ = (AstNode*)createAstBinary(AST_SHL_ASSIGN, $1, $3); }
+       | expr BOR_EQ expr                 { $$ = (AstNode*)createAstBinary(AST_BOR_ASSIGN, $1, $3); }
+       | expr BAND_EQ expr                 { $$ = (AstNode*)createAstBinary(AST_BAND_ASSIGN, $1, $3); }
+       | expr BXOR_EQ expr                 { $$ = (AstNode*)createAstBinary(AST_BXOR_ASSIGN, $1, $3); }
+       ; 
 
 block   : '{' stmts '}'     { $$ = (AstNode*)toStaticAstList($2); $$->kind = AST_BLOCK; }
         ;
 
 stmts   : %empty                { $$ = createDynamicAstList(); }
-        | stmts stmt ';'        { $$ = $1; addToDynamicAstList($1, $2); }
+        | stmts stmt            { $$ = $1; addToDynamicAstList($1, $2); }
         | stmts ';'             { $$ = $1; }
         ;
 
@@ -148,8 +164,6 @@ expr    : ID                            { $$ = (AstNode*)createAstVar($1); }
         | expr GE expr                  { $$ = (AstNode*)createAstBinary(AST_GE, $1, $3); }
         | expr '>' expr                 { $$ = (AstNode*)createAstBinary(AST_GT, $1, $3); }
         | expr '<' expr                 { $$ = (AstNode*)createAstBinary(AST_LT, $1, $3); }
-        | IF expr block                 { $$ = (AstNode*)createAstIfElse($2, $3, NULL); }
-        | IF expr block ELSE block      { $$ = (AstNode*)createAstIfElse($2, $3, $5); }
         ;
 
 args    : %empty    { $$ = createAstList(AST_LIST, 0, NULL); }

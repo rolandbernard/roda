@@ -29,6 +29,16 @@ typedef enum {
     AST_ASSIGN,
     AST_INDEX,
     AST_ARRAY,
+    AST_ADD_ASSIGN,
+    AST_SUB_ASSIGN,
+    AST_MUL_ASSIGN,
+    AST_DIV_ASSIGN,
+    AST_MOD_ASSIGN,
+    AST_SHL_ASSIGN,
+    AST_SHR_ASSIGN,
+    AST_BAND_ASSIGN,
+    AST_BOR_ASSIGN,
+    AST_BXOR_ASSIGN,
 
     // AstUnary
     AST_POS,
