@@ -63,4 +63,6 @@ String copyFromCString(const char* cstr);
 
 void inlineDecodeStringLiteral(String* string);
 
+unsigned long hashString(ConstString str);
+
 #endif

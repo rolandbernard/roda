@@ -316,3 +316,11 @@ void inlineDecodeStringLiteral(String* string) {
     string->data[new - 1] = 0;
 }
 
+unsigned long hashString(ConstString str) {
+    unsigned long hash = 6151;
+    for (int i = 0; i < str.length; i++) {
+        hash = hash * 769 + str.data[i];
+    }
+    return hash;
+}
+

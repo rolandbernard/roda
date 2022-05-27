@@ -104,7 +104,7 @@ AstCall* createAstCall(AstNode* func, AstList* arguments) {
 AstInt* createAstInt(String string) {
     AstInt* node = NEW(AstInt);
     node->kind = AST_INT;
-    node->number = strtoimax(toCString(toConstString(string)), NULL, 10);
+    node->number = strtoimax(cstr(string), NULL, 10);
     freeString(string);
     return node;
 }
@@ -112,7 +112,7 @@ AstInt* createAstInt(String string) {
 AstReal* createAstReal(String string) {
     AstReal* node = NEW(AstReal);
     node->kind = AST_REAL;
-    node->number = strtod(toCString(toConstString(string)), NULL);
+    node->number = strtod(cstr(string), NULL);
     freeString(string);
     return node;
 }
