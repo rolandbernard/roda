@@ -6,7 +6,8 @@ fn fma(a: uint, b: uint, c: uint): uint {
 }
 
 export fn main(argc: int, argv: **u8): int {
-    print("Hello world!");
+    print("Hello \t \"world\"!");
+    print(5.2E-2);
     return 0;
 }
 

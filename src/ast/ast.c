@@ -2,6 +2,7 @@
 #include <inttypes.h>
 
 #include "util/alloc.h"
+#include "util/text.h"
 
 #include "ast/ast.h"
 
@@ -120,6 +121,7 @@ AstReal* createAstReal(char* string) {
 AstStr* createAstStr(char* string) {
     AstStr* node = NEW(AstStr);
     node->kind = AST_STR;
+    inlineDecodeStringLiteral(string);
     node->string = string;
     return node;
 }

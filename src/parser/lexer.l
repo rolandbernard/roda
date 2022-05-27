@@ -8,7 +8,7 @@
 
 DIGIT   [0-9]
 ID      [_[:alpha:]][_[:alnum:]]*
-STR     \"([^"]|\\\")*\"
+STR     \"([^"\\]|\\[abn\"rfvt])*\"
 INT     {DIGIT}+
 REAL    {DIGIT}+(\.{DIGIT}+)?([eE][-+]?{DIGIT}+)?
 
