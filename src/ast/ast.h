@@ -4,6 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "text/string.h"
+
 typedef enum {
     // AstBinary
     AST_ADD,
@@ -88,7 +90,7 @@ typedef struct {
 
 typedef struct {
     AST_NODE_BASE
-    char* name;
+    String name;
 } AstVar;
 
 typedef struct {
@@ -112,7 +114,7 @@ typedef enum {
 
 typedef struct {
     AST_NODE_BASE
-    char* name;
+    String name;
     AstList* arguments;
     AstNode* ret_type;
     AstNode* body;
@@ -137,18 +139,18 @@ typedef struct {
 
 typedef struct {
     AST_NODE_BASE
-    char* string;
+    String string;
 } AstStr;
 
 typedef struct {
     AST_NODE_BASE
-    char* name;
+    String name;
     AstNode* value;
 } AstTypeDef;
 
 typedef struct {
     AST_NODE_BASE
-    char* name;
+    String name;
     AstNode* type;
 } AstArgDef;
 
@@ -160,25 +162,25 @@ AstList* createAstList(AstNodeKind kind, size_t count, AstNode** nodes);
 
 AstIfElse* createAstIfElse(AstNode* cond, AstNode* if_block, AstNode* else_block);
 
-AstVar* createAstVar(char* name);
+AstVar* createAstVar(String name);
 
 AstVarDef* createAstVarDef(AstNode* dst, AstNode* type, AstNode* val);
 
 AstWhile* createAstWhile(AstNode* cond, AstNode* block);
 
-AstFn* createAstFn(char* name, AstList* arguments, AstNode* ret_type, AstNode* body, AstFnFlags flags);
+AstFn* createAstFn(String name, AstList* arguments, AstNode* ret_type, AstNode* body, AstFnFlags flags);
 
 AstCall* createAstCall(AstNode* func, AstList* arguments);
 
-AstInt* createAstInt(char* string);
+AstInt* createAstInt(String string);
 
-AstReal* createAstReal(char* string);
+AstReal* createAstReal(String string);
 
-AstStr* createAstStr(char* string);
+AstStr* createAstStr(String string);
 
-AstTypeDef* createAstTypeDef(char* name, AstNode* value);
+AstTypeDef* createAstTypeDef(String name, AstNode* value);
 
-AstArgDef* createAstArgDef(char* name, AstNode* type);
+AstArgDef* createAstArgDef(String name, AstNode* type);
 
 void freeAstNode(AstNode* node);
 

@@ -9,7 +9,8 @@ export fn main(argc: int, argv: **u8): int {
     print("Hello \t \"world\"!");
     print(5.2E-2);
     print("\U0001F600");
-    print(82934324);
+    print(829343.545);
+    print(829343);
     return 0;
 }
 

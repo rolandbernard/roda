@@ -2,7 +2,6 @@
 #include <inttypes.h>
 
 #include "util/alloc.h"
-#include "util/text.h"
 
 #include "ast/ast.h"
 
@@ -49,7 +48,7 @@ AstIfElse* createAstIfElse(AstNode* cond, AstNode* if_block, AstNode* else_block
     return node;
 }
 
-AstVar* createAstVar(char* name) {
+AstVar* createAstVar(String name) {
     AstVar* node = NEW(AstVar);
     node->kind = AST_VAR;
     node->name = name;
@@ -78,7 +77,7 @@ AstWhile* createAstWhile(AstNode* cond, AstNode* block) {
     return node;
 }
 
-AstFn* createAstFn(char* name, AstList* arguments, AstNode* ret_type, AstNode* body, AstFnFlags flags) {
+AstFn* createAstFn(String name, AstList* arguments, AstNode* ret_type, AstNode* body, AstFnFlags flags) {
     AstFn* node = NEW(AstFn);
     node->kind = AST_FN;
     node->name = name;
@@ -102,31 +101,31 @@ AstCall* createAstCall(AstNode* func, AstList* arguments) {
     return node;
 }
 
-AstInt* createAstInt(char* string) {
+AstInt* createAstInt(String string) {
     AstInt* node = NEW(AstInt);
     node->kind = AST_INT;
-    node->number = strtoimax(string, NULL, 10);
-    FREE(string);
+    node->number = strtoimax(toCString(toConstString(string)), NULL, 10);
+    freeString(string);
     return node;
 }
 
-AstReal* createAstReal(char* string) {
+AstReal* createAstReal(String string) {
     AstReal* node = NEW(AstReal);
     node->kind = AST_REAL;
-    node->number = strtod(string, NULL);
-    FREE(string);
+    node->number = strtod(toCString(toConstString(string)), NULL);
+    freeString(string);
     return node;
 }
 
-AstStr* createAstStr(char* string) {
+AstStr* createAstStr(String string) {
     AstStr* node = NEW(AstStr);
     node->kind = AST_STR;
-    inlineDecodeStringLiteral(string);
     node->string = string;
+    inlineDecodeStringLiteral(&node->string);
     return node;
 }
 
-AstTypeDef* createAstTypeDef(char* name, AstNode* value) {
+AstTypeDef* createAstTypeDef(String name, AstNode* value) {
     AstTypeDef* node = NEW(AstTypeDef);
     node->kind = AST_TYPEDEF;
     node->name = name;
@@ -135,7 +134,7 @@ AstTypeDef* createAstTypeDef(char* name, AstNode* value) {
     return node;
 }
 
-AstArgDef* createAstArgDef(char* name, AstNode* type) {
+AstArgDef* createAstArgDef(String name, AstNode* type) {
     AstArgDef* node = NEW(AstArgDef);
     node->kind = AST_ARGDEF;
     node->name = name;
@@ -194,7 +193,7 @@ void freeAstNode(AstNode* node) {
             }
             case AST_VAR: {
                 AstVar* n = (AstVar*)node;
-                FREE(n->name);
+                freeString(n->name);
                 break;
             }
             case AST_VARDEF: {
@@ -219,7 +218,7 @@ void freeAstNode(AstNode* node) {
             }
             case AST_FN: {
                 AstFn* n = (AstFn*)node;
-                FREE(n->name);
+                freeString(n->name);
                 freeAstNode((AstNode*)n->arguments);
                 freeAstNode(n->ret_type);
                 freeAstNode(n->body);
@@ -234,18 +233,18 @@ void freeAstNode(AstNode* node) {
             }
             case AST_STR: {
                 AstStr* n = (AstStr*)node;
-                FREE(n->string);
+                freeString(n->string);
                 break;
             }
             case AST_TYPEDEF: {
                 AstTypeDef* n = (AstTypeDef*)node;
-                FREE(n->name);
+                freeString(n->name);
                 freeAstNode(n->value);
                 break;
             }
             case AST_ARGDEF: {
                 AstArgDef* n = (AstArgDef*)node;
-                FREE(n->name);
+                freeString(n->name);
                 freeAstNode(n->type);
                 break;
             }

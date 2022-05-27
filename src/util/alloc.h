@@ -3,13 +3,19 @@
 
 #include <stdlib.h>
 
+void* checkedAlloc(size_t size);
+
+void* checkedRealloc(void* original, size_t size);
+
+void* checkedCalloc(size_t n, size_t size);
+
 #define NEW(TYPE) ALLOC(TYPE, 1)
 
-#define ALLOC(TYPE, COUNT) ((TYPE*)malloc(sizeof(TYPE) * (COUNT)))
+#define ALLOC(TYPE, COUNT) ((TYPE*)checkedAlloc(sizeof(TYPE) * (COUNT)))
 
-#define REALLOC(TYPE, OLD, COUNT) ((TYPE*)realloc(OLD, sizeof(TYPE) * (COUNT)))
+#define REALLOC(TYPE, OLD, COUNT) ((TYPE*)checkedRealloc(OLD, sizeof(TYPE) * (COUNT)))
 
-#define ZALLOC(TYPE, COUNT) ((TYPE*)calloc(COUNT, sizeof(TYPE)))
+#define ZALLOC(TYPE, COUNT) ((TYPE*)checkedCalloc(COUNT, sizeof(TYPE)))
 
 #define FREE(PTR) free(PTR)
 

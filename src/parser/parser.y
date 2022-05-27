@@ -5,6 +5,7 @@
 #include "ast/ast.h"
 #include "ast/astlist.h"
 #include "util/alloc.h"
+#include "text/string.h"
 
 extern void yyerror(AstNode**, const char*);
 extern int yylex();
@@ -15,13 +16,13 @@ extern int yylex();
 %parse-param {AstNode** ast_result}
 
 %union {
-    char* lexeme;
+    String lexeme;
     AstNode* ast;
     AstList* list;
     DynamicAstList* dynlist;
 }
 
-%destructor { FREE($$); } <lexeme>
+%destructor { freeString($$); } <lexeme>
 %destructor { freeAstNode($$); } <ast>
 %destructor { freeAstNode((AstNode*)$$); } <list>
 %destructor { freeDynamicAstList($$); } <dynlist>
