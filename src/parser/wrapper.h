@@ -2,7 +2,8 @@
 #define _PARSER_WRAPPER_H_
 
 #include "ast/ast.h"
+#include "errors/msgcontext.h"
 
-AstNode* parseStdin();
+AstNode* parseStdin(MessageContext* context);
 
 #endif

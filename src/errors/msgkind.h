@@ -22,6 +22,7 @@ typedef enum {
 
     ERRORS_START,
     ERROR_UNKNOWN,
+    ERROR_SYNTAX,
     ERRORS_END,
 
     WARNINGS_START,

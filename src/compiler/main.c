@@ -14,7 +14,7 @@ int main(int argc, const char* const* argv) {
     setlocale(LC_ALL, ""); // Set locale to user preference
     MessageContext context;
     initMessageContext(&context);
-    AstNode* ast = parseStdin();
+    AstNode* ast = parseStdin(&context);
     printAst(stderr, ast);
     freeAstNode(ast);
     printMessages(&context, stderr, NULL, true, true);

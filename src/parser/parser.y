@@ -6,14 +6,15 @@
 #include "ast/astlist.h"
 #include "util/alloc.h"
 #include "text/string.h"
+#include "errors/msgcontext.h"
 
-extern void yyerror(AstNode**, const char*);
+extern void yyerror(AstNode**, MessageContext*, const char*);
 extern int yylex();
 }
 
 %define parse.error verbose
 
-%parse-param {AstNode** ast_result}
+%parse-param {AstNode** ast_result} {MessageContext* context}
 
 %union {
     String lexeme;
@@ -160,9 +161,4 @@ args_list : expr                { $$ = createDynamicAstList(); addToDynamicAstLi
           ;
 
 %%
-
-void yyerror(AstNode** ast_result, const char* s) {
-    // TODO
-    printf("ERROR %s\n", s);
-}
 
