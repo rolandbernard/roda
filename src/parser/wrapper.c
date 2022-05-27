@@ -4,11 +4,8 @@
 #include "parser/wrapper.h"
 
 AstNode* parseStdin() {
-    AstNode* result;
-    if (yyparse(&result) != 0) {
-        return NULL;
-    } else {
-        return result;
-    }
+    AstNode* result = NULL;
+    yyparse(&result);
+    return result;
 }
 

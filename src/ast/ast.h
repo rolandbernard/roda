@@ -149,7 +149,7 @@ typedef struct {
 typedef struct {
     AST_NODE_BASE
     char* name;
-    AstNode* arg_type;
+    AstNode* type;
 } AstArgDef;
 
 AstBinary* createAstBinary(AstNodeKind kind, AstNode* left, AstNode* right);

@@ -7,6 +7,4 @@
 
 void printAst(FILE* file, AstNode* ast);
 
-void printAstIndented(FILE* file, AstNode* ast, int indent);
-
 #endif

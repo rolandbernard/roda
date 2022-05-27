@@ -5,13 +5,15 @@
 
 #include "ast/ast.h"
 
+#define SET_PARENT(NODE) if (NODE != NULL) { NODE->parent = (AstNode*)node;}
+
 AstBinary* createAstBinary(AstNodeKind kind, AstNode* left, AstNode* right) {
     AstBinary* node = NEW(AstBinary);
     node->kind = kind;
     node->left = left;
     node->right = right;
-    left->parent = (AstNode*)node;
-    right->parent = (AstNode*)node;
+    SET_PARENT(left);
+    SET_PARENT(right);
     return node;
 }
 
@@ -19,7 +21,7 @@ AstUnary* createAstUnary(AstNodeKind kind, AstNode* operand) {
     AstUnary* node = NEW(AstUnary);
     node->kind = kind;
     node->op = operand;
-    operand->parent = (AstNode*)node;
+    SET_PARENT(operand);
     return node;
 }
 
@@ -29,7 +31,7 @@ AstList* createAstList(AstNodeKind kind, size_t count, AstNode** nodes) {
     node->count = count;
     node->nodes = nodes;
     for (size_t i = 0; i < count; i++) {
-        nodes[i]->parent = (AstNode*)node;
+        SET_PARENT(nodes[i]);
     }
     return node;
 }
@@ -40,9 +42,9 @@ AstIfElse* createAstIfElse(AstNode* cond, AstNode* if_block, AstNode* else_block
     node->condition = cond; 
     node->if_block = if_block;
     node->else_block = else_block;
-    cond->parent = (AstNode*)node;
-    if_block->parent = (AstNode*)node;
-    else_block->parent = (AstNode*)node;
+    SET_PARENT(cond);
+    SET_PARENT(if_block);
+    SET_PARENT(else_block);
     return node;
 }
 
@@ -59,9 +61,9 @@ AstVarDef* createAstVarDef(AstNode* dst, AstNode* type, AstNode* val) {
     node->dst = dst;
     node->type = type;
     node->val = val;
-    dst->parent = (AstNode*)node;
-    type->parent = (AstNode*)node;
-    val->parent = (AstNode*)node;
+    SET_PARENT(dst);
+    SET_PARENT(type);
+    SET_PARENT(val);
     return node;
 }
 
@@ -70,8 +72,8 @@ AstWhile* createAstWhile(AstNode* cond, AstNode* block) {
     node->kind = AST_WHILE;
     node->condition = cond;
     node->block = block;
-    cond->parent = (AstNode*)node;
-    block->parent = (AstNode*)node;
+    SET_PARENT(cond);
+    SET_PARENT(block);
     return node;
 }
 
@@ -83,9 +85,9 @@ AstFn* createAstFn(char* name, AstList* arguments, AstNode* ret_type, AstNode* b
     node->ret_type = ret_type;
     node->body = body;
     node->flags = flags;
-    arguments->parent = (AstNode*)node;
-    ret_type->parent = (AstNode*)node;
-    body->parent = (AstNode*)node;
+    SET_PARENT(arguments);
+    SET_PARENT(ret_type);
+    SET_PARENT(body);
     return node;
 }
 
@@ -94,8 +96,8 @@ AstCall* createAstCall(AstNode* func, AstList* arguments) {
     node->kind = AST_CALL;
     node->function = func;
     node->arguments = arguments;
-    func->parent = (AstNode*)node;
-    arguments->parent = (AstNode*)node;
+    SET_PARENT(func);
+    SET_PARENT(arguments);
     return node;
 }
 
@@ -127,7 +129,7 @@ AstTypeDef* createAstTypeDef(char* name, AstNode* value) {
     node->kind = AST_TYPEDEF;
     node->name = name;
     node->value = value;
-    value->parent = (AstNode*)node;
+    SET_PARENT(value);
     return node;
 }
 
@@ -135,8 +137,8 @@ AstArgDef* createAstArgDef(char* name, AstNode* type) {
     AstArgDef* node = NEW(AstArgDef);
     node->kind = AST_ARGDEF;
     node->name = name;
-    node->arg_type = type;
-    type->parent = (AstNode*)node;
+    node->type = type;
+    SET_PARENT(type);
     return node;
 }
 
@@ -242,7 +244,7 @@ void freeAstNode(AstNode* node) {
             case AST_ARGDEF: {
                 AstArgDef* n = (AstArgDef*)node;
                 FREE(n->name);
-                freeAstNode(n->arg_type);
+                freeAstNode(n->type);
                 break;
             }
             case AST_INT:
