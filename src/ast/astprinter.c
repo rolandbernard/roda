@@ -204,7 +204,7 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
             }
             case AST_VAR: {
                 AstVar* n = (AstVar*)node;
-                fprintf(file, " (name = %s)\n", toCString(toConstString(n->name)));
+                fprintf(file, " (name = %s)\n", cstr(n->name));
                 break;
             }
             case AST_VARDEF: {
@@ -232,7 +232,7 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
             }
             case AST_FN: {
                 AstFn* n = (AstFn*)node;
-                fprintf(file, " (name = %s, flags =", toCString(toConstString(n->name)));
+                fprintf(file, " (name = %s, flags =", cstr(n->name));
                 if (n->flags == AST_FN_FLAG_NONE) {
                     fprintf(file, " none");
                 } else {
@@ -258,7 +258,7 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
             }
             case AST_STR: {
                 AstStr* n = (AstStr*)node;
-                fprintf(file, " (string = %s)\n", toCString(toConstString(n->string)));
+                fprintf(file, " (string = %s)\n", cstr(n->string));
                 break;
             }
             case AST_INT: {
@@ -273,13 +273,13 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
             }
             case AST_TYPEDEF: {
                 AstTypeDef* n = (AstTypeDef*)node;
-                fprintf(file, " (name = %s)\n", toCString(toConstString(n->name)));
+                fprintf(file, " (name = %s)\n", cstr(n->name));
                 printAstChildNode(file, n->value, colors, indent, "value", true);
                 break;
             }
             case AST_ARGDEF: {
                 AstArgDef* n = (AstArgDef*)node;
-                fprintf(file, " (name = %s)\n", toCString(toConstString(n->name)));
+                fprintf(file, " (name = %s)\n", cstr(n->name));
                 printAstChildNode(file, n->type, colors, indent, "type", true);
                 break;
             }

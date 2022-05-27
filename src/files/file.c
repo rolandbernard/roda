@@ -6,13 +6,12 @@
 #include "files/file.h"
 #include "util/alloc.h"
 
-void initFile(File* file, ConstString import_path, ConstPath file_path) {
+void initFile(File* file, ConstPath file_path) {
     file->original_path = copyPath(file_path);
     file->absolute_path = getAbsolutePath(file_path);
     file->directory = getParentDirectory(toConstPath(file->absolute_path));
     file->extention = getExtention(toConstPath(file->absolute_path));
     file->name = getFilename(toConstPath(file->absolute_path));
-    file->import_path = import_path;
 }
 
 File* copyFile(File* file) {
@@ -22,13 +21,12 @@ File* copyFile(File* file) {
     ret->directory = getParentDirectory(toConstPath(ret->absolute_path));
     ret->extention = getExtention(toConstPath(ret->absolute_path));
     ret->name = getFilename(toConstPath(ret->absolute_path));
-    ret->import_path = file->import_path;
     return ret;
 }
 
-File* createFile(ConstString import_path, ConstPath file_path) {
+File* createFile(ConstPath file_path) {
     File* ret = ALLOC(File, 1);
-    initFile(ret, import_path, file_path);
+    initFile(ret, file_path);
     return ret;
 }
 

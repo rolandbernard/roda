@@ -8,7 +8,6 @@
 #include "files/path.h"
 
 typedef struct {
-    ConstString import_path;
     Path original_path;
     Path absolute_path;
     ConstPath directory;
@@ -22,11 +21,11 @@ typedef struct {
     int length;
 } Span;
 
-void initFile(File* file, ConstString import_path, ConstPath relative_or_absolute_path);
+void initFile(File* file, ConstPath relative_or_absolute_path);
 
 File* copyFile(File* file);
 
-File* createFile(ConstString import_path, ConstPath relative_or_absolute_path);
+File* createFile(ConstPath relative_or_absolute_path);
 
 void deinitFile(File* file);
 

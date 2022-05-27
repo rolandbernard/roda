@@ -4,6 +4,8 @@
 #include "ast/ast.h"
 #include "errors/msgcontext.h"
 
+AstNode* parseFile(File* file, MessageContext* context);
+
 AstNode* parseStdin(MessageContext* context);
 
 #endif

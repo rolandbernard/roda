@@ -46,8 +46,8 @@ File* searchFileInSet(FileSet* fileset, ConstPath absolute_path) {
     return NULL;
 }
 
-File* createFileInSet(FileSet* fileset, ConstString import_path, ConstPath relative_or_absolute_path) {
-    File* file = createFile(import_path, relative_or_absolute_path);
+File* createFileInSet(FileSet* fileset, ConstPath relative_or_absolute_path) {
+    File* file = createFile(relative_or_absolute_path);
     File* existing = searchFileInSet(fileset, toConstPath(file->absolute_path));
     if (existing != NULL) {
         freeFile(file);

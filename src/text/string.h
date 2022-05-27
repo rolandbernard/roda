@@ -1,6 +1,10 @@
 #ifndef _STRING_H_
 #define _STRING_H_
 
+#define mutstr(CSTR) createFromCString(CSTR)
+#define str(CSTR) createFromConstCString(CSTR)
+#define cstr(STR) toCString(toConstString(STR))
+
 typedef struct {
     char* data;
     int length;

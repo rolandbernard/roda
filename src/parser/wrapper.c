@@ -1,8 +1,18 @@
 
 #include "parser/parser.tab.h"
+#include "parser/lexer.yy.h"
 #include "text/format.h"
+#include "files/file.h"
 
 #include "parser/wrapper.h"
+
+AstNode* parseFile(File* file, MessageContext* context) {
+    AstNode* result = NULL;
+    yyin = openFileStream(file, "r");
+    yyparse(&result, context);
+    fclose(yyin);
+    return result;
+}
 
 AstNode* parseStdin(MessageContext* context) {
     AstNode* result = NULL;
