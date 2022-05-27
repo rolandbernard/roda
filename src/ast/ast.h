@@ -55,9 +55,10 @@ typedef enum {
 } AstNodeKind;
 
 #define AST_NODE_BASE \
+    struct AstNode* parent;  \
     AstNodeKind kind;
 
-typedef struct {
+typedef struct AstNode {
     AST_NODE_BASE
 } AstNode;
 
