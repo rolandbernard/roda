@@ -69,7 +69,7 @@ extern int yylex();
 program : root  { *ast_result = $1; }
         ;
 
-root : root_stmts  { $$ = (AstNode*)toStaticAstList($1); $$->kind = AST_ROOT; }
+root : root_stmts  { $$ = (AstNode*)createAstBlock(AST_ROOT, toStaticAstList($1)); }
      ;
 
 root_stmts : %empty                     { $$ = createDynamicAstList(); }
@@ -101,28 +101,28 @@ stmt    : expr ';'                       { $$ = $1; }
         | block                          { $$ = $1; }
         | RETURN ';'                     { $$ = (AstNode*)createAstUnary(AST_RETURN, NULL); }
         | RETURN expr ';'                { $$ = (AstNode*)createAstUnary(AST_RETURN, $2); }
-        | LET expr opt_type '=' expr ';' { $$ = (AstNode*)createAstVarDef($2, $3, $5); }
-        | LET expr opt_type ';'          { $$ = (AstNode*)createAstVarDef($2, $3, NULL); }
+        | LET ID opt_type '=' expr ';'   { $$ = (AstNode*)createAstVarDef($2, $3, $5); }
+        | LET ID opt_type ';'            { $$ = (AstNode*)createAstVarDef($2, $3, NULL); }
         | TYPE ID '=' type ';'           { $$ = (AstNode*)createAstTypeDef($2, $4); }
         | WHILE expr block               { $$ = (AstNode*)createAstWhile($2, $3); }
         | IF expr block                  { $$ = (AstNode*)createAstIfElse($2, $3, NULL); }
         | IF expr block ELSE block       { $$ = (AstNode*)createAstIfElse($2, $3, $5); }
         ;
 
-assign : expr '=' expr                 { $$ = (AstNode*)createAstBinary(AST_ASSIGN, $1, $3); }
-       | expr ADD_EQ expr                 { $$ = (AstNode*)createAstBinary(AST_ADD_ASSIGN, $1, $3); }
-       | expr SUB_EQ expr                 { $$ = (AstNode*)createAstBinary(AST_SUB_ASSIGN, $1, $3); }
-       | expr MUL_EQ expr                 { $$ = (AstNode*)createAstBinary(AST_MUL_ASSIGN, $1, $3); }
-       | expr DIV_EQ expr                 { $$ = (AstNode*)createAstBinary(AST_DIV_ASSIGN, $1, $3); }
-       | expr MOD_EQ expr                 { $$ = (AstNode*)createAstBinary(AST_MOD_ASSIGN, $1, $3); }
-       | expr SHR_EQ expr                 { $$ = (AstNode*)createAstBinary(AST_SHR_ASSIGN, $1, $3); }
-       | expr SHL_EQ expr                 { $$ = (AstNode*)createAstBinary(AST_SHL_ASSIGN, $1, $3); }
-       | expr BOR_EQ expr                 { $$ = (AstNode*)createAstBinary(AST_BOR_ASSIGN, $1, $3); }
-       | expr BAND_EQ expr                 { $$ = (AstNode*)createAstBinary(AST_BAND_ASSIGN, $1, $3); }
-       | expr BXOR_EQ expr                 { $$ = (AstNode*)createAstBinary(AST_BXOR_ASSIGN, $1, $3); }
+assign : expr '=' expr          { $$ = (AstNode*)createAstBinary(AST_ASSIGN, $1, $3); }
+       | expr ADD_EQ expr       { $$ = (AstNode*)createAstBinary(AST_ADD_ASSIGN, $1, $3); }
+       | expr SUB_EQ expr       { $$ = (AstNode*)createAstBinary(AST_SUB_ASSIGN, $1, $3); }
+       | expr MUL_EQ expr       { $$ = (AstNode*)createAstBinary(AST_MUL_ASSIGN, $1, $3); }
+       | expr DIV_EQ expr       { $$ = (AstNode*)createAstBinary(AST_DIV_ASSIGN, $1, $3); }
+       | expr MOD_EQ expr       { $$ = (AstNode*)createAstBinary(AST_MOD_ASSIGN, $1, $3); }
+       | expr SHR_EQ expr       { $$ = (AstNode*)createAstBinary(AST_SHR_ASSIGN, $1, $3); }
+       | expr SHL_EQ expr       { $$ = (AstNode*)createAstBinary(AST_SHL_ASSIGN, $1, $3); }
+       | expr BOR_EQ expr       { $$ = (AstNode*)createAstBinary(AST_BOR_ASSIGN, $1, $3); }
+       | expr BAND_EQ expr      { $$ = (AstNode*)createAstBinary(AST_BAND_ASSIGN, $1, $3); }
+       | expr BXOR_EQ expr      { $$ = (AstNode*)createAstBinary(AST_BXOR_ASSIGN, $1, $3); }
        ; 
 
-block   : '{' stmts '}'     { $$ = (AstNode*)toStaticAstList($2); $$->kind = AST_BLOCK; }
+block   : '{' stmts '}'     { $$ = (AstNode*)createAstBlock(AST_BLOCK, toStaticAstList($2)); }
         ;
 
 stmts   : %empty                { $$ = createDynamicAstList(); }

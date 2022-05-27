@@ -55,13 +55,12 @@ AstVar* createAstVar(String name) {
     return node;
 }
 
-AstVarDef* createAstVarDef(AstNode* dst, AstNode* type, AstNode* val) {
+AstVarDef* createAstVarDef(String name, AstNode* type, AstNode* val) {
     AstVarDef* node = NEW(AstVarDef);
     node->kind = AST_VARDEF;
-    node->dst = dst;
+    node->name = name;
     node->type = type;
     node->val = val;
-    SET_PARENT(dst);
     SET_PARENT(type);
     SET_PARENT(val);
     return node;
@@ -85,6 +84,7 @@ AstFn* createAstFn(String name, AstList* arguments, AstNode* ret_type, AstNode* 
     node->ret_type = ret_type;
     node->body = body;
     node->flags = flags;
+    initSymbolTable(&node->vars, NULL);
     SET_PARENT(arguments);
     SET_PARENT(ret_type);
     SET_PARENT(body);
@@ -143,6 +143,15 @@ AstArgDef* createAstArgDef(String name, AstNode* type) {
     return node;
 }
 
+AstBlock* createAstBlock(AstNodeKind kind, AstList* nodes) {
+    AstBlock* node = NEW(AstBlock);
+    node->kind = kind;
+    initSymbolTable(&node->vars, NULL);
+    node->nodes = nodes;
+    SET_PARENT(nodes);
+    return node;
+}
+
 void freeAstNode(AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
@@ -191,14 +200,19 @@ void freeAstNode(AstNode* node) {
                 freeAstNode(n->op);
                 break;
             }
-            case AST_LIST:
-            case AST_ROOT:
-            case AST_BLOCK: {
+            case AST_LIST: {
                 AstList* n = (AstList*)node;
                 for (size_t i = 0; i < n->count; i++) {
                     freeAstNode(n->nodes[i]);
                 }
                 FREE(n->nodes);
+                break;
+            }
+            case AST_ROOT:
+            case AST_BLOCK: {
+                AstBlock* n = (AstBlock*)node;
+                deinitSymbolTable(&n->vars);
+                freeAstNode((AstNode*)n->nodes);
                 break;
             }
             case AST_VAR: {
@@ -208,7 +222,7 @@ void freeAstNode(AstNode* node) {
             }
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
-                freeAstNode(n->dst);
+                freeString(n->name);
                 freeAstNode(n->type);
                 freeAstNode(n->val);
                 break;
@@ -228,12 +242,12 @@ void freeAstNode(AstNode* node) {
             }
             case AST_FN: {
                 AstFn* n = (AstFn*)node;
+                deinitSymbolTable(&n->vars);
                 freeString(n->name);
                 freeAstNode((AstNode*)n->arguments);
                 freeAstNode(n->ret_type);
                 freeAstNode(n->body);
                 break;
-
             }
             case AST_CALL: {
                 AstCall* n = (AstCall*)node;

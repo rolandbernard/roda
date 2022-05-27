@@ -23,6 +23,7 @@ typedef enum {
     ERRORS_START,
     ERROR_UNKNOWN,
     ERROR_SYNTAX,
+    ERROR_ALREADY_DEFINED,
     ERRORS_END,
 
     WARNINGS_START,
@@ -45,10 +46,6 @@ typedef enum {
 #define NUM_MESSAGE_KIND (DEBUGS_END + 1)
 
 ConstString getMessageKindString(MessageKind kind);
-
-ConstString getMessageKindName(MessageKind kind);
-
-MessageKind getMessageKindFromName(ConstString kind);
 
 ConstString getMessageCategoryName(MessageCategory category);
 

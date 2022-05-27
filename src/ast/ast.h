@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #include "text/string.h"
+#include "analysis/symbols.h"
 
 typedef enum {
     // AstBinary
@@ -47,8 +48,7 @@ typedef enum {
     AST_DEREF,
     AST_RETURN,
 
-    // AstList
-    AST_LIST,
+    // AstBlock
     AST_ROOT,
     AST_BLOCK,
 
@@ -64,6 +64,7 @@ typedef enum {
     AST_STR,
     AST_TYPEDEF,
     AST_ARGDEF,
+    AST_LIST,
 } AstNodeKind;
 
 #define AST_NODE_BASE \
@@ -105,7 +106,7 @@ typedef struct {
 
 typedef struct {
     AST_NODE_BASE
-    AstNode* dst;
+    String name;
     AstNode* type;
     AstNode* val;
 } AstVarDef;
@@ -124,6 +125,7 @@ typedef enum {
 
 typedef struct {
     AST_NODE_BASE
+    SymbolTable vars;
     String name;
     AstList* arguments;
     AstNode* ret_type;
@@ -164,17 +166,25 @@ typedef struct {
     AstNode* type;
 } AstArgDef;
 
+typedef struct {
+    AST_NODE_BASE
+    SymbolTable vars;
+    AstList* nodes;
+} AstBlock;
+
 AstBinary* createAstBinary(AstNodeKind kind, AstNode* left, AstNode* right);
 
 AstUnary* createAstUnary(AstNodeKind kind, AstNode* operand);
 
 AstList* createAstList(AstNodeKind kind, size_t count, AstNode** nodes);
 
+AstBlock* createAstBlock(AstNodeKind kind, AstList* nodes);
+
 AstIfElse* createAstIfElse(AstNode* cond, AstNode* if_block, AstNode* else_block);
 
 AstVar* createAstVar(String name);
 
-AstVarDef* createAstVarDef(AstNode* dst, AstNode* type, AstNode* val);
+AstVarDef* createAstVarDef(String name, AstNode* type, AstNode* val);
 
 AstWhile* createAstWhile(AstNode* cond, AstNode* block);
 

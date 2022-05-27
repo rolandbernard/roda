@@ -5,18 +5,12 @@
 
 static const char* message_kind_strings[] = {
     [ERROR_UNKNOWN] = "unknown error",
+    [ERROR_SYNTAX] = "syntax error",
+    [ERROR_ALREADY_DEFINED] = "already defined",
     [WARNING_UNKNOWN] = "unknown warning",
     [NOTE_UNKNOWN] = "unknown note",
     [HELP_UNKNOWN] = "unknown help",
     [DEBUG_UNKNOWN] = "unknown debug",
-};
-
-static const char* message_kind_names[] = {
-    [ERROR_UNKNOWN] = "unknown",
-    [WARNING_UNKNOWN] = "unknown",
-    [NOTE_UNKNOWN] = "unknown",
-    [HELP_UNKNOWN] = "unknown",
-    [DEBUG_UNKNOWN] = "unknown",
 };
 
 ConstString getMessageKindString(MessageKind kind) {
@@ -25,26 +19,6 @@ ConstString getMessageKindString(MessageKind kind) {
     } else {
         return createFromConstCString(message_kind_strings[kind]);
     }
-}
-
-ConstString getMessageKindName(MessageKind kind) {
-    if (getMessageCategory(kind) == MESSAGE_UNKNOWN) {
-        return getMessageCategoryName(MESSAGE_UNKNOWN);
-    } else {
-        return createFromConstCString(message_kind_names[kind]);
-    }
-}
-
-MessageKind getMessageKindFromName(ConstString kind) {
-    if (compareStrings(getMessageKindName(UNKNOWN_UNKNOWN), kind) == 0) {
-        return UNKNOWN_UNKNOWN;
-    }
-    for (int k = ERRORS_START + 1; k < DEBUGS_END; k++) {
-        if (compareStrings(getMessageKindName(k), kind) == 0) {
-            return k;
-        }
-    }
-    return UNKNOWN_UNKNOWN;
 }
 
 static const char* message_category_names[] = {

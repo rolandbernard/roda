@@ -8,16 +8,18 @@
 #define INITIAL_CAPACITY 32
 
 void initSymbolTable(SymbolTable* self, SymbolTable* parent) {
-    self = NEW(SymbolTable);
     self->parent = parent;
-    self->names = NULL;
     self->vars = NULL;
     self->count = 0;
     self->capacity = 0;
 }
 
 void deinitSymbolTable(SymbolTable* self) {
-    FREE(self->names);
+    for (size_t i = 0; i < self->capacity; i++) {
+        if (self->vars[i] != NULL) {
+            freeVariable(self->vars[i]);
+        }
+    }
     FREE(self->vars);
 }
 
@@ -26,7 +28,7 @@ static bool isIndexValid(SymbolTable* table, size_t idx) {
 }
 
 static bool continueSearch(SymbolTable* table, size_t idx, ConstString key) {
-    return table->vars[idx] != NULL && compareStrings(table->names[idx], key) != 0;
+    return table->vars[idx] != NULL && compareStrings(table->vars[idx]->name, key) != 0;
 }
 
 static size_t findIndexHashTable(SymbolTable* table, ConstString key) {
@@ -38,37 +40,40 @@ static size_t findIndexHashTable(SymbolTable* table, ConstString key) {
 }
 
 Variable* findSymbolInTable(SymbolTable* self, ConstString name) {
-    if (self->count != 0) {
-        size_t idx = findIndexHashTable(self, name);
-        if (isIndexValid(self, idx)) {
-            return self->vars[idx];
-        }
-    }
-    if (self->parent == NULL) {
+    Variable* ret = findImmediateSymbolInTable(self, name);
+    if (ret != NULL) {
+        return ret;
+    } else if (self->parent == NULL) {
         return NULL;
     } else {
         return findSymbolInTable(self->parent, name);
     }
 }
 
+Variable* findImmediateSymbolInTable(SymbolTable* self, ConstString name) {
+    if (self->count != 0) {
+        size_t idx = findIndexHashTable(self, name);
+        if (isIndexValid(self, idx)) {
+            return self->vars[idx];
+        }
+    }
+    return NULL;
+}
+
 static void rebuildHashTable(SymbolTable* table, size_t size) {
     SymbolTable new;
     new.capacity = size;
     new.count = 0;
-    new.names = ALLOC(ConstString, size);
     new.vars = ALLOC(Variable*, size);
     for (size_t i = 0; i < size; i++) {
         new.vars[i] = NULL;
     }
     for (size_t i = 0; i < table->capacity; i++) {
         if (isIndexValid(table, i)) {
-            size_t idx = findIndexHashTable(&new, table->names[i]);
-            new.names[idx] = table->names[i];
+            size_t idx = findIndexHashTable(&new, table->vars[i]->name);
             new.vars[idx] = table->vars[i];
         }
     }
-    FREE(table->names);
-    table->names = new.names;
     FREE(table->vars);
     table->vars = new.vars;
     table->capacity = new.capacity;
@@ -82,13 +87,12 @@ static void tryResizingHashTable(SymbolTable* table) {
     }
 }
 
-void addSymbolToTable(SymbolTable* self, ConstString name, Variable* var) {
+void addSymbolToTable(SymbolTable* self, Variable* var) {
     tryResizingHashTable(self);
-    size_t idx = findIndexHashTable(self, name);
+    size_t idx = findIndexHashTable(self, var->name);
     if (isIndexValid(self, idx)) {
         self->vars[idx] = var;
     } else {
-        self->names[idx] = name;
         self->vars[idx] = var;
         self->count++;
     }

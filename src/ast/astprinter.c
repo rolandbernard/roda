@@ -99,7 +99,9 @@ void pushIndentStack(IndentStack* stack, size_t off, const char* chars) {
 
 static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack* indent);
 
-static void printAstChildNode(FILE* file, AstNode* node, bool colors, IndentStack* indent, const char* name, bool last) {
+static void printAstChildNode(
+    FILE* file, AstNode* node, bool colors, IndentStack* indent, const char* name, bool last
+) {
     size_t indentation = indent->count;
     if (name != NULL) {
         fwrite(indent->data, 1, indentation, file);
@@ -192,14 +194,19 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
                 printAstChildNode(file, n->op, colors, indent, "op", true);
                 break;
             }
-            case AST_LIST:
-            case AST_ROOT:
-            case AST_BLOCK: {
+            case AST_LIST: {
                 AstList* n = (AstList*)node;
                 fprintf(file, " (%zi elements)\n", n->count);
                 for (size_t i = 0; i < n->count; i++) {
                     printAstChildNode(file, n->nodes[i], colors, indent, NULL, i == n->count - 1);
                 }
+                break;
+            }
+            case AST_ROOT:
+            case AST_BLOCK: {
+                AstBlock* n = (AstBlock*)node;
+                fprintf(file, "\n");
+                printAstChildNode(file, (AstNode*)n->nodes, colors, indent, "nodes", true);
                 break;
             }
             case AST_VAR: {
@@ -209,8 +216,7 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
             }
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
-                fprintf(file, "\n");
-                printAstChildNode(file, n->dst, colors, indent, "dst", false);
+                fprintf(file, " (name = %s)\n", cstr(n->name));
                 printAstChildNode(file, n->type, colors, indent, "type", false);
                 printAstChildNode(file, n->val, colors, indent, "val", true);
                 break;

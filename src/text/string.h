@@ -4,6 +4,7 @@
 #define mutstr(CSTR) createFromCString(CSTR)
 #define str(CSTR) createFromConstCString(CSTR)
 #define cstr(STR) toCString(toConstString(STR))
+#define tocnstr(STR) toConstString(STR)
 
 typedef struct {
     char* data;

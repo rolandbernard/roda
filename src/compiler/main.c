@@ -1,14 +1,14 @@
 
-#include <stdlib.h>
 #include <locale.h>
+#include <stdlib.h>
 
-#include "parser/wrapper.h"
+#include "analysis/varbuild.h"
 #include "ast/astprinter.h"
-
 #include "errors/msgcontext.h"
 #include "errors/msgprint.h"
-#include "text/string.h"
 #include "files/fileset.h"
+#include "parser/wrapper.h"
+#include "text/string.h"
 
 int main(int argc, const char* const* argv) {
     setlocale(LC_ALL, ""); // Set locale to user preference
@@ -23,10 +23,10 @@ int main(int argc, const char* const* argv) {
         ast = parseStdin(&context);
     }
     printAst(stderr, ast);
+    buildSymbolTables(&context, ast);
     freeAstNode(ast);
     printMessages(&context, stderr, NULL, true, true);
     deinitMessageContext(&context);
     deinitFileSet(&files);
     return EXIT_SUCCESS;
 }
-

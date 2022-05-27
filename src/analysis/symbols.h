@@ -8,7 +8,6 @@
 
 typedef struct SymbolTable {
     struct SymbolTable* parent;
-    ConstString* names;
     Variable** vars;
     size_t count;
     size_t capacity;
@@ -20,6 +19,8 @@ void deinitSymbolTable(SymbolTable* self);
 
 Variable* findSymbolInTable(SymbolTable* self, ConstString name);
 
-void addSymbolToTable(SymbolTable* self, ConstString name, Variable* var);
+void addSymbolToTable(SymbolTable* self, Variable* var);
+
+Variable* findImmediateSymbolInTable(SymbolTable* self, ConstString name);
 
 #endif
