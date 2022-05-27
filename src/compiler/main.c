@@ -23,7 +23,9 @@ int main(int argc, const char* const* argv) {
         ast = parseStdin(&context);
     }
     printAst(stderr, ast);
-    buildSymbolTables(&context, ast);
+    if (ast != NULL) {
+        buildSymbolTables(&context, ast);
+    }
     freeAstNode(ast);
     printMessages(&context, stderr, NULL, true, true);
     deinitMessageContext(&context);

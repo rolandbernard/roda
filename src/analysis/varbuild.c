@@ -13,7 +13,7 @@ static void putInSymbolTable(MessageContext* context, SymbolTable* scope, ConstS
         addMessageToContext(
             context,
             createMessage(
-                ERROR_ALREADY_DEFINED, createFormatedString("Symbol `%S` already defined.", name), 0
+                ERROR_ALREADY_DEFINED, createFormatedString("Symbol `%S` already defined", name), 0
             )
         );
     }
@@ -133,7 +133,7 @@ static void recursivelyBuildSymbolTables(MessageContext* context, AstNode* node,
                     addMessageToContext(
                         context,
                         createMessage(
-                            ERROR_ALREADY_DEFINED, createFormatedString("Undefined symbol `%S`.", n->name), 0
+                            ERROR_ALREADY_DEFINED, createFormatedString("Undefined symbol `%S`", n->name), 0
                         )
                     );
                 }
