@@ -13,7 +13,7 @@ static void putInSymbolTable(MessageContext* context, SymbolTable* scope, ConstS
         addMessageToContext(
             context,
             createMessage(
-                ERROR_ALREADY_DEFINED, createFormatedString("Variable %S already defined.", name), 0
+                ERROR_ALREADY_DEFINED, createFormatedString("Symbol `%S` already defined.", name), 0
             )
         );
     }
@@ -127,8 +127,19 @@ static void recursivelyBuildSymbolTables(MessageContext* context, AstNode* node,
                 recursivelyBuildSymbolTables(context, n->type, scope);
                 break;
             }
+            case AST_VAR: {
+                AstVar* n = (AstVar*)node;
+                if (findSymbolInTable(scope, tocnstr(n->name)) == NULL) {
+                    addMessageToContext(
+                        context,
+                        createMessage(
+                            ERROR_ALREADY_DEFINED, createFormatedString("Undefined symbol `%S`.", n->name), 0
+                        )
+                    );
+                }
+                break;
+            }
             case AST_STR:
-            case AST_VAR:
             case AST_INT:
             case AST_REAL: break;
         }
