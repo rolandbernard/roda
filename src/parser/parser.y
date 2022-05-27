@@ -1,8 +1,10 @@
 
 %code requires {
+#include <stdio.h>
+
 #include "ast/ast.h"
 #include "ast/astlist.h"
-#include <stdio.h>
+#include "util/alloc.h"
 
 extern void yyerror(AstNode**, const char*);
 extern int yylex();
@@ -19,6 +21,7 @@ extern int yylex();
     DynamicAstList* dynlist;
 }
 
+%destructor { FREE($$); } <lexeme>
 %destructor { freeAstNode($$); } <ast>
 %destructor { freeAstNode((AstNode*)$$); } <list>
 %destructor { freeDynamicAstList($$); } <dynlist>
