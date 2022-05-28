@@ -9,13 +9,22 @@ typedef void* yyscan_t;
 }
 
 %code provides {
-extern int yylex(YYSTYPE* yylvalp, yyscan_t yyscanner);
-extern void yyerror(yyscan_t scanner, ParserContext* context, const char* msg);
+extern int yylex(YYSTYPE* yylvalp, YYLTYPE* yyllocp, yyscan_t yyscanner);
+extern void yyerror(YYLTYPE* yyllocp, yyscan_t scanner, ParserContext* context, const char* msg);
+
+#define YYLLOC_DEFAULT(Cur, Rhs, N) {                                                     \
+    if (N == 0) {                                                                         \
+        (Cur) = createSpan(YYRHSLOC(Rhs, 0).file, getSpanEndOffset(YYRHSLOC(Rhs, 0)), 1); \
+    } else {                                                                              \
+        (Cur) = createSpanWith(YYRHSLOC(Rhs, 1), YYRHSLOC(Rhs, N));                       \
+    }                                                                                     \
+}
 }
 
-%define parse.error detailed
+%define parse.error custom
 %define api.pure full
-/* %locations */
+%define api.location.type {Span}
+%locations
 
 %lex-param { yyscan_t scanner }
 %parse-param { yyscan_t scanner } { ParserContext* context }
@@ -204,4 +213,15 @@ args_list : expr                { $$ = createDynamicAstList(); addToDynamicAstLi
           ;
 
 %%
+
+static int yyreport_syntax_error(const yypcontext_t *ctx, yyscan_t scanner, ParserContext* context) {
+    yysymbol_kind_t expected[5];
+    int count = yypcontext_expected_tokens(ctx, expected, 5);
+    const char* exp_names[5];
+    for (int i = 0; i < count; i++) {
+        exp_names[i] = yysymbol_name(expected[i]);
+    }
+    reportSyntaxError(context, *yypcontext_location(ctx), yysymbol_name(yypcontext_token(ctx)), count, exp_names);
+    return 0;
+}
 

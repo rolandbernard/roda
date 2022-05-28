@@ -1,7 +1,6 @@
 
 %option noinput nounput noyywrap 8bit nodefault
-%option reentrant bison-bridge 
-/* bison-locations */
+%option reentrant bison-bridge bison-locations
 
 %{
 #include "text/string.h"
@@ -12,6 +11,11 @@
 #define PARSER_CONTEXT yyget_extra(yyscanner)
 
 #define YY_FATAL_ERROR(MSG) fatalError(str(MSG))
+
+#define YY_USER_ACTION                          \
+    yylloc->file = PARSER_CONTEXT->file;        \
+    yylloc->offset = getSpanEndOffset(*yylloc); \
+    yylloc->length = yyleng;
 %}
 
 DIGIT   [0-9]

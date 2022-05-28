@@ -66,6 +66,8 @@ String resizeStringData(String string);
 
 String copyFromCString(const char* cstr);
 
+String pushToString(String dst, ConstString src);
+
 void inlineDecodeStringLiteral(String* string);
 
 #endif

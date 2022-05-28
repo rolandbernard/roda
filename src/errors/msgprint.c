@@ -422,7 +422,7 @@ static void printFileMessageFragments(
                             bool first_print = true;
                             size_t last_column;
                             bool was_last_first = false;
-                            for (size_t i = start_end - 1; i >= start_start; i--) {
+                            for (size_t i = start_end - 1; i >= start_start && i != NO_POS; i--) {
                                 if (!print_at_end[i]) {
                                     if (istty) {
                                         fputs(CONSOLE_SGR(CONSOLE_SGR_BOLD), output);

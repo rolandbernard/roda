@@ -42,7 +42,24 @@ AstNode* parseStdin(MessageContext* context) {
     return parseFromFileStream(stdin, NULL, context);
 }
 
-void yyerror(yyscan_t scanner, ParserContext* context, const char* s) {
-    addMessageToContext(context->msgcontext, createMessage(ERROR_SYNTAX, createFormattedString(s), 0));
+void yyerror(YYLTYPE* yyllocp, yyscan_t scanner, ParserContext* context, const char* msg) {
+    addMessageToContext(context->msgcontext, createMessage(ERROR_UNKNOWN, copyFromCString(msg), 0));
+}
+
+void reportSyntaxError(ParserContext* context, Span loc, const char* actual, size_t num_exp, const char* const* expected) {
+    String complete = createFormattedString("Syntax error, unexpected %s", actual);
+    if (num_exp > 0) {
+        pushFormattedString(&complete, ", expecting %s", expected[0]);
+        for (size_t i = 1; i < num_exp; i++) {
+            if (i == num_exp - 1) {
+                pushFormattedString(&complete, " or %s", expected[i]);
+            } else {
+                pushFormattedString(&complete, ", %s", expected[i]);
+            }
+        }
+    }
+    addMessageToContext(context->msgcontext, createMessage(ERROR_SYNTAX, complete, 1,
+        createMessageFragment(MESSAGE_ERROR, createFormattedString("unexpected %s", actual), loc)
+    ));
 }
 

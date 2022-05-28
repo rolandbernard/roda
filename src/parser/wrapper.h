@@ -14,4 +14,6 @@ AstNode* parseFile(const File* file, MessageContext* context);
 
 AstNode* parseStdin(MessageContext* context);
 
+void reportSyntaxError(ParserContext* context, Span loc, const char* actual, size_t num_exp, const char* const* expected);
+
 #endif

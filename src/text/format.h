@@ -5,4 +5,6 @@
 
 String createFormattedString(const char* format, ...);
 
+void pushFormattedString(String* dst, const char* format, ...);
+
 #endif

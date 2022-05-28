@@ -58,3 +58,16 @@ String createFormattedString(const char* format, ...) {
     return createString(data, size);
 }
 
+void pushFormattedString(String* dst, const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+    size_t size = formatCustomString(NULL, format, args);
+    va_end(args);
+    char* data = ALLOC(char, size + 1);
+    va_start(args, format);
+    formatCustomString(data, format, args);
+    va_end(args);
+    *dst = pushToString(*dst, createConstString(data, size));
+    FREE(data);
+}
+
