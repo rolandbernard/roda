@@ -98,6 +98,5 @@ bool loadFileData(const File* file, String* output) {
 }
 
 FILE* openFileStream(const File* file, const char* mode) {
-    FILE* stream = fopen(cstr(file->absolute_path), mode);
-    return stream;
+    return fopen(cstr(file->absolute_path), mode);
 }

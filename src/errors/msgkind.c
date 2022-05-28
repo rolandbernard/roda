@@ -7,6 +7,7 @@ static const char* message_kind_strings[] = {
     [ERROR_UNKNOWN] = "unknown",
     [ERROR_SYNTAX] = "syntax",
     [ERROR_ALREADY_DEFINED] = "already-defined",
+    [ERROR_CANT_OPEN_FILE] = "cant-open-file",
     [WARNING_UNKNOWN] = "unknown",
     [NOTE_UNKNOWN] = "unknown",
     [HELP_UNKNOWN] = "unknown",

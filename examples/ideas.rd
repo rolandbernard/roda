@@ -36,9 +36,6 @@ export fn main() {
             break;
         }
     }
-    do {
-        
-    } while i == 10;
     match i {
        0 => {
 

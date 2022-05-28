@@ -8,12 +8,18 @@
 #include "text/string.h"
 #include "errors/msgcontext.h"
 
-extern void yyerror(AstNode**, MessageContext*, const char*);
-extern int yylex();
+typedef void* yyscan_t;
+}
+
+%code {
+extern int yylex(YYSTYPE*, yyscan_t);
+extern void yyerror(yyscan_t, AstNode**, MessageContext*, const char*);
 }
 
 %define parse.error detailed
+%define api.pure full
 
+%param { yyscan_t scanner }
 %parse-param {AstNode** ast_result} {MessageContext* context}
 
 %union {

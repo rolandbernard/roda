@@ -1,4 +1,6 @@
-%option noyywrap
+
+%option noinput nounput noyywrap 8bit nodefault
+%option reentrant bison-bridge
 
 %{
 #include "text/string.h"
@@ -70,13 +72,13 @@ REAL    {DIGIT}+(\.{DIGIT}+)?([eE][-+]?{DIGIT}+)?
 "{"             { return '{'; }
 "}"             { return '}'; }
 
-{INT}           { yylval.lexeme = copyFromCString(yytext); return INT; }
+{INT}           { yylval->lexeme = copyFromCString(yytext); return INT; }
 
-{REAL}          { yylval.lexeme = copyFromCString(yytext); return REAL; }
+{REAL}          { yylval->lexeme = copyFromCString(yytext); return REAL; }
 
-{STR}           { yylval.lexeme = copyFromCString(yytext); return STR; }
+{STR}           { yylval->lexeme = copyFromCString(yytext); return STR; }
 
-{ID}            { yylval.lexeme = copyFromCString(yytext); return ID; }
+{ID}            { yylval->lexeme = copyFromCString(yytext); return ID; }
 
 .               { return YYUNDEF; }
 

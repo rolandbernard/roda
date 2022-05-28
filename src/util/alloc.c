@@ -10,7 +10,7 @@
 void* checkedAlloc(size_t size) {
     void* ret = malloc(size);
     if (ret == NULL && size != 0) {
-        fatalError(createFromConstCString(strerror(ENOMEM)));
+        fatalError(str(strerror(ENOMEM)));
         exit(EXIT_FAILURE);
     } else {
         return ret;
@@ -20,7 +20,7 @@ void* checkedAlloc(size_t size) {
 void* checkedRealloc(void* original, size_t size) {
     void* ret = realloc(original, size);
     if (ret == NULL && size != 0) {
-        fatalError(createFromConstCString(strerror(ENOMEM)));
+        fatalError(str(strerror(ENOMEM)));
         exit(EXIT_FAILURE);
     } else {
         return ret;
@@ -30,7 +30,7 @@ void* checkedRealloc(void* original, size_t size) {
 void* checkedCalloc(size_t n, size_t size) {
     void* ret = calloc(n, size);
     if (ret == NULL && n != 0 && size != 0) {
-        fatalError(createFromConstCString(strerror(ENOMEM)));
+        fatalError(str(strerror(ENOMEM)));
         exit(EXIT_FAILURE);
     } else {
         return ret;
