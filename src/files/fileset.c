@@ -14,7 +14,7 @@ void initFileSet(FileSet* fileset) {
 }
 
 void deinitFileSet(FileSet* fileset) {
-    for (int i = 0; i < fileset->file_count; i++) {
+    for (size_t i = 0; i < fileset->file_count; i++) {
         freeFile(fileset->files[i]);
     }
     FREE(fileset->files);
@@ -37,8 +37,8 @@ void addFileToSet(FileSet* fileset, File* file) {
     fileset->file_count++;
 }
 
-File* searchFileInSet(FileSet* fileset, ConstPath absolute_path) {
-    for (int i = 0; i < fileset->file_count; i++) {
+File* searchFileInSet(const FileSet* fileset, ConstPath absolute_path) {
+    for (size_t i = 0; i < fileset->file_count; i++) {
         if (comparePaths(toConstPath(fileset->files[i]->absolute_path), absolute_path)) {
             return fileset->files[i];
         }

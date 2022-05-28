@@ -9,19 +9,19 @@
 
 #include "util/alloc.h"
 
-int findFirstIndexOfChar(ConstString str, char c) {
-    for (int i = 0; i < str.length; i++) {
+size_t findFirstIndexOfChar(ConstString str, char c) {
+    for (size_t i = 0; i < str.length; i++) {
         if (str.data[i] == c) {
             return i;
         }
     }
-    return -1;
+    return NO_POS;
 }
 
-int findFirstIndexOfString(ConstString str, ConstString pat) {
-    for (int i = 0; i < str.length - pat.length; i++) {
+size_t findFirstIndexOfString(ConstString str, ConstString pat) {
+    for (size_t i = 0; i < str.length - pat.length; i++) {
         bool equal = true;
-        for (int j = 0; j < pat.length; j++) {
+        for (size_t j = 0; j < pat.length; j++) {
             if (str.data[i + j] != pat.data[j]) {
                 equal = false;
                 break;
@@ -31,22 +31,22 @@ int findFirstIndexOfString(ConstString str, ConstString pat) {
             return i;
         }
     }
-    return -1;
+    return NO_POS;
 }
 
-int findLastIndexOfChar(ConstString str, char c) {
-    for (int i = str.length - 1; i >= 0; i--) {
+size_t findLastIndexOfChar(ConstString str, char c) {
+    for (size_t i = str.length - 1; i != NO_POS; i--) {
         if (str.data[i] == c) {
             return i;
         }
     }
-    return -1;
+    return NO_POS;
 }
 
-int findLastIndexOfString(ConstString str, ConstString pat) {
-    for (int i = str.length - pat.length; i >= 0; i--) {
+size_t findLastIndexOfString(ConstString str, ConstString pat) {
+    for (size_t i = str.length - pat.length; i != NO_POS; i--) {
         bool equal = true;
-        for (int j = 0; j < pat.length; j++) {
+        for (size_t j = 0; j < pat.length; j++) {
             if (str.data[i + j] != pat.data[j]) {
                 equal = false;
                 break;
@@ -56,7 +56,7 @@ int findLastIndexOfString(ConstString str, ConstString pat) {
             return i;
         }
     }
-    return -1;
+    return NO_POS;
 }
 
 ConstString getStringBeforeChar(ConstString string, char c) {
@@ -75,7 +75,7 @@ ConstString getStringAfterChar(ConstString string, char c) {
     return ret;
 }
 
-String createString(char* data, int length) {
+String createString(char* data, size_t length) {
     String ret = {
         .data = data,
         .length = length,
@@ -83,7 +83,7 @@ String createString(char* data, int length) {
     return ret;
 }
 
-ConstString createConstString(const char* data, int length) {
+ConstString createConstString(const char* data, size_t length) {
     ConstString ret = {
         .data = data,
         .length = length,
@@ -128,13 +128,13 @@ String concatStrings(ConstString a, ConstString b) {
     return ret;
 }
 
-String concatNStrings(int n, ...) {
+String concatNStrings(size_t n, ...) {
     String ret = {
         .length = 0,
     };
     va_list strings;
     va_start(strings, n);
-    for (int i = 0; i < n; i++) {
+    for (size_t i = 0; i < n; i++) {
         ConstString string = va_arg(strings, ConstString);
         ret.length += string.length;
     }
@@ -143,7 +143,7 @@ String concatNStrings(int n, ...) {
     ret.data[ret.length] = 0;
     int offset = 0;
     va_start(strings, n);
-    for (int i = 0; i < n; i++) {
+    for (size_t i = 0; i < n; i++) {
         ConstString string = va_arg(strings, ConstString);
         memcpy(ret.data + offset, string.data, string.length);
         offset += string.length;
@@ -179,7 +179,7 @@ ConstString toConstString(String string) {
 }
 
 int compareStrings(ConstString a, ConstString b) {
-    for (int i = 0; i < a.length && i < b.length; i++) {
+    for (size_t i = 0; i < a.length && i < b.length; i++) {
         if (a.data[i] < b.data[i]) {
             return -1;
         } else if (a.data[i] > b.data[i]) {
@@ -220,8 +220,8 @@ static int hexCharToInt(char c) {
     return -1;
 }
 
-static Rune parseEscapeCode(char* data, int* length) {
-    Rune ret;
+static CodePoint parseEscapeCode(char* data, size_t* length) {
+    CodePoint ret;
     switch (data[0]) {
         case 'a':
             ret = '\a';
@@ -296,9 +296,9 @@ void inlineDecodeStringLiteral(String* string) {
     size_t old = 1;
     while (string->data[old] != 0) {
         if (string->data[old] == '\\') {
-            int length;
-            Rune codepoint = parseEscapeCode(string->data + old + 1, &length);
-            if (codepoint == -1) {
+            size_t length;
+            CodePoint codepoint = parseEscapeCode(string->data + old + 1, &length);
+            if (codepoint == INVALID_CODEPOINT) {
                 // TODO: Throw error
                 // addError(error_context, "Found an illegal escape code",
                 // getCurrentScannerPosition(scanner), ERROR);

@@ -4,13 +4,13 @@
 #include "util/alloc.h"
 
 static const char* message_kind_strings[] = {
-    [ERROR_UNKNOWN] = "unknown error",
-    [ERROR_SYNTAX] = "syntax error",
-    [ERROR_ALREADY_DEFINED] = "already defined",
-    [WARNING_UNKNOWN] = "unknown warning",
-    [NOTE_UNKNOWN] = "unknown note",
-    [HELP_UNKNOWN] = "unknown help",
-    [DEBUG_UNKNOWN] = "unknown debug",
+    [ERROR_UNKNOWN] = "unknown",
+    [ERROR_SYNTAX] = "syntax",
+    [ERROR_ALREADY_DEFINED] = "already-defined",
+    [WARNING_UNKNOWN] = "unknown",
+    [NOTE_UNKNOWN] = "unknown",
+    [HELP_UNKNOWN] = "unknown",
+    [DEBUG_UNKNOWN] = "unknown",
 };
 
 ConstString getMessageKindString(MessageKind kind) {
@@ -91,7 +91,7 @@ void freeMessageFilter(MessageFilter* filter) {
     FREE(filter);
 }
 
-bool applyFilterForKind(MessageFilter* filter, MessageKind kind) {
+bool applyFilterForKind(const MessageFilter* filter, MessageKind kind) {
     if (filter == NULL) {
         return true;
     } else {
@@ -104,7 +104,7 @@ bool applyFilterForKind(MessageFilter* filter, MessageKind kind) {
     }
 }
 
-bool applyFilterForCategory(MessageFilter* filter, MessageCategory category) {
+bool applyFilterForCategory(const MessageFilter* filter, MessageCategory category) {
     if (filter == NULL) {
         return true;
     } else {

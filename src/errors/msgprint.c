@@ -6,6 +6,7 @@
 
 #include "errors/msgprint.h"
 
+#include "text/string.h"
 #include "text/utf8.h"
 #include "util/alloc.h"
 #include "util/console.h"
@@ -20,12 +21,12 @@ static const char* message_category_style[] = {
 };
 
 typedef struct {
-    int line;
-    int column;
-    int line_offset;
+    size_t line;
+    size_t column;
+    size_t line_offset;
 } FilePosition;
 
-static int fragmentCompare(MessageFragment* a, MessageFragment* b, bool by_end) {
+static int fragmentCompare(const MessageFragment* a, const MessageFragment* b, bool by_end) {
     if (a->position.file != b->position.file) {
         return a->position.file - b->position.file;
     }
@@ -44,30 +45,30 @@ static int fragmentCompare(MessageFragment* a, MessageFragment* b, bool by_end) 
     }
 }
 
-// TODO: Printing the errors is not thread safe
+// NOTE: Printing the errors is not thread safe
 static MessageFragment** fragment_sort_original_order;
 
 static int fragmentCompareByEnd(const void* a, const void* b) {
-    return fragmentCompare(fragment_sort_original_order[*(int*)a], fragment_sort_original_order[*(int*)b], true);
+    return fragmentCompare(fragment_sort_original_order[*(size_t*)a], fragment_sort_original_order[*(size_t*)b], true);
 }
 
-static void sortFragmentIndexByEnd(MessageFragment** fragments, int fragment_count, int* sorted) {
-    for (int i = 0; i < fragment_count; i++) {
+static void sortFragmentIndexByEnd(MessageFragment** fragments, size_t fragment_count, size_t* sorted) {
+    for (size_t i = 0; i < fragment_count; i++) {
         sorted[i] = i;
     }
     fragment_sort_original_order = fragments;
-    qsort(sorted, fragment_count, sizeof(int), fragmentCompareByEnd);
+    qsort(sorted, fragment_count, sizeof(size_t), fragmentCompareByEnd);
 }
 
 static int fragmentCompareByStart(const void* a, const void* b) {
     return fragmentCompare(*(MessageFragment**)a, *(MessageFragment**)b, false);
 }
 
-static void sortFragmentsByStart(MessageFragment** fragments, int fragment_count) {
+static void sortFragmentsByStart(MessageFragment** fragments, size_t fragment_count) {
     qsort(fragments, fragment_count, sizeof(MessageFragment*), fragmentCompareByStart);
 }
 
-static void printFileNameLine(int linewidth, File* file, FilePosition* position, const char* note, FILE* output, bool istty) {
+static void printFileNameLine(int linewidth, const File* file, FilePosition* position, const char* note, FILE* output, bool istty) {
     if (istty) {
         fputs(CONSOLE_SGR(CONSOLE_SGR_BOLD), output);
     }
@@ -80,7 +81,7 @@ static void printFileNameLine(int linewidth, File* file, FilePosition* position,
     }
     fwrite(file->original_path.data, sizeof(char), file->original_path.length, output);
     if (position != NULL) {
-        fprintf(output, ":%i:%i", position->line, position->column);
+        fprintf(output, ":%zi:%zi", position->line, position->column);
     }
     if (note != NULL) {
         fputs(": (", output);
@@ -91,8 +92,8 @@ static void printFileNameLine(int linewidth, File* file, FilePosition* position,
 }
 
 static void printMessageFragmentWithoutSource(
-    MessageFragment* fragment, int linewidth, File* file, FilePosition* start,
-    FilePosition* end, FILE* output, bool istty, MessageFilter* filter
+    MessageFragment* fragment, int linewidth, const File* file, FilePosition* start,
+    FilePosition* end, FILE* output, bool istty, const MessageFilter* filter
 ) {
     if (applyFilterForCategory(filter, fragment->category)) {
         if (fragment->message.length > 0 || file != NULL) {
@@ -109,9 +110,9 @@ static void printMessageFragmentWithoutSource(
             if (file != NULL) {
                 fwrite(file->original_path.data, sizeof(char), file->original_path.length, output);
                 if (start != NULL) {
-                    fprintf(output, ":%i:%i", start->line, start->column);
+                    fprintf(output, ":%zi:%zi", start->line, start->column);
                     if (end != NULL) {
-                        fprintf(output, "-%i:%i", end->line, end->column);
+                        fprintf(output, "-%zi:%zi", end->line, end->column);
                     }
                 }
             }
@@ -132,14 +133,14 @@ static void printMessageFragmentWithoutSource(
     }
 }
 
-static int printSourceLine(int offset, int line, int linewidth, FILE* source, FILE* output, bool istty) {
-    if (offset >= 0) {
+static size_t printSourceLine(size_t offset, size_t line, int linewidth, FILE* source, FILE* output, bool istty) {
+    if (offset != NO_POS) {
         fseek(source, offset, SEEK_SET);
     }
     if (istty) {
         fputs(CONSOLE_SGR(CONSOLE_SGR_BOLD), output);
     }
-    fprintf(output, "%*i | ", linewidth, line);
+    fprintf(output, "%*zi | ", linewidth, line);
     if (istty) {
         fputs(CONSOLE_SGR(), output);
     }
@@ -156,7 +157,7 @@ static int printSourceLine(int offset, int line, int linewidth, FILE* source, FI
     return offset;
 }
 
-static int getDecimalNumberWidth(int n) {
+static int getDecimalNumberWidth(size_t n) {
     int ret = 1;
     while (n >= 10) {
         n /= 10;
@@ -166,14 +167,14 @@ static int getDecimalNumberWidth(int n) {
 }
 
 static void printFileMessageFragments(
-    MessageFragment** fragments, int fragment_count, FILE* output,
-    bool istty, MessageFilter* filter, bool print_source
+    MessageFragment** fragments, size_t fragment_count, FILE* output,
+    bool istty, const MessageFilter* filter, bool print_source
 ) {
     if (fragment_count > 0) {
-        File* file = fragments[0]->position.file;
+        const File* file = fragments[0]->position.file;
         if (file != NULL) {
             MessageFragment** file_only_fragments = fragments;
-            int file_only_fragment_count = 0;
+            size_t file_only_fragment_count = 0;
             while (fragment_count > 0 && isSpanFileOnly(fragments[0]->position)) {
                 fragments++;
                 fragment_count--;
@@ -182,17 +183,17 @@ static void printFileMessageFragments(
             if (fragment_count > 0) {
                 FILE* stream = openFileStream(file, "rb");
                 if (stream != NULL) {
-                    int ordered_by_end[fragment_count];
+                    size_t ordered_by_end[fragment_count];
                     sortFragmentIndexByEnd(fragments, fragment_count, ordered_by_end);
                     FilePosition starts[fragment_count];
                     FilePosition ends[fragment_count];
-                    int current_offset = 0;
-                    int current_line = 1;
-                    int current_column = 1;
-                    int line_offset = 0;
+                    size_t current_offset = 0;
+                    size_t current_line = 1;
+                    size_t current_column = 1;
+                    size_t line_offset = 0;
                     bool end_of_file = false;
-                    int start_index = 0;
-                    int end_index = 0;
+                    size_t start_index = 0;
+                    size_t end_index = 0;
                     while (!end_of_file) {
                         while (start_index < fragment_count && fragments[start_index]->position.offset <= current_offset) {
                             starts[start_index].line = current_line;
@@ -206,8 +207,8 @@ static void printFileMessageFragments(
                             ends[ordered_by_end[end_index]].line_offset = line_offset;
                             end_index++;
                         }
-                        Rune next_rune;
-                        int len = readUtf8FromFileStream(stream, &next_rune);
+                        CodePoint next_rune;
+                        size_t len = readUtf8FromFileStream(stream, &next_rune);
                         if (len <= 0) {
                             end_of_file = true;
                         } else {
@@ -228,14 +229,14 @@ static void printFileMessageFragments(
                     }
                     if (print_source) {
                         int linewidth = getDecimalNumberWidth(starts[fragment_count - 1].line);
-                        int main_fragment = 0;
-                        for (int i = 0; i < fragment_count; i++) {
+                        size_t main_fragment = 0;
+                        for (size_t i = 0; i < fragment_count; i++) {
                             if (fragments[i]->category < fragments[main_fragment]->category) {
                                 main_fragment = i;
                             }
                         }
                         bool is_multiline[fragment_count];
-                        for (int i = 0; i < fragment_count; i++) {
+                        for (size_t i = 0; i < fragment_count; i++) {
                             if (starts[i].line != ends[i].line) {
                                 is_multiline[i] = true;
                             } else {
@@ -246,7 +247,7 @@ static void printFileMessageFragments(
                         start_index = 0;
                         end_index = 0;
                         bool print_at_end[fragment_count];
-                        for (int i = 0; i < fragment_count; i++) {
+                        for (size_t i = 0; i < fragment_count; i++) {
                             while (
                                 start_index < fragment_count
                                 && getSpanEndOffset(fragments[ordered_by_end[i]]->position) > fragments[start_index]->position.offset
@@ -259,9 +260,9 @@ static void printFileMessageFragments(
                             ) {
                                 end_index++;
                             }
-                            int length = getUtf8Length(toConstString(fragments[ordered_by_end[i]]->message));
+                            size_t length = getUtf8Length(toConstString(fragments[ordered_by_end[i]]->message));
                             if (length > 0) {
-                                int end_column = ends[ordered_by_end[i]].column + length;
+                                size_t end_column = ends[ordered_by_end[i]].column + length;
                                 if (
                                     (
                                         start_index >= fragment_count
@@ -287,12 +288,12 @@ static void printFileMessageFragments(
                             }
                         }
                         printFileNameLine(linewidth, file, &starts[main_fragment], NULL, output, istty);
-                        int start_start = 0;
-                        int end_start = 0;
-                        int last_line = 0;
+                        size_t start_start = 0;
+                        size_t end_start = 0;
+                        size_t last_line = 0;
                         while (start_start < fragment_count || end_start < fragment_count) {
-                            int next_line;
-                            int next_line_offset;
+                            size_t next_line;
+                            size_t next_line_offset;
                             if (start_start < fragment_count && end_start < fragment_count) {
                                 if (starts[start_start].line < ends[ordered_by_end[end_start]].line_offset) {
                                     next_line = starts[start_start].line;
@@ -308,18 +309,18 @@ static void printFileMessageFragments(
                                 next_line = ends[ordered_by_end[end_start]].line;
                                 next_line_offset = ends[ordered_by_end[end_start]].line_offset;
                             }
-                            int start_end = start_start;
+                            size_t start_end = start_start;
                             while (start_end < fragment_count && starts[start_end].line == next_line) {
                                 start_end++;
                             }
-                            int end_end = end_start;
+                            size_t end_end = end_start;
                             while (end_end < fragment_count && ends[ordered_by_end[end_end]].line == next_line) {
                                 end_end++;
                             }
                             if (last_line != 0) {
                                 if (last_line + 2 >= next_line) {
-                                    for (int i = last_line + 1; i < next_line; i++) {
-                                        printSourceLine(-1, i, linewidth, stream, output, istty);
+                                    for (size_t i = last_line + 1; i < next_line; i++) {
+                                        printSourceLine(NO_POS, i, linewidth, stream, output, istty);
                                     }
                                 } else {
                                     for (int i = 0; i < linewidth; i++) {
@@ -328,7 +329,7 @@ static void printFileMessageFragments(
                                     fputs("...\n", output);
                                 }
                             }
-                            int length = printSourceLine(next_line_offset, next_line, linewidth, stream, output, istty) - next_line_offset;
+                            size_t length = printSourceLine(next_line_offset, next_line, linewidth, stream, output, istty) - next_line_offset;
                             if (istty) {
                                 fputs(CONSOLE_SGR(CONSOLE_SGR_BOLD), output);
                             }
@@ -339,17 +340,17 @@ static void printFileMessageFragments(
                             if (istty) {
                                 fputs(CONSOLE_SGR(), output);
                             }
-                            int depths[NUM_MESSAGE_CATEGORY];
-                            int multi_start[NUM_MESSAGE_CATEGORY];
-                            int multi_end[NUM_MESSAGE_CATEGORY];
-                            for (int k = 0; k < NUM_MESSAGE_CATEGORY; k++) {
+                            size_t depths[NUM_MESSAGE_CATEGORY];
+                            size_t multi_start[NUM_MESSAGE_CATEGORY];
+                            size_t multi_end[NUM_MESSAGE_CATEGORY];
+                            for (size_t k = 0; k < NUM_MESSAGE_CATEGORY; k++) {
                                 depths[k] = 0;
                                 multi_start[k] = 0;
                                 multi_end[k] = 0;
                             }
                             start_index = start_start;
                             end_index = end_start;
-                            for (int i = 1; i <= length + 2; i++) {
+                            for (size_t i = 1; i <= length + 2; i++) {
                                 while (start_index < start_end && starts[start_index].column <= i) {
                                     if (is_multiline[start_index]) {
                                         multi_start[fragments[start_index]->category] = 2;
@@ -369,7 +370,7 @@ static void printFileMessageFragments(
                                     end_index++;
                                 }
                                 bool printed = false;
-                                for (int k = 0; k < NUM_MESSAGE_CATEGORY; k++) {
+                                for (size_t k = 0; k < NUM_MESSAGE_CATEGORY; k++) {
                                     if (!printed && (depths[k] > 0 || multi_start[k] == 2 || multi_end[k] == 1 || multi_start[k] == 1 || multi_end[k] == 2)) {
                                         if (istty) {
                                             fputs(message_category_style[k], output);
@@ -419,9 +420,9 @@ static void printFileMessageFragments(
                             }
                             fputc('\n', output);
                             bool first_print = true;
-                            int last_column;
+                            size_t last_column;
                             bool was_last_first = false;
-                            for (int i = start_end - 1; i >= start_start; i--) {
+                            for (size_t i = start_end - 1; i >= start_start; i--) {
                                 if (!print_at_end[i]) {
                                     if (istty) {
                                         fputs(CONSOLE_SGR(CONSOLE_SGR_BOLD), output);
@@ -437,7 +438,7 @@ static void printFileMessageFragments(
                                     while (start_index < start_end && print_at_end[start_index]) {
                                         start_index++;
                                     }
-                                    for (int j = 1; j < starts[i].column; j++) {
+                                    for (size_t j = 1; j < starts[i].column; j++) {
                                         if (start_index < start_end && starts[start_index].column == j) {
                                             while (start_index < start_end && starts[start_index].column == j) {
                                                 start_index++;
@@ -481,7 +482,7 @@ static void printFileMessageFragments(
                             start_start = start_end;
                             end_start = end_end;
                         }
-                        for (int i = 0; i < file_only_fragment_count; i++) {
+                        for (size_t i = 0; i < file_only_fragment_count; i++) {
                             printMessageFragmentWithoutSource(file_only_fragments[i], linewidth, NULL, NULL, NULL, output, istty, filter);
                         }
                     } else {
@@ -489,10 +490,10 @@ static void printFileMessageFragments(
                             printMessageFragmentWithoutSource(file_only_fragments[0], 1, file, &starts[0], &ends[0], output, istty, filter);
                         } else {
                             printFileNameLine(1, file, NULL, NULL, output, istty);
-                            for (int i = 0; i < fragment_count; i++) {
+                            for (size_t i = 0; i < fragment_count; i++) {
                                 printMessageFragmentWithoutSource(fragments[i], 1, file, &starts[i], &ends[i], output, istty, filter);
                             }
-                            for (int i = 0; i < file_only_fragment_count; i++) {
+                            for (size_t i = 0; i < file_only_fragment_count; i++) {
                                 printMessageFragmentWithoutSource(file_only_fragments[i], 1, NULL, NULL, NULL, output, istty, filter);
                             }
                         }
@@ -501,10 +502,10 @@ static void printFileMessageFragments(
                 } else {
                     const char* error = strerror(errno);
                     printFileNameLine(1, file, NULL, error, output, istty);
-                    for (int i = 0; i < fragment_count; i++) {
+                    for (size_t i = 0; i < fragment_count; i++) {
                         printMessageFragmentWithoutSource(fragments[i], 1, NULL, NULL, NULL, output, istty, filter);
                     }
-                    for (int i = 0; i < file_only_fragment_count; i++) {
+                    for (size_t i = 0; i < file_only_fragment_count; i++) {
                         printMessageFragmentWithoutSource(file_only_fragments[i], 1, NULL, NULL, NULL, output, istty, filter);
                     }
                 }
@@ -513,20 +514,20 @@ static void printFileMessageFragments(
                     printMessageFragmentWithoutSource(file_only_fragments[0], 1, file, NULL, NULL, output, istty, filter);
                 } else {
                     printFileNameLine(1, file, NULL, NULL, output, istty);
-                    for (int i = 0; i < file_only_fragment_count; i++) {
+                    for (size_t i = 0; i < file_only_fragment_count; i++) {
                         printMessageFragmentWithoutSource(file_only_fragments[i], 1, NULL, NULL, NULL, output, istty, filter);
                     }
                 }
             }
         } else {
-            for (int i = 0; i < fragment_count; i++) {
+            for (size_t i = 0; i < fragment_count; i++) {
                 printMessageFragmentWithoutSource(fragments[i], 1, NULL, NULL, NULL, output, istty, filter);
             }
         }
     }
 }
 
-void printMessage(Message* message, FILE* output, MessageFilter* filter, bool print_fragments, bool print_source) {
+void printMessage(const Message* message, FILE* output, const MessageFilter* filter, bool print_fragments, bool print_source) {
     if (applyFilterForKind(filter, message->kind)) {
         bool istty = isATerminal(output);
         MessageCategory category = getMessageCategory(message->kind);
@@ -554,9 +555,9 @@ void printMessage(Message* message, FILE* output, MessageFilter* filter, bool pr
         if (print_fragments) {
             if (message->fragment_count > 0) {
                 sortFragmentsByStart(message->fragments, message->fragment_count);
-                int start = 0;
+                size_t start = 0;
                 while (start < message->fragment_count) {
-                    int end = start + 1;
+                    size_t end = start + 1;
                     while (end < message->fragment_count && message->fragments[end]->position.file == message->fragments[start]->position.file) {
                         end++;
                     }
@@ -568,8 +569,8 @@ void printMessage(Message* message, FILE* output, MessageFilter* filter, bool pr
     }
 }
 
-void printMessages(MessageContext* message_context, FILE* output, MessageFilter* filter, bool print_fragments, bool print_source) {
-    for (int i = 0; i < message_context->message_count; i++) {
+void printMessages(const MessageContext* message_context, FILE* output, const MessageFilter* filter, bool print_fragments, bool print_source) {
+    for (size_t i = 0; i < message_context->message_count; i++) {
         printMessage(message_context->messages[i], output, filter, print_fragments, print_source);
     }
 }

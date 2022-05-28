@@ -64,8 +64,8 @@ MessageFilter* createMessageFilter();
 
 void freeMessageFilter(MessageFilter* filter);
 
-bool applyFilterForKind(MessageFilter* filter, MessageKind kind);
+bool applyFilterForKind(const MessageFilter* filter, MessageKind kind);
 
-bool applyFilterForCategory(MessageFilter* filter, MessageCategory category);
+bool applyFilterForCategory(const MessageFilter* filter, MessageCategory category);
 
 #endif

@@ -1,4 +1,5 @@
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,7 +15,7 @@ void initFile(File* file, ConstPath file_path) {
     file->name = getFilename(toConstPath(file->absolute_path));
 }
 
-File* copyFile(File* file) {
+File* copyFile(const File* file) {
     File* ret = ALLOC(File, 1);
     ret->original_path = copyPath(toConstPath(file->original_path));
     ret->absolute_path = copyPath(toConstPath(file->absolute_path));
@@ -25,7 +26,7 @@ File* copyFile(File* file) {
 }
 
 File* createFile(ConstPath file_path) {
-    File* ret = ALLOC(File, 1);
+    File* ret = NEW(File);
     initFile(ret, file_path);
     return ret;
 }
@@ -40,7 +41,7 @@ void freeFile(File* file) {
     FREE(file);
 }
 
-Span createSpan(File* file, int offset, int length) {
+Span createSpan(const File* file, size_t offset, size_t length) {
     Span ret = {
         .file = file,
         .offset = offset,
@@ -49,11 +50,21 @@ Span createSpan(File* file, int offset, int length) {
     return ret;
 }
 
-Span createSpanFromBounds(File* file, int start, int end) {
+Span createSpanFromBounds(const File* file, size_t start, size_t end) {
     Span ret = {
         .file = file,
         .offset = start,
         .length = end - start,
+    };
+    return ret;
+}
+
+Span createSpanWith(Span begin, Span end) {
+    assert(begin.file == end.file);
+    Span ret = {
+        .file = begin.file,
+        .offset = begin.offset,
+        .length = getSpanEndOffset(end) - begin.offset,
     };
     return ret;
 }
@@ -63,18 +74,15 @@ bool isSpanValid(Span span) {
 }
 
 bool isSpanFileOnly(Span span) {
-    return span.file != NULL && (span.offset < 0 || span.length <= 0);
+    return span.file != NULL && span.length == 0;
 }
 
-int getSpanEndOffset(Span span) {
+size_t getSpanEndOffset(Span span) {
     return span.offset + span.length;
 }
 
-bool loadFileData(File* file, String* output) {
-    char path[file->absolute_path.length + 1];
-    memcpy(path, file->absolute_path.data, file->absolute_path.length);
-    path[file->absolute_path.length] = 0;
-    FILE* stream = fopen(path, "r");
+bool loadFileData(const File* file, String* output) {
+    FILE* stream = fopen(cstr(file->absolute_path), "r");
     if (stream == NULL) {
         return false;
     } else {
@@ -89,10 +97,7 @@ bool loadFileData(File* file, String* output) {
     }
 }
 
-FILE* openFileStream(File* file, const char* mode) {
-    char path[file->absolute_path.length + 1];
-    memcpy(path, file->absolute_path.data, file->absolute_path.length);
-    path[file->absolute_path.length] = 0;
-    FILE* stream = fopen(path, mode);
+FILE* openFileStream(const File* file, const char* mode) {
+    FILE* stream = fopen(cstr(file->absolute_path), mode);
     return stream;
 }

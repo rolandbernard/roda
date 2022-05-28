@@ -5,8 +5,8 @@
 
 typedef struct {
     Message** messages;
-    int message_count;
-    int message_capacity;
+    size_t message_count;
+    size_t message_capacity;
 } MessageContext;
 
 void initMessageContext(MessageContext* message_context);

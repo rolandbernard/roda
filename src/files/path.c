@@ -10,9 +10,9 @@
 #include "util/alloc.h"
 
 Path inlineReducePath(Path path) {
-    int read_pos = 0;
-    int insert_pos = 0;
-    int segments = 0; // Holds the number of reducable segments e.g: /../seg1/seg2/ ('..' is not reducable)
+    size_t read_pos = 0;
+    size_t insert_pos = 0;
+    size_t segments = 0; // Holds the number of reducable segments e.g: /../seg1/seg2/ ('..' is not reducable)
     bool is_absolute = false;
     if (path.data[read_pos] == '/') {
         read_pos++;
@@ -20,12 +20,12 @@ Path inlineReducePath(Path path) {
         is_absolute = true;
     }
     while (read_pos < path.length) {
-        // Skip unneccesary '/' characters
+        // Skip unnecessary '/' characters
         while (read_pos < path.length && path.data[read_pos] == '/') {
             read_pos++;
         }
         // Find end of segment
-        int next_slash = read_pos;
+        size_t next_slash = read_pos;
         while (next_slash < path.length && path.data[next_slash] != '/') {
             next_slash++;
         }
@@ -77,7 +77,7 @@ Path reducePath(ConstPath path) {
     return inlineReducePath(ret);
 }
 
-Path compinePaths(ConstPath path1, ConstPath path2) {
+Path joinPaths(ConstPath path1, ConstPath path2) {
     return inlineReducePath(concatNStrings(3, path1, createConstString("/", 1), path2));
 }
 
@@ -86,11 +86,11 @@ Path concatPaths(ConstPath path1, ConstPath path2) {
 }
 
 ConstString getFilename(ConstPath path) {
-    int end = path.length;
+    size_t end = path.length;
     while (end > 0 && path.data[end - 1] == '/') {
         end--;
     }
-    int start = end;
+    size_t start = end;
     while (start > 0 && path.data[start - 1] != '/') {
         start--;
     }
@@ -102,7 +102,7 @@ ConstString getExtention(ConstPath path) {
 }
 
 ConstPath getParentDirectory(ConstPath path) {
-    int end = path.length;
+    size_t end = path.length;
     while (end > 0 && path.data[end -1] == '/') {
         end--;
     }
@@ -116,7 +116,7 @@ ConstPath getParentDirectory(ConstPath path) {
 }
 
 Path getWorkingDirectory() {
-    int capacity = 32;
+    size_t capacity = 32;
     char* str = ALLOC(char, capacity);
     char* ret;
     while ((ret = getcwd(str, capacity)) == NULL && errno == ERANGE) {
@@ -135,7 +135,7 @@ Path getAbsolutePath(ConstPath path) {
         return createPath(path);
     } else {
         Path cwd = getWorkingDirectory();
-        Path ret = compinePaths(toConstPath(cwd), path);
+        Path ret = joinPaths(toConstPath(cwd), path);
         freePath(cwd);
         return ret;
     }
@@ -146,14 +146,14 @@ Path getPathFromTo(ConstPath from, ConstPath to) {
     Path reduced_from = reducePath(from);
     Path reduced_to = reducePath(to);
     // Maximum e.g. from = 'a/b/c', to = 'g' -> '../../../g'
-    int max_length = (reduced_from.length + 1) * 3 / 2 + reduced_to.length;
+    size_t max_length = (reduced_from.length + 1) * 3 / 2 + reduced_to.length;
     char* data = ALLOC(char, max_length);
-    int read_from_pos = 0;
-    int read_to_pos = 0;
-    int insert_pos = 0;
+    size_t read_from_pos = 0;
+    size_t read_to_pos = 0;
+    size_t insert_pos = 0;
     // Skip all segments that are shared
     while (read_from_pos < reduced_from.length && read_to_pos < reduced_to.length) {
-        // Skip unneccesary '/' characters
+        // Skip unnecessary '/' characters
         while (read_from_pos < reduced_from.length && reduced_from.data[read_from_pos] == '/') {
             read_from_pos++;
         }
@@ -161,11 +161,11 @@ Path getPathFromTo(ConstPath from, ConstPath to) {
             read_to_pos++;
         }
         // Find end of segments
-        int next_from_slash = read_from_pos;
+        size_t next_from_slash = read_from_pos;
         while (next_from_slash < reduced_from.length && reduced_from.data[next_from_slash] != '/') {
             next_from_slash++;
         }
-        int next_to_slash = read_to_pos;
+        size_t next_to_slash = read_to_pos;
         while (next_to_slash < reduced_to.length && reduced_to.data[next_to_slash] != '/') {
             next_to_slash++;
         }
@@ -182,12 +182,12 @@ Path getPathFromTo(ConstPath from, ConstPath to) {
     }
     // Insert '..' for the segments in from
     while (read_from_pos < reduced_from.length) {
-        // Skip unneccesary '/' characters
+        // Skip unnecessary '/' characters
         while (read_from_pos < reduced_from.length && reduced_from.data[read_from_pos] == '/') {
             read_from_pos++;
         }
         // Find end of segments
-        int next_slash = read_from_pos;
+        size_t next_slash = read_from_pos;
         while (next_slash < reduced_from.length && reduced_from.data[next_slash] != '/') {
             next_slash++;
         }

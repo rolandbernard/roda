@@ -6,7 +6,7 @@
 
 #include "parser/wrapper.h"
 
-AstNode* parseFile(File* file, MessageContext* context) {
+AstNode* parseFile(const File* file, MessageContext* context) {
     AstNode* result = NULL;
     yyin = openFileStream(file, "r");
     yyparse(&result, context);
@@ -21,6 +21,6 @@ AstNode* parseStdin(MessageContext* context) {
 }
 
 void yyerror(AstNode** ast_result, MessageContext* context, const char* s) {
-    addMessageToContext(context, createMessage(ERROR_SYNTAX, createFormatedString(s), 0));
+    addMessageToContext(context, createMessage(ERROR_SYNTAX, createFormattedString(s), 0));
 }
 

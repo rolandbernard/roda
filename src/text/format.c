@@ -8,9 +8,9 @@
 
 #include "util/alloc.h"
 
-static int formatCustomString(char* output, const char* format, va_list args) {
-    int size = 0;
-    for (int i = 0; format[i] != 0; i++) {
+static size_t formatCustomString(char* output, const char* format, va_list args) {
+    size_t size = 0;
+    for (size_t i = 0; format[i] != 0; i++) {
         if (format[i] == '%') {
             if (format[i + 1] == 'S') {
                 i++;
@@ -20,7 +20,7 @@ static int formatCustomString(char* output, const char* format, va_list args) {
                 }
                 size += value.length;
             } else {
-                int end = i + 1;
+                size_t end = i + 1;
                 while (format[end] != 0 && format[end] != '%' && !isalpha(format[end])) {
                     end++;
                 }
@@ -46,10 +46,10 @@ static int formatCustomString(char* output, const char* format, va_list args) {
     return size;
 }
 
-String createFormatedString(const char* format, ...) {
+String createFormattedString(const char* format, ...) {
     va_list args;
     va_start(args, format);
-    int size = formatCustomString(NULL, format, args);
+    size_t size = formatCustomString(NULL, format, args);
     va_end(args);
     char* data = ALLOC(char, size + 1);
     va_start(args, format);

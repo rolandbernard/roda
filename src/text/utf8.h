@@ -1,17 +1,18 @@
 #ifndef _UTF8_H_
 #define _UTF8_H_
 
+#include <stdint.h>
 #include <stdio.h>
 
 #include "text/string.h"
 
-typedef int Rune;
+typedef int32_t CodePoint;
 
-#define INVALID_RUNE -1
+#define INVALID_CODEPOINT -1
 
-int decodeUTF8(Rune* rune, const char* data, int max_length);
+size_t decodeUTF8(CodePoint* rune, const char* data, size_t max_length);
 
-int encodeUTF8(Rune rune, char* output, int max_length);
+size_t encodeUTF8(CodePoint rune, char* output, size_t max_length);
 
 typedef struct {
     ConstString data;
@@ -20,14 +21,14 @@ typedef struct {
 
 void initUtf8Stream(Utf8Stream* stream, ConstString string);
 
-void positionUtf8Stream(Utf8Stream* stream, int position);
+void positionUtf8Stream(Utf8Stream* stream, size_t position);
 
-Rune nextUtf8Rune(Utf8Stream* stream);
+CodePoint nextUtf8CodePoint(Utf8Stream* stream);
 
-Rune peekUtf8Rune(Utf8Stream* stream);
+CodePoint peekUtf8CodePoint(const Utf8Stream* stream);
 
-int readUtf8FromFileStream(FILE* file, Rune* out);
+size_t readUtf8FromFileStream(FILE* file, CodePoint* out);
 
-int getUtf8Length(ConstString string);
+size_t getUtf8Length(ConstString string);
 
 #endif

@@ -5,8 +5,8 @@
 
 typedef struct {
     File** files;
-    int file_count;
-    int file_capacity;
+    size_t file_count;
+    size_t file_capacity;
 } FileSet;
 
 void initFileSet(FileSet* fileset);
@@ -15,7 +15,7 @@ void deinitFileSet(FileSet* fileset);
 
 void addFileToSet(FileSet* fileset, File* file);
 
-File* searchFileInSet(FileSet* fileset, ConstPath absolute_path);
+File* searchFileInSet(const FileSet* fileset, ConstPath absolute_path);
 
 File* createFileInSet(FileSet* fileset, ConstPath relative_or_absolute_path);
 

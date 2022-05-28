@@ -3,6 +3,6 @@
 
 #include "text/string.h"
 
-String createFormatedString(const char* format, ...);
+String createFormattedString(const char* format, ...);
 
 #endif

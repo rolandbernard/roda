@@ -9,7 +9,7 @@ typedef String Path;
 
 typedef ConstString ConstPath;
 
-Path compinePaths(ConstPath path1, ConstPath path2);
+Path joinPaths(ConstPath path1, ConstPath path2);
 
 Path concatPaths(ConstPath path1, ConstPath path2);
 

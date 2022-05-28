@@ -16,14 +16,14 @@ typedef struct {
 } File;
 
 typedef struct {
-    File* file;
-    int offset;
-    int length;
+    const File* file;
+    size_t offset;
+    size_t length;
 } Span;
 
 void initFile(File* file, ConstPath relative_or_absolute_path);
 
-File* copyFile(File* file);
+File* copyFile(const File* file);
 
 File* createFile(ConstPath relative_or_absolute_path);
 
@@ -31,18 +31,20 @@ void deinitFile(File* file);
 
 void freeFile(File* file);
 
-Span createSpan(File* file, int offset, int length);
+Span createSpan(const File* file, size_t offset, size_t length);
 
-Span createSpanFromBounds(File* file, int start, int end);
+Span createSpanFromBounds(const File* file, size_t start, size_t end);
+
+Span createSpanWith(Span begin, Span end);
 
 bool isSpanValid(Span span);
 
 bool isSpanFileOnly(Span span);
 
-int getSpanEndOffset(Span span);
+size_t getSpanEndOffset(Span span);
 
-bool loadFileData(File* file, String* output);
+bool loadFileData(const File* file, String* output);
 
-FILE* openFileStream(File* file, const char* mode);
+FILE* openFileStream(const File* file, const char* mode);
 
 #endif

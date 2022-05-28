@@ -18,7 +18,7 @@ typedef struct {
     MessageKind kind;
     String message;
     MessageFragment** fragments;
-    int fragment_count;
+    size_t fragment_count;
 } Message;
 
 void initMessageFragment(MessageFragment* fragment, MessageCategory category, String message, Span position);
@@ -29,9 +29,9 @@ void deinitMessageFragment(MessageFragment* fragment);
 
 void freeMessageFragment(MessageFragment* fragment);
 
-void initMessage(Message* message, MessageKind kind, String string, int fragment_count, ...);
+void initMessage(Message* message, MessageKind kind, String string, size_t fragment_count, ...);
 
-Message* createMessage(MessageKind kind, String string, int fragment_count, ...);
+Message* createMessage(MessageKind kind, String string, size_t fragment_count, ...);
 
 void deinitMessage(Message* message);
 

@@ -37,14 +37,14 @@ static void vaInitMessage(Message* message, MessageKind kind, String string, int
     }
 }
 
-void initMessage(Message* message, MessageKind kind, String string, int fragment_count, ...) {
+void initMessage(Message* message, MessageKind kind, String string, size_t fragment_count, ...) {
     va_list args;
     va_start(args, fragment_count);
     vaInitMessage(message, kind, string, fragment_count, args);
     va_end(args);
 }
 
-Message* createMessage(MessageKind kind, String string, int fragment_count, ...) {
+Message* createMessage(MessageKind kind, String string, size_t fragment_count, ...) {
     va_list args;
     va_start(args, fragment_count);
     Message* ret = ALLOC(Message, 1);
@@ -54,7 +54,7 @@ Message* createMessage(MessageKind kind, String string, int fragment_count, ...)
 }
 
 void deinitMessage(Message* message) {
-    for (int i = 0; i < message->fragment_count; i++) {
+    for (size_t i = 0; i < message->fragment_count; i++) {
         freeMessageFragment(message->fragments[i]);
     }
     FREE(message->fragments);

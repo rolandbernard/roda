@@ -7,8 +7,8 @@
 #include "errors/msgcontext.h"
 #include "errors/msgkind.h"
 
-void printMessage(Message* error, FILE* output, MessageFilter* filter, bool print_fragments, bool print_source);
+void printMessage(const Message* error, FILE* output, const MessageFilter* filter, bool print_fragments, bool print_source);
 
-void printMessages(MessageContext* message_context, FILE* output, MessageFilter* filter, bool print_fragments, bool print_source);
+void printMessages(const MessageContext* message_context, FILE* output, const MessageFilter* filter, bool print_fragments, bool print_source);
 
 #endif

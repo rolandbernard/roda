@@ -12,7 +12,7 @@ void initMessageContext(MessageContext* message_context) {
 }
 
 void deinitMessageContext(MessageContext* message_context) {
-    for (int i = 0; i < message_context->message_count; i++) {
+    for (size_t i = 0; i < message_context->message_count; i++) {
         freeMessage(message_context->messages[i]);
     }
     FREE(message_context->messages);
@@ -36,7 +36,7 @@ void addMessageToContext(MessageContext* message_context, Message* message) {
 }
 
 void addAllMessagesFromContext(MessageContext* dest_context, MessageContext* src_context) {
-    for (int i = 0; i < src_context->message_count; i++) {
+    for (size_t i = 0; i < src_context->message_count; i++) {
         addMessageToContext(dest_context, src_context->messages[i]);
     }
 }
