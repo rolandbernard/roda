@@ -4,7 +4,7 @@
 #include <stddef.h>
 
 #include "text/string.h"
-#include "analysis/variable.h"
+#include "compiler/variable.h"
 
 typedef struct SymbolTable {
     struct SymbolTable* parent;

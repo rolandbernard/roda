@@ -2,7 +2,7 @@
 include config.mk
 
 # == Config
-TARGETS := compiler
+TARGETS := rodac
 # ==
 
 # == Tools

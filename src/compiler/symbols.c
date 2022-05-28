@@ -4,7 +4,7 @@
 #include "util/alloc.h"
 #include "util/hash.h"
 
-#include "analysis/symbols.h"
+#include "compiler/symbols.h"
 
 #define INITIAL_CAPACITY 32
 

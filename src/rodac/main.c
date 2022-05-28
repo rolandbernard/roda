@@ -2,7 +2,7 @@
 #include <locale.h>
 #include <stdlib.h>
 
-#include "analysis/varbuild.h"
+#include "compiler/varbuild.h"
 #include "ast/astprinter.h"
 #include "errors/msgcontext.h"
 #include "errors/msgprint.h"

@@ -1,7 +1,7 @@
 
 #include "util/alloc.h"
 
-#include "analysis/variable.h"
+#include "compiler/variable.h"
 
 Variable* createVariable(ConstString name) {
     Variable* var = NEW(Variable);

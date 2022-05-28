@@ -1,7 +1,7 @@
 
 #include <assert.h>
 
-#include "analysis/varbuild.h"
+#include "compiler/varbuild.h"
 #include "text/format.h"
 #include "text/string.h"
 

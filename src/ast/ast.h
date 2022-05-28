@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 #include "text/string.h"
-#include "analysis/symbols.h"
+#include "compiler/symbols.h"
 
 typedef enum {
     // AstBinary
