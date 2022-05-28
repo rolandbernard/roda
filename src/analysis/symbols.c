@@ -2,6 +2,7 @@
 #include <stdbool.h>
 
 #include "util/alloc.h"
+#include "util/hash.h"
 
 #include "analysis/symbols.h"
 
