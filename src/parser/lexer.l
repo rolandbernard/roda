@@ -1,10 +1,17 @@
 
 %option noinput nounput noyywrap 8bit nodefault
-%option reentrant bison-bridge
+%option reentrant bison-bridge 
+/* bison-locations */
 
 %{
 #include "text/string.h"
 #include "parser/parser.tab.h"
+#include "errors/fatalerror.h"
+
+#define YY_EXTRA_TYPE ParserContext*
+#define PARSER_CONTEXT yyget_extra(yyscanner)
+
+#define YY_FATAL_ERROR(MSG) fatalError(str(MSG))
 %}
 
 DIGIT   [0-9]

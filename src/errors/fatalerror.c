@@ -7,7 +7,7 @@
 #include "errors/msgkind.h"
 #include "util/console.h"
 
-void fatalError(ConstString message) {
+noreturn void fatalError(ConstString message) {
     bool istty = isATerminal(stderr);
     if (istty) {
         fputs(CONSOLE_SGR(CONSOLE_SGR_BOLD;CONSOLE_SGR_FG_BRIGHT_RED), stderr);

@@ -2,25 +2,23 @@
 %code requires {
 #include <stdio.h>
 
-#include "ast/ast.h"
+#include "parser/wrapper.h"
 #include "ast/astlist.h"
-#include "util/alloc.h"
-#include "text/string.h"
-#include "errors/msgcontext.h"
 
 typedef void* yyscan_t;
 }
 
-%code {
-extern int yylex(YYSTYPE*, yyscan_t);
-extern void yyerror(yyscan_t, AstNode**, MessageContext*, const char*);
+%code provides {
+extern int yylex(YYSTYPE* yylvalp, yyscan_t yyscanner);
+extern void yyerror(yyscan_t scanner, ParserContext* context, const char* msg);
 }
 
 %define parse.error detailed
 %define api.pure full
+/* %locations */
 
-%param { yyscan_t scanner }
-%parse-param {AstNode** ast_result} {MessageContext* context}
+%lex-param { yyscan_t scanner }
+%parse-param { yyscan_t scanner } { ParserContext* context }
 
 %union {
     String lexeme;
@@ -97,7 +95,7 @@ extern void yyerror(yyscan_t, AstNode**, MessageContext*, const char*);
 // top level definitions
 // 
 
-program : root  { *ast_result = $1; }
+program : root  { context->result = $1; }
         ;
 
 root : root_stmts  { $$ = (AstNode*)createAstBlock(AST_ROOT, toStaticAstList($1)); }

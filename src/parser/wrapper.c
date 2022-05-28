@@ -8,35 +8,41 @@
 
 #include "parser/wrapper.h"
 
-static AstNode* parseFromFileStream(FILE* file, MessageContext* context) {
-    AstNode* result = NULL;
+static AstNode* parseFromFileStream(FILE* stream, const File* file, MessageContext* msgcontext) {
+    ParserContext context = {
+        .result = NULL,
+        .file = file,
+        .msgcontext = msgcontext,
+    };
     yyscan_t scanner;
     yylex_init(&scanner);
-    yyset_in(file, scanner);
-    yyparse(scanner, &result, context);
+    yyset_extra(&context, scanner);
+    yyset_in(stream, scanner);
+    yyparse(scanner, &context);
     yylex_destroy(scanner);
-    return result;
+    return context.result;
 }
 
 AstNode* parseFile(const File* file, MessageContext* context) {
-    FILE* in = openFileStream(file, "r");
+    // This is "r+" and not just "r" to get an error when opening directories.
+    FILE* in = openFileStream(file, "r+");
     if (in == NULL) {
         addMessageToContext(context, createMessage(ERROR_CANT_OPEN_FILE,
             createFormattedString("Failed to open file '%s': %s", cstr(file->original_path), strerror(errno)
         ), 0));
         return NULL;
     } else {
-        AstNode* result = parseFromFileStream(in, context);
+        AstNode* result = parseFromFileStream(in, file, context);
         fclose(in);
         return result;
     }
 }
 
 AstNode* parseStdin(MessageContext* context) {
-    return parseFromFileStream(stdin, context);
+    return parseFromFileStream(stdin, NULL, context);
 }
 
-void yyerror(yyscan_t scanner, AstNode** ast_result, MessageContext* context, const char* s) {
-    addMessageToContext(context, createMessage(ERROR_SYNTAX, createFormattedString(s), 0));
+void yyerror(yyscan_t scanner, ParserContext* context, const char* s) {
+    addMessageToContext(context->msgcontext, createMessage(ERROR_SYNTAX, createFormattedString(s), 0));
 }
 

@@ -4,6 +4,12 @@
 #include "ast/ast.h"
 #include "errors/msgcontext.h"
 
+typedef struct {
+    AstNode* result;
+    const File* file;
+    MessageContext* msgcontext;
+} ParserContext;
+
 AstNode* parseFile(const File* file, MessageContext* context);
 
 AstNode* parseStdin(MessageContext* context);
