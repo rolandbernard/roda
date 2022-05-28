@@ -1,10 +1,10 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <unistd.h>
 
 #include "ast/ast.h"
 #include "util/alloc.h"
+#include "util/console.h"
 
 #include "ast/astprinter.h"
 
@@ -106,7 +106,11 @@ static void printAstChildNode(
     if (name != NULL) {
         fwrite(indent->data, 1, indentation, file);
         if (colors) {
-            fprintf(file, " \e[97m│\e[m\e[2;3m%s:\e[m\n", name);
+            fprintf(file,
+                " " CONSOLE_SGR(CONSOLE_SGR_FG_BRIGHT_WHITE)
+                "│" CONSOLE_SGR(CONSOLE_SGR_FG_BRIGHT_BLACK;CONSOLE_SGR_ITALIC)
+                "%s:" CONSOLE_SGR() "\n", name
+            );
         } else {
             fprintf(file, " │%s:\n", name);
         }
@@ -114,11 +118,11 @@ static void printAstChildNode(
     fwrite(indent->data, 1, indentation, file);
     if (colors) {
         if (last) {
-            fprintf(file, " \e[97m└─\e[m");
+            fprintf(file, CONSOLE_SGR(CONSOLE_SGR_FG_BRIGHT_WHITE) " └─" CONSOLE_SGR());
             pushIndentStack(indent, indentation, "   ");
         } else {
-            fprintf(file, " \e[97m├─\e[m");
-            pushIndentStack(indent, indentation, " \e[97m│\e[m ");
+            fprintf(file, CONSOLE_SGR(CONSOLE_SGR_FG_BRIGHT_WHITE) " ├─" CONSOLE_SGR());
+            pushIndentStack(indent, indentation, CONSOLE_SGR(CONSOLE_SGR_FG_BRIGHT_WHITE) " │ " CONSOLE_SGR());
         }
     } else {
         if (last) {
@@ -135,7 +139,7 @@ static void printAstChildNode(
 
 static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack* indent) {
     if (colors) {
-        fprintf(file, "\e[1;97m");
+        fprintf(file, CONSOLE_SGR(CONSOLE_SGR_BOLD;CONSOLE_SGR_FG_BRIGHT_WHITE));
     }
     if (node == NULL) {
         fprintf(file, "null\n");
@@ -143,7 +147,7 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
         fprintf(file, "%s", ast_type_names[node->kind]);
     }
     if (colors) {
-        fprintf(file, "\e[m");
+        fprintf(file, CONSOLE_SGR());
     }
     if (node != NULL) {
         switch (node->kind) {
@@ -296,6 +300,6 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
 void printAst(FILE* file, AstNode* ast) {
     IndentStack stack;
     initIndentStack(&stack);
-    printAstIndented(file, ast, isatty(fileno(file)), &stack);
+    printAstIndented(file, ast, isATerminal(file), &stack);
     deinitIndentStack(&stack);
 }
