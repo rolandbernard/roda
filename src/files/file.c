@@ -74,7 +74,7 @@ bool isSpanValid(Span span) {
 }
 
 bool isSpanFileOnly(Span span) {
-    return span.file != NULL && span.length == 0;
+    return span.file != NULL && span.offset == NO_POS;
 }
 
 size_t getSpanEndOffset(Span span) {

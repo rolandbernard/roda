@@ -14,7 +14,7 @@ extern void yyerror(YYLTYPE* yyllocp, yyscan_t scanner, ParserContext* context, 
 
 #define YYLLOC_DEFAULT(Cur, Rhs, N) {                                                     \
     if (N == 0) {                                                                         \
-        (Cur) = createSpan(YYRHSLOC(Rhs, 0).file, getSpanEndOffset(YYRHSLOC(Rhs, 0)), 1); \
+        (Cur) = createSpan(context->file, getSpanEndOffset(YYRHSLOC(Rhs, 0)), 0); \
     } else {                                                                              \
         (Cur) = createSpanWith(YYRHSLOC(Rhs, 1), YYRHSLOC(Rhs, N));                       \
     }                                                                                     \
