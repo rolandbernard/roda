@@ -83,7 +83,7 @@ static void recursivelyBuildSymbolTables(MessageContext* context, AstNode* node,
             }
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
-                putInSymbolTable(context, scope, tocnstr(n->name));
+                putInSymbolTable(context, scope, tocnstr(n->name->name));
                 recursivelyBuildSymbolTables(context, n->type, scope);
                 recursivelyBuildSymbolTables(context, n->val, scope);
                 break;
@@ -103,7 +103,7 @@ static void recursivelyBuildSymbolTables(MessageContext* context, AstNode* node,
             }
             case AST_FN: {
                 AstFn* n = (AstFn*)node;
-                putInSymbolTable(context, scope, tocnstr(n->name));
+                putInSymbolTable(context, scope, tocnstr(n->name->name));
                 recursivelyBuildSymbolTables(context, (AstNode*)n->arguments, scope);
                 recursivelyBuildSymbolTables(context, n->ret_type, scope);
                 recursivelyBuildSymbolTables(context, n->body, scope);
@@ -117,13 +117,13 @@ static void recursivelyBuildSymbolTables(MessageContext* context, AstNode* node,
             }
             case AST_TYPEDEF: {
                 AstTypeDef* n = (AstTypeDef*)node;
-                putInSymbolTable(context, scope, tocnstr(n->name));
+                putInSymbolTable(context, scope, tocnstr(n->name->name));
                 recursivelyBuildSymbolTables(context, n->value, scope);
                 break;
             }
             case AST_ARGDEF: {
                 AstArgDef* n = (AstArgDef*)node;
-                putInSymbolTable(context, scope, tocnstr(n->name));
+                putInSymbolTable(context, scope, tocnstr(n->name->name));
                 recursivelyBuildSymbolTables(context, n->type, scope);
                 break;
             }
@@ -139,6 +139,7 @@ static void recursivelyBuildSymbolTables(MessageContext* context, AstNode* node,
                 }
                 break;
             }
+            case AST_ERROR:
             case AST_STR:
             case AST_INT:
             case AST_REAL: break;

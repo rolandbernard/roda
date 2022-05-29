@@ -5,7 +5,6 @@
 %{
 #include "text/string.h"
 #include "parser/parser.tab.h"
-#include "parser/literal.h"
 #include "errors/fatalerror.h"
 
 #define YY_EXTRA_TYPE ParserContext*
@@ -95,13 +94,13 @@ REAL    [0-9][_0-9]*(\.[0-9][_0-9]*)?([eE][-+]?[0-9][_0-9]*)?
 "{"             { return '{'; }
 "}"             { return '}'; }
 
-{INT}           { yylval->integer = parseIntLiteralIn(PARSER_CONTEXT, *yylloc, yytext); return INT; }
+{INT}           { yylval->lexeme = yytext; return INT; }
 
-{REAL}          { yylval->real = parseRealLiteralIn(PARSER_CONTEXT, *yylloc, yytext); return REAL; }
+{REAL}          { yylval->lexeme = yytext; return REAL; }
 
-{STR}           { yylval->string = parseStringLiteralIn(PARSER_CONTEXT, *yylloc, yytext); return STR; }
+{STR}           { yylval->lexeme = yytext; return STR; }
 
-{ID}            { yylval->string = copyFromCString(yytext); return ID; }
+{ID}            { yylval->lexeme = yytext; return ID; }
 
 .               { return YYUNDEF; }
 

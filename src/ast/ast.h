@@ -8,6 +8,8 @@
 #include "compiler/symbols.h"
 
 typedef enum {
+    AST_ERROR,
+
     // AstBinary
     AST_ADD,
     AST_SUB,
@@ -106,7 +108,7 @@ typedef struct {
 
 typedef struct {
     AST_NODE_BASE
-    String name;
+    AstVar* name;
     AstNode* type;
     AstNode* val;
 } AstVarDef;
@@ -126,7 +128,7 @@ typedef enum {
 typedef struct {
     AST_NODE_BASE
     SymbolTable vars;
-    String name;
+    AstVar* name;
     AstList* arguments;
     AstNode* ret_type;
     AstNode* body;
@@ -160,13 +162,13 @@ typedef struct {
 
 typedef struct {
     AST_NODE_BASE
-    String name;
+    AstVar* name;
     AstNode* value;
 } AstTypeDef;
 
 typedef struct {
     AST_NODE_BASE
-    String name;
+    AstVar* name;
     AstNode* type;
 } AstArgDef;
 
@@ -175,6 +177,8 @@ typedef struct {
     SymbolTable vars;
     AstList* nodes;
 } AstBlock;
+
+AstNode* createAstSimple(AstNodeKind kind);
 
 AstBinary* createAstBinary(AstNodeKind kind, AstNode* left, AstNode* right);
 
@@ -188,11 +192,11 @@ AstIfElse* createAstIfElse(AstNode* cond, AstNode* if_block, AstNode* else_block
 
 AstVar* createAstVar(String name);
 
-AstVarDef* createAstVarDef(String name, AstNode* type, AstNode* val);
+AstVarDef* createAstVarDef(AstVar* name, AstNode* type, AstNode* val);
 
 AstWhile* createAstWhile(AstNode* cond, AstNode* block);
 
-AstFn* createAstFn(String name, AstList* arguments, AstNode* ret_type, AstNode* body, AstFnFlags flags);
+AstFn* createAstFn(AstVar* name, AstList* arguments, AstNode* ret_type, AstNode* body, AstFnFlags flags);
 
 AstCall* createAstCall(AstNode* func, AstList* arguments);
 
@@ -202,9 +206,9 @@ AstReal* createAstReal(AstRealType num);
 
 AstStr* createAstStr(String string);
 
-AstTypeDef* createAstTypeDef(String name, AstNode* value);
+AstTypeDef* createAstTypeDef(AstVar* name, AstNode* value);
 
-AstArgDef* createAstArgDef(String name, AstNode* type);
+AstArgDef* createAstArgDef(AstVar* name, AstNode* type);
 
 void freeAstNode(AstNode* node);
 

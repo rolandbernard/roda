@@ -9,6 +9,8 @@
 #include "ast/astprinter.h"
 
 static const char* ast_type_names[] = {
+    [AST_ERROR] = "error",
+
     // AstBinary
     [AST_ADD] = "add",
     [AST_SUB] = "sub",
@@ -151,6 +153,10 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
     }
     if (node != NULL) {
         switch (node->kind) {
+            case AST_ERROR: {
+                fprintf(file, "\n");
+                break;
+            }
             case AST_ADD_ASSIGN:
             case AST_SUB_ASSIGN:
             case AST_MUL_ASSIGN:
@@ -220,7 +226,8 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
             }
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
-                fprintf(file, " (name = %s)\n", cstr(n->name));
+                fprintf(file, "\n");
+                printAstChildNode(file, (AstNode*)n->name, colors, indent, "name", false);
                 printAstChildNode(file, n->type, colors, indent, "type", false);
                 printAstChildNode(file, n->val, colors, indent, "val", true);
                 break;
@@ -242,7 +249,7 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
             }
             case AST_FN: {
                 AstFn* n = (AstFn*)node;
-                fprintf(file, " (name = %s, flags =", cstr(n->name));
+                fprintf(file, " (flags =");
                 if (n->flags == AST_FN_FLAG_NONE) {
                     fprintf(file, " none");
                 } else {
@@ -254,6 +261,7 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
                     }
                 }
                 fprintf(file, ")\n");
+                printAstChildNode(file, (AstNode*)n->name, colors, indent, "name", false);
                 printAstChildNode(file, (AstNode*)n->arguments, colors, indent, "arguments", false);
                 printAstChildNode(file, n->ret_type, colors, indent, "ret_type", false);
                 printAstChildNode(file, n->body, colors, indent, "body", true);
@@ -283,13 +291,15 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
             }
             case AST_TYPEDEF: {
                 AstTypeDef* n = (AstTypeDef*)node;
-                fprintf(file, " (name = %s)\n", cstr(n->name));
+                fprintf(file, "\n");
+                printAstChildNode(file, (AstNode*)n->name, colors, indent, "name", false);
                 printAstChildNode(file, n->value, colors, indent, "value", true);
                 break;
             }
             case AST_ARGDEF: {
                 AstArgDef* n = (AstArgDef*)node;
-                fprintf(file, " (name = %s)\n", cstr(n->name));
+                fprintf(file, "\n");
+                printAstChildNode(file, (AstNode*)n->name, colors, indent, "name", false);
                 printAstChildNode(file, n->type, colors, indent, "type", true);
                 break;
             }

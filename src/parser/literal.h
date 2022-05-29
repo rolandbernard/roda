@@ -19,10 +19,10 @@ LiteralParseError parseIntLiteral(const char* str, AstIntType* res);
 
 LiteralParseError parseRealLiteral(const char* str, AstRealType* res);
 
-String parseStringLiteralIn(ParserContext* ctx, Span loc, const char* str);
+AstNode* parseStringLiteralIn(ParserContext* ctx, Span loc, const char* str);
 
-AstIntType parseIntLiteralIn(ParserContext* ctx, Span loc, const char* str);
+AstNode* parseIntLiteralIn(ParserContext* ctx, Span loc, const char* str);
 
-AstRealType parseRealLiteralIn(ParserContext* ctx, Span loc, const char* str);
+AstNode* parseRealLiteralIn(ParserContext* ctx, Span loc, const char* str);
 
 #endif
