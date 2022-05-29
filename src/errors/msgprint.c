@@ -11,6 +11,8 @@
 #include "util/alloc.h"
 #include "util/console.h"
 
+#define MAX_INTERMEDIATE_LINES 2
+
 static const char* message_category_style[] = {
     [MESSAGE_UNKNOWN] = CONSOLE_SGR(CONSOLE_SGR_BOLD),
     [MESSAGE_ERROR] = CONSOLE_SGR(CONSOLE_SGR_BOLD;CONSOLE_SGR_FG_BRIGHT_RED),
@@ -318,7 +320,7 @@ static void printFileMessageFragments(
                                 end_end++;
                             }
                             if (last_line != 0) {
-                                if (last_line + 2 >= next_line) {
+                                if (last_line + 1 + MAX_INTERMEDIATE_LINES >= next_line) {
                                     for (size_t i = last_line + 1; i < next_line; i++) {
                                         printSourceLine(NO_POS, i, linewidth, stream, output, istty);
                                     }

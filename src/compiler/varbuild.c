@@ -5,15 +5,18 @@
 #include "text/format.h"
 #include "text/string.h"
 
-static void putInSymbolTable(MessageContext* context, SymbolTable* scope, ConstString name) {
-    if (findImmediateSymbolInTable(scope, name) == NULL) {
-        Variable* var = createVariable(name);
+static void putInSymbolTable(MessageContext* context, SymbolTable* scope, AstVar* name) {
+    Variable* existing = findImmediateSymbolInTable(scope, tocnstr(name->name));
+    if (existing == NULL) {
+        Variable* var = createVariable(tocnstr(name->name), name->location);
         addSymbolToTable(scope, var);
     } else {
         addMessageToContext(
             context,
             createMessage(
-                ERROR_ALREADY_DEFINED, createFormattedString("Symbol `%S` already defined", name), 0
+                ERROR_ALREADY_DEFINED, createFormattedString("The symbol `%S` is already defined", name->name), 2,
+                createMessageFragment(MESSAGE_ERROR, copyFromCString("undefined symbol"), name->location),
+                createMessageFragment(MESSAGE_NOTE, copyFromCString("note: previously defined here"), existing->def_loc)
             )
         );
     }
@@ -83,7 +86,7 @@ static void recursivelyBuildSymbolTables(MessageContext* context, AstNode* node,
             }
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
-                putInSymbolTable(context, scope, tocnstr(n->name->name));
+                putInSymbolTable(context, scope, n->name);
                 recursivelyBuildSymbolTables(context, n->type, scope);
                 recursivelyBuildSymbolTables(context, n->val, scope);
                 break;
@@ -103,7 +106,7 @@ static void recursivelyBuildSymbolTables(MessageContext* context, AstNode* node,
             }
             case AST_FN: {
                 AstFn* n = (AstFn*)node;
-                putInSymbolTable(context, scope, tocnstr(n->name->name));
+                putInSymbolTable(context, scope, n->name);
                 recursivelyBuildSymbolTables(context, (AstNode*)n->arguments, scope);
                 recursivelyBuildSymbolTables(context, n->ret_type, scope);
                 recursivelyBuildSymbolTables(context, n->body, scope);
@@ -117,13 +120,13 @@ static void recursivelyBuildSymbolTables(MessageContext* context, AstNode* node,
             }
             case AST_TYPEDEF: {
                 AstTypeDef* n = (AstTypeDef*)node;
-                putInSymbolTable(context, scope, tocnstr(n->name->name));
+                putInSymbolTable(context, scope, n->name);
                 recursivelyBuildSymbolTables(context, n->value, scope);
                 break;
             }
             case AST_ARGDEF: {
                 AstArgDef* n = (AstArgDef*)node;
-                putInSymbolTable(context, scope, tocnstr(n->name->name));
+                putInSymbolTable(context, scope, n->name);
                 recursivelyBuildSymbolTables(context, n->type, scope);
                 break;
             }
@@ -133,7 +136,8 @@ static void recursivelyBuildSymbolTables(MessageContext* context, AstNode* node,
                     addMessageToContext(
                         context,
                         createMessage(
-                            ERROR_ALREADY_DEFINED, createFormattedString("Undefined symbol `%S`", n->name), 0
+                            ERROR_ALREADY_DEFINED, createFormattedString("Use of undefined symbol `%S`", n->name), 1,
+                            createMessageFragment(MESSAGE_ERROR, copyFromCString("undefined symbol"), n->location)
                         )
                     );
                 }
