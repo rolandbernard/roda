@@ -1,5 +1,6 @@
 
 #include <errno.h>
+#include <string.h>
 
 #include "parser/parser.tab.h"
 #include "parser/lexer.yy.h"
@@ -47,20 +48,51 @@ void yyerror(YYLTYPE* yyllocp, yyscan_t scanner, ParserContext* context, const c
     addMessageToContext(&context->context->msgs, createMessage(ERROR_UNKNOWN, copyFromCString(msg), 0));
 }
 
+static const char* surroundWith(char* dst, const char* src, char start, char end) {
+    const char* ret = dst;
+    *dst = start;
+    dst++;
+    while (*src != 0) {
+        *dst = *src;
+        dst++;
+        src++;
+    }
+    *dst = end;
+    dst++;
+    *dst = 0;
+    return ret;
+}
+
+static const char* tokenName(char* dst, const char* src) {
+    if (src[0] == '\'') {
+        return src;
+    } else if (strcmp(src, "end of file") == 0) {
+        return src;
+    } else if (
+        strcmp(src, "invalid token") == 0 || strcmp(src, "identifier") == 0
+        || strcmp(src, "string") == 0 || strcmp(src, "integer") == 0 || strcmp(src, "real") == 0
+    ) {
+        return surroundWith(dst, src, '{', '}');
+    } else {
+        return surroundWith(dst, src, '\'', '\'');
+    }
+}
+
 void reportSyntaxError(ParserContext* context, Span loc, const char* actual, size_t num_exp, const char* const* expected) {
-    String complete = createFormattedString("Syntax error, unexpected %s", actual);
+    char name[128]; // This is larger than any defined token name.
+    String complete = createFormattedString("Syntax error, unexpected %s", tokenName(name, actual));
     if (num_exp > 0) {
-        pushFormattedString(&complete, ", expecting %s", expected[0]);
+        pushFormattedString(&complete, ", expecting %s", tokenName(name, expected[0]));
         for (size_t i = 1; i < num_exp; i++) {
             if (i == num_exp - 1) {
-                pushFormattedString(&complete, " or %s", expected[i]);
+                pushFormattedString(&complete, " or %s", tokenName(name, expected[i]));
             } else {
-                pushFormattedString(&complete, ", %s", expected[i]);
+                pushFormattedString(&complete, ", %s", tokenName(name, expected[i]));
             }
         }
     }
     addMessageToContext(&context->context->msgs, createMessage(ERROR_SYNTAX, complete, 1,
-        createMessageFragment(MESSAGE_ERROR, createFormattedString("unexpected %s", actual), loc)
+        createMessageFragment(MESSAGE_ERROR, createFormattedString("unexpected %s", tokenName(name, actual)), loc)
     ));
 }
 

@@ -6,6 +6,14 @@ export fn main() {
     let test = 5;
     test += 5.5
     test -= 0.25;
+    test -= 0 25;
+    test -= 0 +=;
+    test -= 0 $;
+    test -= 25;
     return 0
+}
+
+fn add(a: u32, b: u32): u32 {
+    return a + b;
 }
 
