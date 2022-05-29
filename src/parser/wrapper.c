@@ -13,6 +13,7 @@ static AstNode* parseFromFileStream(FILE* stream, const File* file, MessageConte
         .result = NULL,
         .file = file,
         .msgcontext = msgcontext,
+        .comment_nesting = 0,
     };
     yyscan_t scanner;
     yylex_init(&scanner);

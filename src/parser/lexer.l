@@ -24,7 +24,17 @@ STR     \"([^"\\]|\\.)*\"
 INT     {DIGIT}+
 REAL    {DIGIT}+(\.{DIGIT}+)?([eE][-+]?{DIGIT}+)?
 
+%x BLOCK_COMMENT
+
 %%
+
+"/*"            { BEGIN(BLOCK_COMMENT); }
+<BLOCK_COMMENT>{
+  "/*"          { PARSER_CONTEXT->comment_nesting++; }
+  "*/"          { if (PARSER_CONTEXT->comment_nesting != 0) { PARSER_CONTEXT->comment_nesting--; } else { BEGIN(INITIAL); } }
+  [/*]          ;
+  [^/*]+        { /* Skip all other characters in comments */ }
+}
 
 [[:space:]]+    { /* Skip all whitespace */ }
 

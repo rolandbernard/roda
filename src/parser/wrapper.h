@@ -8,6 +8,7 @@ typedef struct {
     AstNode* result;
     const File* file;
     MessageContext* msgcontext;
+    size_t comment_nesting;
 } ParserContext;
 
 AstNode* parseFile(const File* file, MessageContext* context);
