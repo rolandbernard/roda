@@ -29,6 +29,8 @@ CodePoint peekUtf8CodePoint(const Utf8Stream* stream);
 
 size_t readUtf8FromFileStream(FILE* file, CodePoint* out);
 
-size_t getUtf8Length(ConstString string);
+size_t getStringWidth(ConstString string);
+
+size_t getCodePointWidth(CodePoint point);
 
 #endif

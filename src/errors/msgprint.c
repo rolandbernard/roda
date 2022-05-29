@@ -218,7 +218,7 @@ static void printFileMessageFragments(
                                 current_line++;
                                 line_offset = current_offset;
                             } else {
-                                current_column++;
+                                current_column += getCodePointWidth(next_rune);
                             }
                         }
                     }
@@ -260,7 +260,7 @@ static void printFileMessageFragments(
                             ) {
                                 end_index++;
                             }
-                            size_t length = getUtf8Length(toConstString(fragments[ordered_by_end[i]]->message));
+                            size_t length = getStringWidth(toConstString(fragments[ordered_by_end[i]]->message));
                             if (length > 0) {
                                 size_t end_column = ends[ordered_by_end[i]].column + length;
                                 if (
@@ -411,7 +411,7 @@ static void printFileMessageFragments(
                                         if (istty) {
                                             fputs(CONSOLE_SGR(), output);
                                         }
-                                        i += 2 + getUtf8Length(msg);
+                                        i += 2 + getStringWidth(msg);
                                         fputc(' ', output);
                                     }
                                 } else if (!printed) {

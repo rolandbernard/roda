@@ -1,6 +1,6 @@
 
 export fn main() {
-    1 += 1 +=;
-    return 0
+	1 += "öäü猕猴桃" +=;
+	return 0
 }
 

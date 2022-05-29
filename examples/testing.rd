@@ -1,7 +1,12 @@
 
 import fn print(text: *u8);
 
-fn fma(a: uint, b: uint, c: uint): uint {
+/*
+   This is a block comment.
+   /* They can also be nested. /* As deep as you like. */ */
+ */
+
+fn fma(a: uint, b: uint /* Hello world! */, c: uint): uint {
     while a < b {
         b += 1;
         a *= 2;
@@ -10,10 +15,11 @@ fn fma(a: uint, b: uint, c: uint): uint {
 }
 
 export fn main(argc: int, argv: **u8): int {
+    /* Print some stuff! */
     print("Hello \t \"world\"!");
-    print("😀");
+    print("猕猴桃");     // Supports utf8 in string literals.
+    print("\U0001F600"); // Or if you like, you can use an escape sequence.
     print(5.2E-2);
-    print("\U0001F600");
     print(829343.545);
     print(829343);
     return 0;
