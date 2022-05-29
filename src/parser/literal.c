@@ -249,12 +249,12 @@ AstNode* parseStringLiteralIn(ParserContext* ctx, Span loc, const char* str) {
     String result;
     LiteralParseError error = parseStringLiteral(str, &result);
     if (isLiteralParseNoError(error)) {
-        return (AstNode*)createAstStr(result);
+        return (AstNode*)createAstStr(loc, result);
     } else if (error.length == loc.length) {
         addMessageToContext(ctx->msgcontext, createMessage(ERROR_INVALID_STR, copyFromCString("String literal is invalid"), 1,
             createMessageFragment(MESSAGE_ERROR, copyFromCString("invalid string literal"), loc)
         ));
-        return createAstSimple(AST_ERROR);
+        return createAstSimple(loc, AST_ERROR);
     } else {
         Span err_loc = loc;
         err_loc.offset += error.offset;
@@ -262,7 +262,7 @@ AstNode* parseStringLiteralIn(ParserContext* ctx, Span loc, const char* str) {
         addMessageToContext(ctx->msgcontext, createMessage(ERROR_INVALID_STR, copyFromCString("String literal contains invalid escape character"), 1,
             createMessageFragment(MESSAGE_ERROR, copyFromCString("invalid escape character"), err_loc)
         ));
-        return createAstSimple(AST_ERROR);
+        return createAstSimple(loc, AST_ERROR);
     }
 }
 
@@ -270,12 +270,12 @@ AstNode* parseIntLiteralIn(ParserContext* ctx, Span loc, const char* str) {
     AstIntType result;
     LiteralParseError error = parseIntLiteral(str, &result);
     if (isLiteralParseNoError(error)) {
-        return (AstNode*)createAstInt(result);
+        return (AstNode*)createAstInt(loc, result);
     } else {
         addMessageToContext(ctx->msgcontext, createMessage(ERROR_INVALID_INT, copyFromCString("Integer literal is invalid"), 1,
             createMessageFragment(MESSAGE_ERROR, copyFromCString("invalid integer literal"), loc)
         ));
-        return createAstSimple(AST_ERROR);
+        return createAstSimple(loc, AST_ERROR);
     }
 }
 
@@ -283,12 +283,12 @@ AstNode* parseRealLiteralIn(ParserContext* ctx, Span loc, const char* str) {
     AstRealType result;
     LiteralParseError error = parseRealLiteral(str, &result);
     if (isLiteralParseNoError(error)) {
-        return (AstNode*)createAstReal(result);
+        return (AstNode*)createAstReal(loc, result);
     } else {
         addMessageToContext(ctx->msgcontext, createMessage(ERROR_INVALID_REAL, copyFromCString("Real literal is invalid"), 1,
             createMessageFragment(MESSAGE_ERROR, copyFromCString("invalid real literal"), loc)
         ));
-        return createAstSimple(AST_ERROR);
+        return createAstSimple(loc, AST_ERROR);
     }
 }
 

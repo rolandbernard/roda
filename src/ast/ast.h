@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "files/file.h"
 #include "text/string.h"
 #include "compiler/symbols.h"
 
@@ -70,8 +71,9 @@ typedef enum {
 } AstNodeKind;
 
 #define AST_NODE_BASE \
-    struct AstNode* parent;  \
-    AstNodeKind kind;
+    struct AstNode* parent; \
+    AstNodeKind kind;       \
+    Span location;
 
 typedef struct AstNode {
     AST_NODE_BASE
@@ -178,37 +180,37 @@ typedef struct {
     AstList* nodes;
 } AstBlock;
 
-AstNode* createAstSimple(AstNodeKind kind);
+AstNode* createAstSimple(Span loc, AstNodeKind kind);
 
-AstBinary* createAstBinary(AstNodeKind kind, AstNode* left, AstNode* right);
+AstBinary* createAstBinary(Span loc, AstNodeKind kind, AstNode* left, AstNode* right);
 
-AstUnary* createAstUnary(AstNodeKind kind, AstNode* operand);
+AstUnary* createAstUnary(Span loc, AstNodeKind kind, AstNode* operand);
 
-AstList* createAstList(AstNodeKind kind, size_t count, AstNode** nodes);
+AstList* createAstList(Span loc, AstNodeKind kind, size_t count, AstNode** nodes);
 
-AstBlock* createAstBlock(AstNodeKind kind, AstList* nodes);
+AstBlock* createAstBlock(Span loc, AstNodeKind kind, AstList* nodes);
 
-AstIfElse* createAstIfElse(AstNode* cond, AstNode* if_block, AstNode* else_block);
+AstIfElse* createAstIfElse(Span loc, AstNode* cond, AstNode* if_block, AstNode* else_block);
 
-AstVar* createAstVar(String name);
+AstVar* createAstVar(Span loc, String name);
 
-AstVarDef* createAstVarDef(AstVar* name, AstNode* type, AstNode* val);
+AstVarDef* createAstVarDef(Span loc, AstVar* name, AstNode* type, AstNode* val);
 
-AstWhile* createAstWhile(AstNode* cond, AstNode* block);
+AstWhile* createAstWhile(Span loc, AstNode* cond, AstNode* block);
 
-AstFn* createAstFn(AstVar* name, AstList* arguments, AstNode* ret_type, AstNode* body, AstFnFlags flags);
+AstFn* createAstFn(Span loc, AstVar* name, AstList* arguments, AstNode* ret_type, AstNode* body, AstFnFlags flags);
 
-AstCall* createAstCall(AstNode* func, AstList* arguments);
+AstCall* createAstCall(Span loc, AstNode* func, AstList* arguments);
 
-AstInt* createAstInt(AstIntType num);
+AstInt* createAstInt(Span loc, AstIntType num);
 
-AstReal* createAstReal(AstRealType num);
+AstReal* createAstReal(Span loc, AstRealType num);
 
-AstStr* createAstStr(String string);
+AstStr* createAstStr(Span loc, String string);
 
-AstTypeDef* createAstTypeDef(AstVar* name, AstNode* value);
+AstTypeDef* createAstTypeDef(Span loc, AstVar* name, AstNode* value);
 
-AstArgDef* createAstArgDef(AstVar* name, AstNode* type);
+AstArgDef* createAstArgDef(Span loc, AstVar* name, AstNode* type);
 
 void freeAstNode(AstNode* node);
 

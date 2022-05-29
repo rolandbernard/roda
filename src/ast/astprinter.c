@@ -152,6 +152,7 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
         fprintf(file, CONSOLE_SGR());
     }
     if (node != NULL) {
+        fprintf(file, " [%zi-%zi]", node->location.offset, getSpanEndOffset(node->location));
         switch (node->kind) {
             case AST_ERROR: {
                 fprintf(file, "\n");
