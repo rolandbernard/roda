@@ -19,7 +19,6 @@ static const char* message_category_style[] = {
     [MESSAGE_WARNING] = CONSOLE_SGR(CONSOLE_SGR_BOLD;CONSOLE_SGR_FG_BRIGHT_YELLOW),
     [MESSAGE_NOTE] = CONSOLE_SGR(CONSOLE_SGR_BOLD;CONSOLE_SGR_FG_BRIGHT_BLUE),
     [MESSAGE_HELP] = CONSOLE_SGR(CONSOLE_SGR_BOLD;CONSOLE_SGR_FG_BRIGHT_CYAN),
-    [MESSAGE_DEBUG] = CONSOLE_SGR(CONSOLE_SGR_BOLD),
 };
 
 typedef struct {
@@ -31,8 +30,7 @@ typedef struct {
 static int fragmentCompare(const MessageFragment* a, const MessageFragment* b, bool by_end) {
     if (a->position.file != b->position.file) {
         return a->position.file - b->position.file;
-    }
-    if (isSpanFileOnly(a->position) != isSpanFileOnly(b->position)) {
+    } else if (isSpanFileOnly(a->position) != isSpanFileOnly(b->position)) {
         return isSpanFileOnly(a->position) ? -1 : 1;
     } else if (!by_end && a->position.offset != b->position.offset) {
         return a->position.offset - b->position.offset;

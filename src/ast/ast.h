@@ -6,7 +6,8 @@
 
 #include "files/file.h"
 #include "text/string.h"
-#include "compiler/symbols.h"
+#include "compiler/symboltable.h"
+#include "text/symbol.h"
 
 typedef enum {
     AST_ERROR,
@@ -105,7 +106,7 @@ typedef struct {
 
 typedef struct {
     AST_NODE_BASE
-    String name;
+    Symbol name;
 } AstVar;
 
 typedef struct {
@@ -192,7 +193,7 @@ AstBlock* createAstBlock(Span loc, AstNodeKind kind, AstList* nodes);
 
 AstIfElse* createAstIfElse(Span loc, AstNode* cond, AstNode* if_block, AstNode* else_block);
 
-AstVar* createAstVar(Span loc, String name);
+AstVar* createAstVar(Span loc, Symbol name);
 
 AstVarDef* createAstVarDef(Span loc, AstVar* name, AstNode* type, AstNode* val);
 

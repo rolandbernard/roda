@@ -4,7 +4,7 @@
 #include "util/alloc.h"
 #include "util/hash.h"
 
-#include "compiler/symbols.h"
+#include "compiler/symboltable.h"
 
 #define INITIAL_CAPACITY 32
 
@@ -28,19 +28,19 @@ static bool isIndexValid(SymbolTable* table, size_t idx) {
     return table->vars[idx] != NULL;
 }
 
-static bool continueSearch(SymbolTable* table, size_t idx, ConstString key) {
-    return table->vars[idx] != NULL && compareStrings(table->vars[idx]->name, key) != 0;
+static bool continueSearch(SymbolTable* table, size_t idx, Symbol key) {
+    return table->vars[idx] != NULL && table->vars[idx]->name != key;
 }
 
-static size_t findIndexHashTable(SymbolTable* table, ConstString key) {
-    size_t idx = hashString(key) % table->capacity;
+static size_t findIndexHashTable(SymbolTable* table, Symbol key) {
+    size_t idx = hashInt(key) % table->capacity;
     while (continueSearch(table, idx, key)) {
         idx = (idx + 1) % table->capacity;
     }
     return idx;
 }
 
-Variable* findSymbolInTable(SymbolTable* self, ConstString name) {
+Variable* findSymbolInTable(SymbolTable* self, Symbol name) {
     Variable* ret = findImmediateSymbolInTable(self, name);
     if (ret != NULL) {
         return ret;
@@ -51,7 +51,7 @@ Variable* findSymbolInTable(SymbolTable* self, ConstString name) {
     }
 }
 
-Variable* findImmediateSymbolInTable(SymbolTable* self, ConstString name) {
+Variable* findImmediateSymbolInTable(SymbolTable* self, Symbol name) {
     if (self->count != 0) {
         size_t idx = findIndexHashTable(self, name);
         if (isIndexValid(self, idx)) {
@@ -64,7 +64,6 @@ Variable* findImmediateSymbolInTable(SymbolTable* self, ConstString name) {
 static void rebuildHashTable(SymbolTable* table, size_t size) {
     SymbolTable new;
     new.capacity = size;
-    new.count = 0;
     new.vars = ALLOC(Variable*, size);
     for (size_t i = 0; i < size; i++) {
         new.vars[i] = NULL;
@@ -83,8 +82,6 @@ static void rebuildHashTable(SymbolTable* table, size_t size) {
 static void tryResizingHashTable(SymbolTable* table) {
     if (table->capacity == 0 || table->capacity < table->count * 2) {
         rebuildHashTable(table, (table->capacity == 0 ? INITIAL_CAPACITY : 3 * table->capacity / 2));
-    } else if (table->capacity / 2 > INITIAL_CAPACITY && table->capacity > table->count * 4) {
-        rebuildHashTable(table, table->capacity / 2);
     }
 }
 

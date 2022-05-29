@@ -3,14 +3,15 @@
 
 #include "files/file.h"
 #include "text/string.h"
+#include "text/symbol.h"
 
 typedef struct {
-    ConstString name;
+    Symbol name;
     Span def_loc;
     // TODO: 
 } Variable;
 
-Variable* createVariable(ConstString name, Span def_loc);
+Variable* createVariable(Symbol name, Span def_loc);
 
 void freeVariable(Variable* var);
 

@@ -8,11 +8,11 @@
 
 #include "parser/wrapper.h"
 
-static AstNode* parseFromFileStream(FILE* stream, const File* file, MessageContext* msgcontext) {
+static AstNode* parseFromFileStream(FILE* stream, const File* file, CompilerContext* msgcontext) {
     ParserContext context = {
         .result = NULL,
         .file = file,
-        .msgcontext = msgcontext,
+        .context = msgcontext,
         .comment_nesting = 0,
     };
     yyscan_t scanner;
@@ -24,11 +24,11 @@ static AstNode* parseFromFileStream(FILE* stream, const File* file, MessageConte
     return context.result;
 }
 
-AstNode* parseFile(const File* file, MessageContext* context) {
+AstNode* parseFile(const File* file, CompilerContext* context) {
     // This is "r+" and not just "r" to get an error when opening directories.
     FILE* in = openFileStream(file, "r+");
     if (in == NULL) {
-        addMessageToContext(context, createMessage(ERROR_CANT_OPEN_FILE,
+        addMessageToContext(&context->msgs, createMessage(ERROR_CANT_OPEN_FILE,
             createFormattedString("Failed to open file '%s': %s", cstr(file->original_path), strerror(errno)
         ), 0));
         return NULL;
@@ -39,12 +39,12 @@ AstNode* parseFile(const File* file, MessageContext* context) {
     }
 }
 
-AstNode* parseStdin(MessageContext* context) {
+AstNode* parseStdin(CompilerContext* context) {
     return parseFromFileStream(stdin, NULL, context);
 }
 
 void yyerror(YYLTYPE* yyllocp, yyscan_t scanner, ParserContext* context, const char* msg) {
-    addMessageToContext(context->msgcontext, createMessage(ERROR_UNKNOWN, copyFromCString(msg), 0));
+    addMessageToContext(&context->context->msgs, createMessage(ERROR_UNKNOWN, copyFromCString(msg), 0));
 }
 
 void reportSyntaxError(ParserContext* context, Span loc, const char* actual, size_t num_exp, const char* const* expected) {
@@ -59,7 +59,7 @@ void reportSyntaxError(ParserContext* context, Span loc, const char* actual, siz
             }
         }
     }
-    addMessageToContext(context->msgcontext, createMessage(ERROR_SYNTAX, complete, 1,
+    addMessageToContext(&context->context->msgs, createMessage(ERROR_SYNTAX, complete, 1,
         createMessageFragment(MESSAGE_ERROR, createFormattedString("unexpected %s", actual), loc)
     ));
 }

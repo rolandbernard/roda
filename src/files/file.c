@@ -1,11 +1,12 @@
 
-#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "files/file.h"
+#include "errors/fatalerror.h"
 #include "util/alloc.h"
+
+#include "files/file.h"
 
 void initFile(File* file, ConstPath file_path) {
     file->original_path = copyPath(file_path);
@@ -41,6 +42,10 @@ void freeFile(File* file) {
     FREE(file);
 }
 
+Span invalidSpan() {
+    return createSpan(NULL, NO_POS, NO_POS);
+}
+
 Span createSpan(const File* file, size_t offset, size_t length) {
     Span ret = {
         .file = file,
@@ -60,7 +65,7 @@ Span createSpanFromBounds(const File* file, size_t start, size_t end) {
 }
 
 Span createSpanWith(Span begin, Span end) {
-    assert(begin.file == end.file);
+    ASSERT(begin.file == end.file);
     Span ret = {
         .file = begin.file,
         .offset = begin.offset,

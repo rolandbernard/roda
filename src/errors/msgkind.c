@@ -14,7 +14,6 @@ static const char* message_kind_strings[] = {
     [WARNING_UNKNOWN] = "unknown",
     [NOTE_UNKNOWN] = "unknown",
     [HELP_UNKNOWN] = "unknown",
-    [DEBUG_UNKNOWN] = "unknown",
 };
 
 ConstString getMessageKindString(MessageKind kind) {
@@ -32,11 +31,10 @@ static const char* message_category_names[] = {
     [MESSAGE_WARNING] = "warning",
     [MESSAGE_NOTE] = "note",
     [MESSAGE_HELP] = "help",
-    [MESSAGE_DEBUG] = "debug",
 };
 
 ConstString getMessageCategoryName(MessageCategory category) {
-    if (category >= MESSAGE_UNKNOWN && category <= MESSAGE_DEBUG) {
+    if (category >= MESSAGE_UNKNOWN && category <= MESSAGE_HELP) {
         return createFromConstCString(message_category_names[category]);
     } else {
         return createFromConstCString(message_category_names[MESSAGE_UNKNOWN]);
@@ -44,7 +42,7 @@ ConstString getMessageCategoryName(MessageCategory category) {
 }
 
 MessageCategory getMessageCategoryFromName(ConstString category) {
-    for (int c = MESSAGE_UNKNOWN; c <= MESSAGE_DEBUG; c++) {
+    for (int c = MESSAGE_UNKNOWN; c <= MESSAGE_HELP; c++) {
         if (compareStrings(getMessageCategoryName(c), category) == 0) {
             return c;
         }
@@ -61,8 +59,6 @@ MessageCategory getMessageCategory(MessageKind kind) {
         return MESSAGE_NOTE;
     } else if (kind > HELPS_START && kind < HELPS_END) {
         return MESSAGE_HELP;
-    } else if (kind > DEBUGS_START && kind < DEBUGS_END) {
-        return MESSAGE_DEBUG;
     } else {
         return MESSAGE_UNKNOWN;
     }
@@ -75,24 +71,9 @@ void initMessageFilter(MessageFilter* filter) {
     filter->message_category_filter[MESSAGE_WARNING] = true;
     filter->message_category_filter[MESSAGE_NOTE] = true;
     filter->message_category_filter[MESSAGE_HELP] = true;
-    filter->message_category_filter[MESSAGE_DEBUG] = false;
     for (int i = 0; i < NUM_MESSAGE_KIND; i++) {
-        if (getMessageCategory(i) == MESSAGE_ERROR) {
-            filter->message_kind_filter[i] = true;
-        } else {
-            filter->message_kind_filter[i] = false;
-        }
+        filter->message_kind_filter[i] = true;
     }
-}
-
-MessageFilter* createMessageFilter() {
-    MessageFilter* ret = ALLOC(MessageFilter, 1);
-    initMessageFilter(ret);
-    return ret;
-}
-
-void freeMessageFilter(MessageFilter* filter) {
-    FREE(filter);
 }
 
 bool applyFilterForKind(const MessageFilter* filter, MessageKind kind) {
@@ -112,7 +93,7 @@ bool applyFilterForCategory(const MessageFilter* filter, MessageCategory categor
     if (filter == NULL) {
         return true;
     } else {
-        if (category >= MESSAGE_UNKNOWN && category <= MESSAGE_DEBUG) {
+        if (category >= MESSAGE_UNKNOWN && category <= MESSAGE_HELP) {
             return filter->message_category_filter[category];
         } else {
             return filter->message_category_filter[MESSAGE_UNKNOWN];

@@ -12,10 +12,9 @@ typedef enum {
     MESSAGE_WARNING,
     MESSAGE_NOTE,
     MESSAGE_HELP,
-    MESSAGE_DEBUG,
 } MessageCategory;
 
-#define NUM_MESSAGE_CATEGORY (MESSAGE_DEBUG + 1)
+#define NUM_MESSAGE_CATEGORY (MESSAGE_HELP + 1)
 
 typedef enum {
     UNKNOWN_UNKNOWN,
@@ -41,13 +40,9 @@ typedef enum {
     HELPS_START,
     HELP_UNKNOWN,
     HELPS_END,
-    
-    DEBUGS_START,
-    DEBUG_UNKNOWN,
-    DEBUGS_END,
 } MessageKind;
 
-#define NUM_MESSAGE_KIND (DEBUGS_END + 1)
+#define NUM_MESSAGE_KIND (HELPS_END + 1)
 
 ConstString getMessageKindString(MessageKind kind);
 
@@ -63,10 +58,6 @@ typedef struct {
 } MessageFilter;
 
 void initMessageFilter(MessageFilter* filter);
-
-MessageFilter* createMessageFilter();
-
-void freeMessageFilter(MessageFilter* filter);
 
 bool applyFilterForKind(const MessageFilter* filter, MessageKind kind);
 

@@ -31,6 +31,8 @@ void deinitFile(File* file);
 
 void freeFile(File* file);
 
+Span invalidSpan();
+
 Span createSpan(const File* file, size_t offset, size_t length);
 
 Span createSpanFromBounds(const File* file, size_t start, size_t end);

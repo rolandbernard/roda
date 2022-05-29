@@ -165,17 +165,17 @@ stmt    : expr                           { $$ = $1; }
         | "type" ident '=' type          { $$ = (AstNode*)createAstTypeDef(@$, $2, $4); }
         ;
 
-assign : expr '=' expr          { $$ = (AstNode*)createAstBinary(@$, AST_ASSIGN, $1, $3); }
-       | expr "+=" expr       { $$ = (AstNode*)createAstBinary(@$, AST_ADD_ASSIGN, $1, $3); }
-       | expr "-=" expr       { $$ = (AstNode*)createAstBinary(@$, AST_SUB_ASSIGN, $1, $3); }
-       | expr "*=" expr       { $$ = (AstNode*)createAstBinary(@$, AST_MUL_ASSIGN, $1, $3); }
-       | expr "/=" expr       { $$ = (AstNode*)createAstBinary(@$, AST_DIV_ASSIGN, $1, $3); }
-       | expr "%=" expr       { $$ = (AstNode*)createAstBinary(@$, AST_MOD_ASSIGN, $1, $3); }
-       | expr ">>=" expr       { $$ = (AstNode*)createAstBinary(@$, AST_SHR_ASSIGN, $1, $3); }
-       | expr "<<=" expr       { $$ = (AstNode*)createAstBinary(@$, AST_SHL_ASSIGN, $1, $3); }
-       | expr "|=" expr       { $$ = (AstNode*)createAstBinary(@$, AST_BOR_ASSIGN, $1, $3); }
-       | expr "&=" expr      { $$ = (AstNode*)createAstBinary(@$, AST_BAND_ASSIGN, $1, $3); }
-       | expr "^=" expr      { $$ = (AstNode*)createAstBinary(@$, AST_BXOR_ASSIGN, $1, $3); }
+assign : expr '=' expr      { $$ = (AstNode*)createAstBinary(@$, AST_ASSIGN, $1, $3); }
+       | expr "+=" expr     { $$ = (AstNode*)createAstBinary(@$, AST_ADD_ASSIGN, $1, $3); }
+       | expr "-=" expr     { $$ = (AstNode*)createAstBinary(@$, AST_SUB_ASSIGN, $1, $3); }
+       | expr "*=" expr     { $$ = (AstNode*)createAstBinary(@$, AST_MUL_ASSIGN, $1, $3); }
+       | expr "/=" expr     { $$ = (AstNode*)createAstBinary(@$, AST_DIV_ASSIGN, $1, $3); }
+       | expr "%=" expr     { $$ = (AstNode*)createAstBinary(@$, AST_MOD_ASSIGN, $1, $3); }
+       | expr ">>=" expr    { $$ = (AstNode*)createAstBinary(@$, AST_SHR_ASSIGN, $1, $3); }
+       | expr "<<=" expr    { $$ = (AstNode*)createAstBinary(@$, AST_SHL_ASSIGN, $1, $3); }
+       | expr "|=" expr     { $$ = (AstNode*)createAstBinary(@$, AST_BOR_ASSIGN, $1, $3); }
+       | expr "&=" expr     { $$ = (AstNode*)createAstBinary(@$, AST_BAND_ASSIGN, $1, $3); }
+       | expr "^=" expr     { $$ = (AstNode*)createAstBinary(@$, AST_BXOR_ASSIGN, $1, $3); }
        ; 
 
 type    : ident                              { $$ = (AstNode*)$1; }
@@ -224,7 +224,7 @@ real    : REAL  { $$ = parseRealLiteralIn(context, @1, $1); }
 string  : STR   { $$ = parseStringLiteralIn(context, @1, $1); }
         ;
 
-ident   : ID    { $$ = createAstVar(@$, copyFromCString($1)); }
+ident   : ID    { $$ = createAstVar(@$, getSymbol(&context->context->syms, str($1))); }
         ;
 
 args    : %empty        { $$ = createAstList(@$, AST_LIST, 0, NULL); }

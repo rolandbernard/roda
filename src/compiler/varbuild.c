@@ -1,20 +1,22 @@
 
-#include <assert.h>
-
-#include "compiler/varbuild.h"
+#include "errors/fatalerror.h"
 #include "text/format.h"
 #include "text/string.h"
 
-static void putInSymbolTable(MessageContext* context, SymbolTable* scope, AstVar* name) {
-    Variable* existing = findImmediateSymbolInTable(scope, tocnstr(name->name));
+#include "compiler/varbuild.h"
+
+static void putInSymbolTable(CompilerContext* context, SymbolTable* scope, AstVar* name) {
+    Variable* existing = findImmediateSymbolInTable(scope, name->name);
     if (existing == NULL) {
-        Variable* var = createVariable(tocnstr(name->name), name->location);
+        Variable* var = createVariable(name->name, name->location);
         addSymbolToTable(scope, var);
     } else {
         addMessageToContext(
-            context,
+            &context->msgs,
             createMessage(
-                ERROR_ALREADY_DEFINED, createFormattedString("The symbol `%S` is already defined", name->name), 2,
+                ERROR_ALREADY_DEFINED,
+                createFormattedString("The symbol `%S` is already defined", getSymbolName(&context->syms, name->name)),
+                2,
                 createMessageFragment(MESSAGE_ERROR, copyFromCString("already defined symbol"), name->location),
                 createMessageFragment(MESSAGE_NOTE, copyFromCString("note: previously defined here"), existing->def_loc)
             )
@@ -22,7 +24,7 @@ static void putInSymbolTable(MessageContext* context, SymbolTable* scope, AstVar
     }
 }
 
-static void recursivelyBuildSymbolTables(MessageContext* context, AstNode* node, SymbolTable* scope) {
+static void recursivelyBuildSymbolTables(CompilerContext* context, AstNode* node, SymbolTable* scope) {
     if (node != NULL) {
         switch (node->kind) {
             case AST_ADD_ASSIGN:
@@ -132,11 +134,13 @@ static void recursivelyBuildSymbolTables(MessageContext* context, AstNode* node,
             }
             case AST_VAR: {
                 AstVar* n = (AstVar*)node;
-                if (findSymbolInTable(scope, tocnstr(n->name)) == NULL) {
+                if (findSymbolInTable(scope, n->name) == NULL) {
                     addMessageToContext(
-                        context,
+                        &context->msgs,
                         createMessage(
-                            ERROR_ALREADY_DEFINED, createFormattedString("Use of undefined symbol `%S`", n->name), 1,
+                            ERROR_ALREADY_DEFINED,
+                            createFormattedString("Use of undefined symbol `%S`", getSymbolName(&context->syms, n->name)),
+                            1,
                             createMessageFragment(MESSAGE_ERROR, copyFromCString("undefined symbol"), n->location)
                         )
                     );
@@ -151,7 +155,7 @@ static void recursivelyBuildSymbolTables(MessageContext* context, AstNode* node,
     }
 }
 
-void buildSymbolTables(MessageContext* context, AstNode* root) {
-    assert(root->kind == AST_ROOT);
-    recursivelyBuildSymbolTables(context, root, NULL);
+void buildSymbolTables(CompilerContext* context, AstNode* root) {
+    ASSERT(root->kind == AST_ROOT);
+    recursivelyBuildSymbolTables(context, root, &context->buildins);
 }

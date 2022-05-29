@@ -52,7 +52,7 @@ AstIfElse* createAstIfElse(Span loc, AstNode* cond, AstNode* if_block, AstNode* 
     return node;
 }
 
-AstVar* createAstVar(Span loc, String name) {
+AstVar* createAstVar(Span loc, Symbol name) {
     AstVar* node = NEW(AstVar);
     node->kind = AST_VAR;
     node->location = loc;
@@ -234,11 +234,6 @@ void freeAstNode(AstNode* node) {
                 freeAstNode((AstNode*)n->nodes);
                 break;
             }
-            case AST_VAR: {
-                AstVar* n = (AstVar*)node;
-                freeString(n->name);
-                break;
-            }
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
                 freeAstNode((AstNode*)n->name);
@@ -291,6 +286,7 @@ void freeAstNode(AstNode* node) {
                 freeAstNode(n->type);
                 break;
             }
+            case AST_VAR:
             case AST_ERROR:
             case AST_INT:
             case AST_REAL: break;
