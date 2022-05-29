@@ -30,13 +30,15 @@ extern void yyerror(YYLTYPE* yyllocp, yyscan_t scanner, ParserContext* context, 
 %parse-param { yyscan_t scanner } { ParserContext* context }
 
 %union {
-    String lexeme;
+    String string;
+    AstIntType integer;
+    AstRealType real;
     AstNode* ast;
     AstList* list;
     DynamicAstList* dynlist;
 }
 
-%destructor { freeString($$); } <lexeme>
+%destructor { freeString($$); } <string>
 %destructor { freeAstNode($$); } <ast>
 %destructor { freeAstNode((AstNode*)$$); } <list>
 %destructor { freeDynamicAstList($$); } <dynlist>
@@ -45,10 +47,10 @@ extern void yyerror(YYLTYPE* yyllocp, yyscan_t scanner, ParserContext* context, 
 %type <list> args args_defs
 %type <dynlist> args_list args_def_list stmts root_stmts
 
-%token <lexeme> ID      "identifier"
-%token <lexeme> STR     "string"
-%token <lexeme> INT     "integer"
-%token <lexeme> REAL    "real"
+%token <string> ID      "identifier"
+%token <string> STR     "string"
+%token <integer> INT    "integer"
+%token <real> REAL      "real"
 %token IF               "if"
 %token ELSE             "else"
 %token FOR              "for"

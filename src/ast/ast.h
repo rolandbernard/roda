@@ -139,14 +139,18 @@ typedef struct {
     AstList* arguments;
 } AstCall;
 
-typedef struct {
-    AST_NODE_BASE
-    uintmax_t number;
-} AstInt;
+typedef uintmax_t AstIntType;
 
 typedef struct {
     AST_NODE_BASE
-    double number;
+    AstIntType number;
+} AstInt;
+
+typedef double AstRealType;
+
+typedef struct {
+    AST_NODE_BASE
+    AstRealType number;
 } AstReal;
 
 typedef struct {
@@ -192,9 +196,9 @@ AstFn* createAstFn(String name, AstList* arguments, AstNode* ret_type, AstNode* 
 
 AstCall* createAstCall(AstNode* func, AstList* arguments);
 
-AstInt* createAstInt(String string);
+AstInt* createAstInt(AstIntType num);
 
-AstReal* createAstReal(String string);
+AstReal* createAstReal(AstRealType num);
 
 AstStr* createAstStr(String string);
 

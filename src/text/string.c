@@ -5,7 +5,6 @@
 #include <stdarg.h>
 
 #include "text/string.h"
-#include "text/utf8.h"
 
 #include "util/alloc.h"
 
@@ -100,11 +99,11 @@ ConstString createFromConstCString(const char* data) {
 }
 
 String createEmptyString() {
-    return createString(NULL, 0);
+    return copyFromCString("");
 }
 
 ConstString createEmptyConstString() {
-    return createConstString(NULL, 0);
+    return createFromConstCString("");
 }
 
 String copyString(ConstString string) {
@@ -149,16 +148,6 @@ String concatNStrings(size_t n, ...) {
         offset += string.length;
     }
     va_end(strings);
-    return ret;
-}
-
-String cloneCString(const char* cstr) {
-    String ret = {
-        .length = strlen(cstr),
-    };
-    ret.data = ALLOC(char, ret.length + 1);
-    ret.data[ret.length] = 0;
-    memcpy(ret.data, cstr, ret.length);
     return ret;
 }
 
@@ -211,116 +200,5 @@ String pushToString(String dst, ConstString src) {
     memcpy(dst.data + dst.length, src.data, src.length);
     dst.length += src.length;
     return dst;
-}
-
-static bool isHexChar(char c) {
-    return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
-}
-
-static int hexCharToInt(char c) {
-    if (c >= '0' && c <= '9') {
-        return (int)(c - '0');
-    } else if (c >= 'a' && c <= 'f') {
-        return (int)(c - 'a') + 10;
-    } else if (c >= 'A' && c <= 'F') {
-        return (int)(c - 'A') + 10;
-    }
-    return -1;
-}
-
-static CodePoint parseEscapeCode(char* data, size_t* length) {
-    CodePoint ret;
-    switch (data[0]) {
-        case 'a':
-            ret = '\a';
-            *length = 1;
-            break;
-        case 'b':
-            ret = '\b';
-            *length = 1;
-            break;
-        case 't':
-            ret = '\t';
-            *length = 1;
-            break;
-        case 'n':
-            ret = '\n';
-            *length = 1;
-            break;
-        case 'v':
-            ret = '\v';
-            *length = 1;
-            break;
-        case 'f':
-            ret = '\f';
-            *length = 1;
-            break;
-        case 'r':
-            ret = '\r';
-            *length = 1;
-            break;
-        case 'e':
-            ret = '\e';
-            *length = 1;
-            break;
-        case 'x':
-            if (isHexChar(data[1]) && isHexChar(data[2])) {
-                ret = (hexCharToInt(data[1]) << 4) | hexCharToInt(data[2]);
-                *length = 3;
-            } else {
-                ret = -1;
-            }
-            break;
-        case 'u':
-            if (isHexChar(data[1]) && isHexChar(data[2]) && isHexChar(data[3]) && isHexChar(data[4])) {
-                ret = (hexCharToInt(data[1]) << 12) | (hexCharToInt(data[2]) << 8)
-                      | (hexCharToInt(data[3]) << 4) | hexCharToInt(data[4]);
-                *length = 5;
-            } else {
-                ret = -1;
-            }
-            break;
-        case 'U':
-            if (isHexChar(data[1]) && isHexChar(data[2]) && isHexChar(data[3]) && isHexChar(data[4]) && isHexChar(data[5]) && isHexChar(data[6]) && isHexChar(data[7]) && isHexChar(data[8])) {
-                ret = (hexCharToInt(data[1]) << 28) | (hexCharToInt(data[2]) << 24)
-                      | (hexCharToInt(data[3]) << 20) | (hexCharToInt(data[4]) << 16);
-                ret |= (hexCharToInt(data[5]) << 12) | (hexCharToInt(data[6]) << 8)
-                      | (hexCharToInt(data[7]) << 4) | hexCharToInt(data[8]);
-                *length = 9;
-            } else {
-                ret = -1;
-            }
-            break;
-        default:
-            ret = data[0];
-            *length = 1;
-            break;
-    }
-    return ret;
-}
-
-void inlineDecodeStringLiteral(String* string) {
-    size_t new = 0;
-    size_t old = 1;
-    while (string->data[old] != 0) {
-        if (string->data[old] == '\\') {
-            size_t length;
-            CodePoint codepoint = parseEscapeCode(string->data + old + 1, &length);
-            if (codepoint == INVALID_CODEPOINT) {
-                // TODO: Throw error
-                // addError(error_context, "Found an illegal escape code",
-                // getCurrentScannerPosition(scanner), ERROR);
-            } else {
-                new += encodeUTF8(codepoint, string->data + new, length);
-                old += length;
-            }
-            old++;
-        } else {
-            string->data[new] = string->data[old];
-            new ++;
-            old++;
-        }
-    }
-    string->data[new - 1] = 0;
 }
 

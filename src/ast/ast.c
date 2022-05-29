@@ -101,19 +101,17 @@ AstCall* createAstCall(AstNode* func, AstList* arguments) {
     return node;
 }
 
-AstInt* createAstInt(String string) {
+AstInt* createAstInt(AstIntType num) {
     AstInt* node = NEW(AstInt);
     node->kind = AST_INT;
-    node->number = strtoimax(cstr(string), NULL, 10);
-    freeString(string);
+    node->number = num;
     return node;
 }
 
-AstReal* createAstReal(String string) {
+AstReal* createAstReal(AstRealType num) {
     AstReal* node = NEW(AstReal);
     node->kind = AST_REAL;
-    node->number = strtod(cstr(string), NULL);
-    freeString(string);
+    node->number = num;
     return node;
 }
 
@@ -121,7 +119,6 @@ AstStr* createAstStr(String string) {
     AstStr* node = NEW(AstStr);
     node->kind = AST_STR;
     node->string = string;
-    inlineDecodeStringLiteral(&node->string);
     return node;
 }
 

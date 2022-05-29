@@ -22,6 +22,8 @@ export fn main(argc: int, argv: **u8): int {
     print(5.2E-2);
     print(829343.545);
     print(829343);
+    let test = 1_000_000;
+    test += 1_000.123_56e-1_2;
     return 0;
 }
 

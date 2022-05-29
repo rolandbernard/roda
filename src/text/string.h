@@ -50,8 +50,6 @@ String concatStrings(ConstString a, ConstString b);
 
 String concatNStrings(size_t n, ...);
 
-String cloneCString(const char* cstr);
-
 String toNonConstString(ConstString string);
 
 ConstString toConstString(String string);
@@ -67,7 +65,5 @@ String resizeStringData(String string);
 String copyFromCString(const char* cstr);
 
 String pushToString(String dst, ConstString src);
-
-void inlineDecodeStringLiteral(String* string);
 
 #endif

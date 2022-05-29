@@ -5,6 +5,7 @@
 %{
 #include "text/string.h"
 #include "parser/parser.tab.h"
+#include "parser/literal.h"
 #include "errors/fatalerror.h"
 
 #define YY_EXTRA_TYPE ParserContext*
@@ -18,11 +19,10 @@
     yylloc->length = yyleng;
 %}
 
-DIGIT   [0-9]
 ID      [_[:alpha:]][_[:alnum:]]*
 STR     \"([^"\\]|\\.)*\"
-INT     {DIGIT}+
-REAL    {DIGIT}+(\.{DIGIT}+)?([eE][-+]?{DIGIT}+)?
+INT     [0-9][_0-9]*
+REAL    [0-9][_0-9]*(\.[0-9][_0-9]*)?([eE][-+]?[0-9][_0-9]*)?
 
 %x BLOCK_COMMENT
 
@@ -33,8 +33,10 @@ REAL    {DIGIT}+(\.{DIGIT}+)?([eE][-+]?{DIGIT}+)?
   "/*"          { PARSER_CONTEXT->comment_nesting++; }
   "*/"          { if (PARSER_CONTEXT->comment_nesting != 0) { PARSER_CONTEXT->comment_nesting--; } else { BEGIN(INITIAL); } }
   [/*]          ;
-  [^/*]+        { /* Skip all other characters in comments */ }
+  [^/*]+        { /* Skip all other characters block comments */ }
 }
+
+"//"[^\n]*      { /* Skip line comments */ }
 
 [[:space:]]+    { /* Skip all whitespace */ }
 
@@ -93,13 +95,13 @@ REAL    {DIGIT}+(\.{DIGIT}+)?([eE][-+]?{DIGIT}+)?
 "{"             { return '{'; }
 "}"             { return '}'; }
 
-{INT}           { yylval->lexeme = copyFromCString(yytext); return INT; }
+{INT}           { yylval->integer = parseIntLiteralIn(PARSER_CONTEXT, *yylloc, yytext); return INT; }
 
-{REAL}          { yylval->lexeme = copyFromCString(yytext); return REAL; }
+{REAL}          { yylval->real = parseRealLiteralIn(PARSER_CONTEXT, *yylloc, yytext); return REAL; }
 
-{STR}           { yylval->lexeme = copyFromCString(yytext); return STR; }
+{STR}           { yylval->string = parseStringLiteralIn(PARSER_CONTEXT, *yylloc, yytext); return STR; }
 
-{ID}            { yylval->lexeme = copyFromCString(yytext); return ID; }
+{ID}            { yylval->string = copyFromCString(yytext); return ID; }
 
 .               { return YYUNDEF; }
 
