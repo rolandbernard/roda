@@ -15,7 +15,7 @@ static void putInSymbolTable(MessageContext* context, SymbolTable* scope, AstVar
             context,
             createMessage(
                 ERROR_ALREADY_DEFINED, createFormattedString("The symbol `%S` is already defined", name->name), 2,
-                createMessageFragment(MESSAGE_ERROR, copyFromCString("undefined symbol"), name->location),
+                createMessageFragment(MESSAGE_ERROR, copyFromCString("already defined symbol"), name->location),
                 createMessageFragment(MESSAGE_NOTE, copyFromCString("note: previously defined here"), existing->def_loc)
             )
         );

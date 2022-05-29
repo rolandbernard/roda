@@ -5,6 +5,7 @@ export fn main() {
     test += "öäü猕猴桃\u23";
     let test = 5;
     test += 5.5
-    return 0;
+    test -= 0.25;
+    return 0
 }
 
