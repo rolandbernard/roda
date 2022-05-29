@@ -519,10 +519,6 @@ static void printFileMessageFragments(
                     }
                 }
             }
-        } else {
-            for (size_t i = 0; i < fragment_count; i++) {
-                printMessageFragmentWithoutSource(fragments[i], 1, NULL, NULL, NULL, output, istty, filter);
-            }
         }
     }
 }
@@ -543,6 +539,44 @@ void printMessage(const Message* message, FILE* output, const MessageFilter* fil
         }
         if (istty) {
             fputs(CONSOLE_SGR() CONSOLE_SGR(CONSOLE_SGR_BOLD), output);
+        }
+        if (!print_fragments && message->fragment_count > 0) {
+            size_t main_fragment = 0;
+            for (size_t i = 0; i < message->fragment_count; i++) {
+                if (message->fragments[i]->category < message->fragments[main_fragment]->category) {
+                    main_fragment = i;
+                }
+            }
+            Span loc = message->fragments[main_fragment]->position;
+            if (loc.file != NULL) {
+                FILE* stream = openFileStream(loc.file, "rb");
+                if (stream != NULL) {
+                    size_t current_offset = 0;
+                    size_t current_line = 1;
+                    size_t current_column = 1;
+                    bool end_of_file = false;
+                    while (!end_of_file && current_offset < loc.offset) {
+                        CodePoint next_rune;
+                        size_t len = readUtf8FromFileStream(stream, &next_rune);
+                        if (len <= 0) {
+                            end_of_file = true;
+                        } else {
+                            current_offset += len;
+                            if (next_rune == '\n') {
+                                current_column = 1;
+                                current_line++;
+                            } else {
+                                current_column += getCodePointWidth(next_rune);
+                            }
+                        }
+                    }
+                    if (current_offset >= loc.offset) {
+                        fputs(": ", output);
+                        fwrite(loc.file->original_path.data, sizeof(char), loc.file->original_path.length, output);
+                        fprintf(output, ":%zi:%zi", current_line, current_column);
+                    }
+                }
+            }
         }
         if (message->message.length != 0) {
             fputs(": ", output);
