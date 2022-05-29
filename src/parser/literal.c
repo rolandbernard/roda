@@ -161,9 +161,23 @@ LiteralParseError parseStringLiteral(const char* str, String* res) {
 LiteralParseError parseIntLiteral(const char* str, AstIntType* res) {
     AstIntType num = 0;
     size_t idx = 0;
+    int base = 10;
+    if (str[0] == '0' && str[1] == 'b') {
+        base = 2;
+        idx += 2;
+    } else if (str[0] == '0' && str[1] == 'o') {
+        base = 8;
+        idx += 2;
+    } else if (str[0] == '0' && str[1] == 'd') {
+        base = 10;
+        idx += 2;
+    } else if (str[0] == '0' && (str[1] == 'h' || str[1] == 'x')) {
+        base = 16;
+        idx += 2;
+    }
     while (str[idx] != 0) {
-        if (isDigitChar(str[idx], 10)) {
-            num *= 10;
+        if (isDigitChar(str[idx], base)) {
+            num *= base;
             num += digitCharToInt(str[idx]);
         } else if (str[idx] != '_') {
             return createLiteralParseError(idx, 1);

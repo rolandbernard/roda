@@ -22,6 +22,7 @@ export fn main(argc: int, argv: **u8): int {
     print(5.2E-2);
     print(829343.545);
     print(829343);
+    print(0b1001001 + 0o01247 + 0d0429 + 0hFF09ab + 0xFF09ab);      // Integer literals in different bases
     let test = 1_000_000;
     test += 1_000.123_56e-1_2;
     return 0;
