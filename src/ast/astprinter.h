@@ -6,6 +6,6 @@
 #include "compiler/context.h"
 #include "ast/ast.h"
 
-void printAst(FILE* file, CompilerContext* context, AstNode* ast);
+void printAst(FILE* file, AstNode* ast);
 
 #endif

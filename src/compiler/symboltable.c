@@ -33,7 +33,7 @@ static bool continueSearch(SymbolTable* table, size_t idx, Symbol key) {
 }
 
 static size_t findIndexHashTable(SymbolTable* table, Symbol key) {
-    size_t idx = hashInt(key) % table->capacity;
+    size_t idx = hashInt((size_t)key) % table->capacity;
     while (continueSearch(table, idx, key)) {
         idx = (idx + 1) % table->capacity;
     }

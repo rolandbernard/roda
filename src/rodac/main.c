@@ -20,7 +20,7 @@ int main(int argc, const char* const* argv) {
     } else {
         ast = parseStdin(&context);
     }
-    printAst(stderr, &context, ast);
+    printAst(stderr, ast);
     if (ast != NULL) {
         buildSymbolTables(&context, ast);
     }

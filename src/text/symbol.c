@@ -11,25 +11,25 @@
 
 void initSymbolContext(SymbolContext* context) {
     context->symbols = NULL;
-    context->table = NULL;
     context->capacity = 0;
     context->count = 0;
 }
 
-void deinitSymbolContext(SymbolContext* context) {
-    for (size_t i = 0; i < context->count; i++) {
-        freeString(context->symbols[i]);
-    }
-    FREE(context->symbols);
-    FREE(context->table);
+static bool isIndexValid(SymbolContext* table, size_t idx) {
+    return table->symbols[idx].data != NULL;
 }
 
-static bool isIndexValid(SymbolContext* table, size_t idx) {
-    return table->table[idx] != NO_POS;
+void deinitSymbolContext(SymbolContext* context) {
+    for (size_t i = 0; i < context->capacity; i++) {
+        if (isIndexValid(context, i)) {
+            freeString(context->symbols[i]);
+        }
+    }
+    FREE(context->symbols);
 }
 
 static bool continueSearch(SymbolContext* table, size_t idx, ConstString key) {
-    return table->table[idx] != NO_POS && compareStrings(tocnstr(table->symbols[table->table[idx]]), key) != 0;
+    return table->symbols[idx].data != NULL && compareStrings(tocnstr(table->symbols[idx]), key) != 0;
 }
 
 static size_t findIndexHashTable(SymbolContext* table, ConstString key) {
@@ -43,21 +43,19 @@ static size_t findIndexHashTable(SymbolContext* table, ConstString key) {
 static void rebuildHashTable(SymbolContext* table, size_t size) {
     SymbolContext new;
     new.capacity = size;
-    new.symbols = table->symbols;
-    new.table = ALLOC(size_t, size);
+    new.symbols = ALLOC(String, size);
     for (size_t i = 0; i < size; i++) {
-        new.table[i] = NO_POS;
+        new.symbols[i].data = NULL;
     }
     for (size_t i = 0; i < table->capacity; i++) {
         if (isIndexValid(table, i)) {
-            size_t idx = findIndexHashTable(&new, tocnstr(table->symbols[table->table[i]]));
-            new.table[idx] = table->table[i];
+            size_t idx = findIndexHashTable(&new, tocnstr(table->symbols[i]));
+            new.symbols[idx] = table->symbols[i];
         }
     }
-    FREE(table->table);
-    table->table = new.table;
+    FREE(table->symbols);
+    table->symbols = new.symbols;
     table->capacity = new.capacity;
-    table->symbols = REALLOC(String, table->symbols, table->capacity);
 }
 
 static void tryResizingHashTable(SymbolContext* table) {
@@ -66,19 +64,13 @@ static void tryResizingHashTable(SymbolContext* table) {
     }
 }
 
-ConstString getSymbolName(SymbolContext* context, Symbol symbol) {
-    ASSERT(symbol < context->count);
-    return tocnstr(context->symbols[symbol]);
-}
-
 Symbol getSymbol(SymbolContext* context, ConstString str) {
     tryResizingHashTable(context);
     size_t idx = findIndexHashTable(context, str);
     if (!isIndexValid(context, idx)) {
-        context->table[idx] = context->count;
-        context->symbols[context->count] = copyString(str);
+        context->symbols[idx] = copyString(str);
         context->count++;
     }
-    return context->table[idx];
+    return context->symbols[idx].data;
 }
 
