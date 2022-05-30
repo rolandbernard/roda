@@ -10,6 +10,8 @@ export fn main() {
     test -= 0 +=;
     test -= 0 $;
     test -= 25;
+    let test = 5;
+    test -= 25;
     return 0
 }
 
