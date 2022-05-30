@@ -30,7 +30,7 @@ AstNode* parseFile(const File* file, CompilerContext* context) {
     FILE* in = openFileStream(file, "r+");
     if (in == NULL) {
         addMessageToContext(&context->msgs, createMessage(ERROR_CANT_OPEN_FILE,
-            createFormattedString("Failed to open file '%s': %s", cstr(file->original_path), strerror(errno)
+            createFormattedString("failed to open file '%s': %s", cstr(file->original_path), strerror(errno)
         ), 0));
         return NULL;
     } else {
@@ -80,7 +80,7 @@ static const char* tokenName(char* dst, const char* src) {
 
 void reportSyntaxError(ParserContext* context, Span loc, const char* actual, size_t num_exp, const char* const* expected) {
     char name[128]; // This is larger than any defined token name.
-    String complete = createFormattedString("Syntax error, unexpected %s", tokenName(name, actual));
+    String complete = createFormattedString("syntax error, unexpected %s", tokenName(name, actual));
     if (num_exp > 0) {
         pushFormattedString(&complete, ", expecting %s", tokenName(name, expected[0]));
         for (size_t i = 1; i < num_exp; i++) {

@@ -15,7 +15,7 @@ static void putInSymbolTable(CompilerContext* context, SymbolTable* scope, AstVa
             &context->msgs,
             createMessage(
                 ERROR_ALREADY_DEFINED,
-                createFormattedString("The symbol `%S` is already defined", getSymbolName(&context->syms, name->name)),
+                createFormattedString("the symbol `%S` is already defined", getSymbolName(&context->syms, name->name)),
                 2,
                 createMessageFragment(MESSAGE_ERROR, copyFromCString("already defined symbol"), name->location),
                 createMessageFragment(MESSAGE_NOTE, copyFromCString("note: previously defined here"), existing->def_loc)
@@ -150,7 +150,7 @@ static void recursivelyBuildSymbolTables(CompilerContext* context, AstNode* node
                         &context->msgs,
                         createMessage(
                             ERROR_ALREADY_DEFINED,
-                            createFormattedString("Use of undefined symbol `%S`", getSymbolName(&context->syms, n->name)),
+                            createFormattedString("use of undefined symbol `%S`", getSymbolName(&context->syms, n->name)),
                             1,
                             createMessageFragment(MESSAGE_ERROR, copyFromCString("undefined symbol"), n->location)
                         )
