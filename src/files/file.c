@@ -61,8 +61,8 @@ bool isSpanFileOnly(Span span) {
     return isSpanValid(span) && span.file != NULL;
 }
 
-bool isSpanWithoutFile(Span span) {
-    return isSpanValid(span) && span.file == NULL;
+bool isSpanWithPosition(Span span) {
+    return isSpanValid(span) && span.begin.offset != NO_POS;
 }
 
 Span createStartSpan(const File* file) {

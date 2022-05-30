@@ -150,8 +150,8 @@ static void printAstNodeLocation(FILE* file, AstNode* node, bool colors) {
         }
         if (node->location.begin.offset != NO_POS) {
             fprintf(file, "%zi:%zi", node->location.begin.line + 1, node->location.begin.column + 1);
-            if (node->location.begin.offset != node->location.end.offset) {
-                fprintf(file, "-%zi:%zi", node->location.end.line + 1, node->location.end.column + 1);
+            if (node->location.begin.offset + 1 < node->location.end.offset) {
+                fprintf(file, "-%zi:%zi", node->location.end.line + 1, node->location.end.column);
             }
         }
         fprintf(file, "]");

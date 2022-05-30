@@ -43,7 +43,7 @@ bool isSpanValid(Span span);
 
 bool isSpanFileOnly(Span span);
 
-bool isSpanWithoutFile(Span span);
+bool isSpanWithPosition(Span span);
 
 Span createStartSpan(const File* file);
 
