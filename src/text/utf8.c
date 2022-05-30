@@ -71,16 +71,16 @@ void positionUtf8Stream(Utf8Stream* stream, size_t position) {
     stream->offset = position;
 }
 
-CodePoint nextUtf8Rune(Utf8Stream* stream) {
+CodePoint nextUtf8CodePoint(Utf8Stream* stream) {
     CodePoint next_rune;
-    size_t len = decodeUTF8(&next_rune, stream->data.data, stream->data.length - stream->offset);
+    size_t len = decodeUTF8(&next_rune, stream->data.data + stream->offset, stream->data.length - stream->offset);
     stream->offset += len;
     return next_rune;
 }
 
-CodePoint peekUtf8Rune(const Utf8Stream* stream) {
+CodePoint peekUtf8CodePoint(const Utf8Stream* stream) {
     CodePoint next_rune;
-    decodeUTF8(&next_rune, stream->data.data, stream->data.length - stream->offset);
+    decodeUTF8(&next_rune, stream->data.data + stream->offset, stream->data.length - stream->offset);
     return next_rune;
 }
 

@@ -139,6 +139,28 @@ static void printAstChildNode(
     indent->count = indentation;
 }
 
+static void printAstNodeLocation(FILE* file, AstNode* node, bool colors) {
+    if (isSpanValid(node->location)) {
+        if (colors) {
+            fprintf(file, CONSOLE_SGR(CONSOLE_SGR_FG_BRIGHT_BLACK;CONSOLE_SGR_ITALIC));
+        }
+        fprintf(file, " [");
+        if (node->location.file != NULL) {
+            fprintf(file, "%s:", cstr(node->location.file->original_path));
+        }
+        if (node->location.begin.offset != NO_POS) {
+            fprintf(file, "%zi:%zi", node->location.begin.line + 1, node->location.begin.column + 1);
+            if (node->location.begin.offset != node->location.end.offset) {
+                fprintf(file, "-%zi:%zi", node->location.end.line + 1, node->location.end.column + 1);
+            }
+        }
+        fprintf(file, "]");
+        if (colors) {
+            fprintf(file, CONSOLE_SGR());
+        }
+    }
+}
+
 static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack* indent) {
     if (colors) {
         fprintf(file, CONSOLE_SGR(CONSOLE_SGR_BOLD;CONSOLE_SGR_FG_BRIGHT_WHITE));
@@ -152,9 +174,9 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
         fprintf(file, CONSOLE_SGR());
     }
     if (node != NULL) {
-        fprintf(file, " [%zi-%zi]", node->location.offset, getSpanEndOffset(node->location));
         switch (node->kind) {
             case AST_ERROR: {
+                printAstNodeLocation(file, node, colors);
                 fprintf(file, "\n");
                 break;
             }
@@ -190,6 +212,7 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
             case AST_ARRAY:
             case AST_ADD: {
                 AstBinary* n = (AstBinary*)node;
+                printAstNodeLocation(file, node, colors);
                 fprintf(file, "\n");
                 printAstChildNode(file, n->left, colors, indent, "left", false);
                 printAstChildNode(file, n->right, colors, indent, "right", true);
@@ -201,13 +224,16 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
             case AST_RETURN:
             case AST_DEREF: {
                 AstUnary* n = (AstUnary*)node;
+                printAstNodeLocation(file, node, colors);
                 fprintf(file, "\n");
                 printAstChildNode(file, n->op, colors, indent, "op", true);
                 break;
             }
             case AST_LIST: {
                 AstList* n = (AstList*)node;
-                fprintf(file, " (%zi elements)\n", n->count);
+                fprintf(file, " (%zi elements)", n->count);
+                printAstNodeLocation(file, node, colors);
+                fprintf(file, "\n");
                 for (size_t i = 0; i < n->count; i++) {
                     printAstChildNode(file, n->nodes[i], colors, indent, NULL, i == n->count - 1);
                 }
@@ -216,6 +242,7 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
             case AST_ROOT:
             case AST_BLOCK: {
                 AstBlock* n = (AstBlock*)node;
+                printAstNodeLocation(file, node, colors);
                 fprintf(file, "\n");
                 printAstChildNode(file, (AstNode*)n->nodes, colors, indent, "nodes", true);
                 break;
@@ -227,6 +254,7 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
             }
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
+                printAstNodeLocation(file, node, colors);
                 fprintf(file, "\n");
                 printAstChildNode(file, (AstNode*)n->name, colors, indent, "name", false);
                 printAstChildNode(file, n->type, colors, indent, "type", false);
@@ -235,6 +263,7 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
             }
             case AST_IF_ELSE: {
                 AstIfElse* n = (AstIfElse*)node;
+                printAstNodeLocation(file, node, colors);
                 fprintf(file, "\n");
                 printAstChildNode(file, n->condition, colors, indent, "condition", false);
                 printAstChildNode(file, n->if_block, colors, indent, "if_block", false);
@@ -243,6 +272,7 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
             }
             case AST_WHILE: {
                 AstWhile* n = (AstWhile*)node;
+                printAstNodeLocation(file, node, colors);
                 fprintf(file, "\n");
                 printAstChildNode(file, n->condition, colors, indent, "condition", false);
                 printAstChildNode(file, n->block, colors, indent, "block", true);
@@ -261,7 +291,9 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
                         fprintf(file, " import");
                     }
                 }
-                fprintf(file, ")\n");
+                fprintf(file, ")");
+                printAstNodeLocation(file, node, colors);
+                fprintf(file, "\n");
                 printAstChildNode(file, (AstNode*)n->name, colors, indent, "name", false);
                 printAstChildNode(file, (AstNode*)n->arguments, colors, indent, "arguments", false);
                 printAstChildNode(file, n->ret_type, colors, indent, "ret_type", false);
@@ -270,6 +302,7 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
             }
             case AST_CALL: {
                 AstCall* n = (AstCall*)node;
+                printAstNodeLocation(file, node, colors);
                 fprintf(file, "\n");
                 printAstChildNode(file, n->function, colors, indent, "function", false);
                 printAstChildNode(file, (AstNode*)n->arguments, colors, indent, "arguments", true);
@@ -277,21 +310,28 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
             }
             case AST_STR: {
                 AstStr* n = (AstStr*)node;
-                fprintf(file, " (string = %s)\n", cstr(n->string));
+                fprintf(file, " (string = %s)", cstr(n->string));
+                printAstNodeLocation(file, node, colors);
+                fprintf(file, "\n");
                 break;
             }
             case AST_INT: {
                 AstInt* n = (AstInt*)node;
-                fprintf(file, " (int = %ji)\n", n->number);
+                fprintf(file, " (int = %ji)", n->number);
+                printAstNodeLocation(file, node, colors);
+                fprintf(file, "\n");
                 break;
             }
             case AST_REAL: {
                 AstReal* n = (AstReal*)node;
-                fprintf(file, " (real = %.15lg)\n", n->number);
+                fprintf(file, " (real = %.15lg)", n->number);
+                printAstNodeLocation(file, node, colors);
+                fprintf(file, "\n");
                 break;
             }
             case AST_TYPEDEF: {
                 AstTypeDef* n = (AstTypeDef*)node;
+                printAstNodeLocation(file, node, colors);
                 fprintf(file, "\n");
                 printAstChildNode(file, (AstNode*)n->name, colors, indent, "name", false);
                 printAstChildNode(file, n->value, colors, indent, "value", true);
@@ -299,6 +339,7 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
             }
             case AST_ARGDEF: {
                 AstArgDef* n = (AstArgDef*)node;
+                printAstNodeLocation(file, node, colors);
                 fprintf(file, "\n");
                 printAstChildNode(file, (AstNode*)n->name, colors, indent, "name", false);
                 printAstChildNode(file, n->type, colors, indent, "type", true);

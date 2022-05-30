@@ -12,16 +12,19 @@
 
 #define YY_FATAL_ERROR(MSG) fatalError(str(MSG))
 
-#define YY_USER_ACTION                          \
-    yylloc->file = PARSER_CONTEXT->file;        \
-    yylloc->offset = getSpanEndOffset(*yylloc); \
-    yylloc->length = yyleng;
+#define YY_USER_ACTION                                              \
+    yylloc->file = PARSER_CONTEXT->file;                            \
+    yylloc->begin = yylloc->end;                                    \
+    yylloc->end = advanceLocationWith(yylloc->end, yytext, yyleng);
 %}
 
 ID      [_[:alpha:]][_[:alnum:]]*
 STR     \"([^"\\]|\\.)*\"
 INT     0[hx][_0-9a-fA-F]+|0o[_0-7]+|0d[_0-9]+|0b[_01]+|[0-9][0-9_]*
 REAL    [0-9][_0-9]*(\.[0-9][_0-9]*)?([eE][-+]?[0-9][_0-9]*)?
+
+UB [\200-\277]
+POINT .|[\300-\337]{UB}|[\340-\357]{UB}{2}|[\360-\367]{UB}{3}|[\370-\373]{UB}{4}|[\374-\375]{UB}{5}
 
 %x BLOCK_COMMENT
 
@@ -31,7 +34,7 @@ REAL    [0-9][_0-9]*(\.[0-9][_0-9]*)?([eE][-+]?[0-9][_0-9]*)?
 <BLOCK_COMMENT>{
   "/*"          { PARSER_CONTEXT->comment_nesting++; }
   "*/"          { if (PARSER_CONTEXT->comment_nesting != 0) { PARSER_CONTEXT->comment_nesting--; } else { BEGIN(INITIAL); } }
-  [/*]          ;
+  [/*]          { /* Skip + and / characters */ }
   [^/*]+        { /* Skip all other characters block comments */ }
 }
 
@@ -102,7 +105,7 @@ REAL    [0-9][_0-9]*(\.[0-9][_0-9]*)?([eE][-+]?[0-9][_0-9]*)?
 
 {ID}            { yylval->lexeme = yytext; return ID; }
 
-.               { return YYUNDEF; }
+{POINT}         { return YYUNDEF; }
 
 %%
 

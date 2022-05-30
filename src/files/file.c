@@ -4,7 +4,9 @@
 #include <string.h>
 
 #include "errors/fatalerror.h"
+#include "text/string.h"
 #include "util/alloc.h"
+#include "text/utf8.h"
 
 #include "files/file.h"
 
@@ -43,47 +45,62 @@ void freeFile(File* file) {
 }
 
 Span invalidSpan() {
-    return createSpan(NULL, NO_POS, NO_POS);
-}
-
-Span createSpan(const File* file, size_t offset, size_t length) {
     Span ret = {
-        .file = file,
-        .offset = offset,
-        .length = length,
-    };
-    return ret;
-}
-
-Span createSpanFromBounds(const File* file, size_t start, size_t end) {
-    Span ret = {
-        .file = file,
-        .offset = start,
-        .length = end - start,
-    };
-    return ret;
-}
-
-Span createSpanWith(Span begin, Span end) {
-    ASSERT(begin.file == end.file);
-    Span ret = {
-        .file = begin.file,
-        .offset = begin.offset,
-        .length = getSpanEndOffset(end) - begin.offset,
+        .file = NULL,
+        .begin = { .offset = NO_POS, .line = NO_POS, .column = NO_POS },
+        .end = { .offset = NO_POS, .line = NO_POS, .column = NO_POS },
     };
     return ret;
 }
 
 bool isSpanValid(Span span) {
-    return span.file != NULL;
+    return span.file != NULL || span.begin.offset != NO_POS;
 }
 
 bool isSpanFileOnly(Span span) {
-    return span.file != NULL && span.offset == NO_POS;
+    return isSpanValid(span) && span.file != NULL;
 }
 
-size_t getSpanEndOffset(Span span) {
-    return span.offset + span.length;
+bool isSpanWithoutFile(Span span) {
+    return isSpanValid(span) && span.file == NULL;
+}
+
+Span createStartSpan(const File* file) {
+    Span ret = {
+        .file = file,
+        .begin = { .offset = 0, .line = 0, .column = 0 },
+        .end = { .offset = 0, .line = 0, .column = 0 },
+    };
+    return ret;
+}
+
+Span combineSpans(Span begin, Span end) {
+    Span ret = {
+        .file = begin.file != NULL ? begin.file : end.file,
+        .begin = begin.begin,
+        .end = end.end,
+    };
+    return ret;
+}
+
+size_t getSpanLength(Span span) {
+    return span.end.offset - span.begin.offset;
+}
+
+Location advanceLocationWith(Location start, const char* text, size_t len) {
+    Utf8Stream stream;
+    initUtf8Stream(&stream, createConstString(text, len));
+    while (stream.offset < len) {
+        CodePoint p = nextUtf8CodePoint(&stream);
+        if (p == '\n') {
+            start.line += 1;
+            start.column = 0;
+        } else {
+            start.column += getCodePointWidth(p);
+        }
+    }
+    start.offset += stream.data.length;
+    return start;
 }
 
 bool loadFileData(const File* file, String* output) {

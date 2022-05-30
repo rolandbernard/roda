@@ -264,15 +264,15 @@ AstNode* parseStringLiteralIn(ParserContext* ctx, Span loc, const char* str) {
     LiteralParseError error = parseStringLiteral(str, &result);
     if (isLiteralParseNoError(error)) {
         return (AstNode*)createAstStr(loc, result);
-    } else if (error.length == loc.length) {
+    } else if (error.length == getSpanLength(loc)) {
         addMessageToContext(&ctx->context->msgs, createMessage(ERROR_INVALID_STR, copyFromCString("string literal is invalid"), 1,
             createMessageFragment(MESSAGE_ERROR, copyFromCString("invalid string literal"), loc)
         ));
         return createAstSimple(loc, AST_ERROR);
     } else {
         Span err_loc = loc;
-        err_loc.offset += error.offset;
-        err_loc.length = error.length;
+        err_loc.begin = advanceLocationWith(err_loc.begin, str, error.offset);
+        err_loc.end = advanceLocationWith(err_loc.begin, str + error.offset, error.length);
         addMessageToContext(&ctx->context->msgs, createMessage(ERROR_INVALID_STR, copyFromCString("string literal contains invalid escape character"), 1,
             createMessageFragment(MESSAGE_ERROR, copyFromCString("invalid escape character"), err_loc)
         ));

@@ -16,7 +16,7 @@ size_t encodeUTF8(CodePoint rune, char* output, size_t max_length);
 
 typedef struct {
     ConstString data;
-    int offset;
+    size_t offset;
 } Utf8Stream;
 
 void initUtf8Stream(Utf8Stream* stream, ConstString string);

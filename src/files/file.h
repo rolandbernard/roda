@@ -16,9 +16,15 @@ typedef struct {
 } File;
 
 typedef struct {
-    const File* file;
     size_t offset;
-    size_t length;
+    size_t line;
+    size_t column;
+} Location;
+
+typedef struct {
+    const File* file;
+    Location begin;
+    Location end;
 } Span;
 
 void initFile(File* file, ConstPath relative_or_absolute_path);
@@ -33,17 +39,19 @@ void freeFile(File* file);
 
 Span invalidSpan();
 
-Span createSpan(const File* file, size_t offset, size_t length);
-
-Span createSpanFromBounds(const File* file, size_t start, size_t end);
-
-Span createSpanWith(Span begin, Span end);
-
 bool isSpanValid(Span span);
 
 bool isSpanFileOnly(Span span);
 
-size_t getSpanEndOffset(Span span);
+bool isSpanWithoutFile(Span span);
+
+Span createStartSpan(const File* file);
+
+Span combineSpans(Span begin, Span end);
+
+size_t getSpanLength(Span span);
+
+Location advanceLocationWith(Location start, const char* text, size_t len);
 
 bool loadFileData(const File* file, String* output);
 

@@ -13,12 +13,14 @@ typedef void* yyscan_t;
 extern int yylex(YYSTYPE* yylvalp, YYLTYPE* yyllocp, yyscan_t yyscanner);
 extern void yyerror(YYLTYPE* yyllocp, yyscan_t scanner, ParserContext* context, const char* msg);
 
-#define YYLLOC_DEFAULT(Cur, Rhs, N) {                                                     \
-    if (N == 0) {                                                                         \
-        (Cur) = createSpan(context->file, getSpanEndOffset(YYRHSLOC(Rhs, 0)), 0); \
-    } else {                                                                              \
-        (Cur) = createSpanWith(YYRHSLOC(Rhs, 1), YYRHSLOC(Rhs, N));                       \
-    }                                                                                     \
+#define YYLLOC_DEFAULT(Cur, Rhs, N) {                             \
+    if (N == 0) {                                                 \
+        (Cur).file = context->file;                               \
+        (Cur).begin = YYRHSLOC(Rhs, 0).end;                       \
+        (Cur).end = YYRHSLOC(Rhs, 0).end;                         \
+    } else {                                                      \
+        (Cur) = combineSpans(YYRHSLOC(Rhs, 1), YYRHSLOC(Rhs, N)); \
+    }                                                             \
 }
 }
 
