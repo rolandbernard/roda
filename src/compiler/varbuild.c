@@ -16,12 +16,9 @@ static void putInSymbolTable(CompilerContext* context, SymbolTable* scope, AstVa
             createMessage(
                 ERROR_ALREADY_DEFINED,
                 createFormattedString("the symbol `%s` is already defined", name->name),
-                5,
+                2,
                 createMessageFragment(MESSAGE_ERROR, copyFromCString("already defined symbol"), name->location),
-                createMessageFragment(MESSAGE_NOTE, copyFromCString("note: previously defined here"), existing->def_loc),
-                createMessageFragment(MESSAGE_NOTE, copyFromCString("note: this is a file only span"), createFileOnlySpan(name->location.file)),
-                createMessageFragment(MESSAGE_NOTE, copyFromCString("note: this is a test"), invalidSpan()),
-                createMessageFragment(MESSAGE_NOTE, copyFromCString("note: this is another test"), invalidSpan())
+                createMessageFragment(MESSAGE_NOTE, copyFromCString("note: previously defined here"), existing->def_loc)
             )
         );
     }

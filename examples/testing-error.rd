@@ -16,7 +16,7 @@ export fn main() {
 }
 
 fn add(a: u32, b: u32): u32 {
-    let test = 1_000_000; let test = 1_000_000; let test = 1_000_000; let test = 1_000_000;
+    let test = 1_000; let test = 1_000; let test = 1_000_000; let test = 1_000_000;
     return a + b;
 }
 

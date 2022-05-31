@@ -14,6 +14,8 @@
 #define NUM_SURROUNDING_LINES 1
 #define MAX_INTERMEDIATE_LINES 2
 #define MIN_NUMWIDTH 3
+#define FST_LAYER_CLEARANCE 3
+#define SND_LAYER_CLEARANCE 3
 
 static const char* message_category_style[] = {
     [MESSAGE_UNKNOWN] = CONSOLE_SGR(CONSOLE_SGR_BOLD),
@@ -223,7 +225,7 @@ static void printFragmentLineFirstLayer(
     size_t end_seen = 0;
     MessageCategory trail = NUM_MESSAGE_CATEGORY;
     while (start_seen < start_count || end_seen < end_count || trail != NUM_MESSAGE_CATEGORY) {
-        MessageCategory cur_trail = trail;
+        MessageCategory category = trail;
         trail = NUM_MESSAGE_CATEGORY;
         size_t mult_ext[NUM_MESSAGE_CATEGORY];
         memset(mult_ext, 0, NUM_MESSAGE_CATEGORY * sizeof(size_t));
@@ -249,12 +251,11 @@ static void printFragmentLineFirstLayer(
         }
         for (size_t i = end_seen; i < end_count && ends[i]->position.end.column == cur_col + 1; i++) {
             if (isMultilineSpan(ends[i]->position)) {
-                if (ends[i]->category < cur_trail) {
-                    cur_trail = ends[i]->category;
+                if (ends[i]->category < category) {
+                    category = ends[i]->category;
                 }
             }
         }
-        MessageCategory category = cur_trail;
         for (MessageCategory i = 1; i <= NUM_MESSAGE_CATEGORY; i++) {
             if (num_open[NUM_MESSAGE_CATEGORY - i] > 0 || mult_ext[NUM_MESSAGE_CATEGORY - i] > 0) {
                 category = NUM_MESSAGE_CATEGORY - i;
@@ -271,19 +272,101 @@ static void printFragmentLineFirstLayer(
             } else {
                 fputc('-', output);
             }
-            if (color) {
-                fputs(CONSOLE_SGR(), output);
-            }
         } else {
             fputc(' ', output);
-            // TODO: consider printing some message
-            /* fwrite(fragment->message.data, sizeof(char), fragment->message.length, output); */
-            /* size_t next_col = start_seen < start_count ? starts[start_seen]->position.begin.column : NO_POS; */
-            /* if (end_seen < end_count && ends[end_seen]->position.end.column < */ 
+            size_t next_col = start_seen < start_count ? starts[start_seen]->position.begin.column : NO_POS;
+            if (end_seen < end_count && ends[end_seen]->position.end.column < next_col) {
+                next_col = ends[end_seen]->position.end.column;
+            }
+            for (size_t i = end_start; i < end_seen; i++) {
+                if (!text_printed[i]) {
+                    size_t width = getStringWidth(tocnstr(ends[i]->message));
+                    if (cur_col + width + FST_LAYER_CLEARANCE < next_col) {
+                        if (color) {
+                            fputs(message_category_style[ends[i]->category], output);
+                        }
+                        fwrite(ends[i]->message.data, sizeof(char), ends[i]->message.length, output);
+                        text_printed[i] = true;
+                        cur_col += width;
+                        break;
+                    }
+                }
+            }
+        }
+        if (color) {
+            fputs(CONSOLE_SGR(), output);
         }
         cur_col++;
     }
     fputc('\n', output);
+}
+
+static bool printFragmentLineSecondaryLayer(
+    FILE* output, MessageFragment** ends, size_t end_count, bool* text_printed, bool snd, int numwidth, bool color
+) {
+    size_t count = 0;
+    for (size_t i = 0; i < end_count; i++) {
+        if (!text_printed[i]) {
+            count++;
+        }
+    }
+    if (count == 0) {
+        return false;
+    } else {
+        printFragmentLineStart(output, numwidth, color);
+        fputc(' ', output);
+        size_t cur_col = 0;
+        size_t end_seen = 0;
+        while (end_seen < end_count) {
+            MessageCategory category = NUM_MESSAGE_CATEGORY;
+            size_t end_start = end_seen;
+            while (end_seen < end_count && ends[end_seen]->position.end.column == 1 + cur_col) {
+                if (!text_printed[end_seen] && ends[end_seen]->category < category) {
+                    category = ends[end_seen]->category;
+                }
+                end_seen++;
+            }
+            while (end_seen < end_count && text_printed[end_seen]) {
+                end_seen++;
+            }
+            size_t next_col = end_seen < end_count ? ends[end_seen]->position.end.column : NO_POS;
+            bool printed = false;
+            for (size_t i = end_start; i < end_seen; i++) {
+                if (!text_printed[i]) {
+                    size_t width = getStringWidth(tocnstr(ends[i]->message));
+                    if (cur_col + width + SND_LAYER_CLEARANCE < next_col) {
+                        if (color) {
+                            fputs(message_category_style[ends[i]->category], output);
+                        }
+                        if (snd) {
+                            fputc('`', output);
+                        }
+                        fwrite(ends[i]->message.data, sizeof(char), ends[i]->message.length, output);
+                        text_printed[i] = true;
+                        cur_col += width;
+                        printed = true;
+                        break;
+                    }
+                }
+            }
+            if (!printed) {
+                if (category < NUM_MESSAGE_CATEGORY) {
+                    if (color) {
+                        fputs(message_category_style[category], output);
+                    }
+                    fputc('|', output);
+                } else {
+                    fputc(' ', output);
+                }
+                cur_col++;
+            }
+            if (color) {
+                fputs(CONSOLE_SGR(), output);
+            }
+        }
+        fputc('\n', output);
+        return true;
+    }
 }
 
 static void printFragmentLine(
@@ -292,9 +375,10 @@ static void printFragmentLine(
     bool text_printed[end_count + 1];
     memset(text_printed, 0, end_count * sizeof(bool));
     printFragmentLineFirstLayer(output, starts, ends, start_count, end_count, text_printed, numwidth, color);
-    /* for (size_t line = 0;; line++) { */
-        
-    /* } */
+    bool snd = true;
+    while (printFragmentLineSecondaryLayer(output, ends, end_count, text_printed, snd, numwidth, color)) {
+        snd = false;
+    }
 }
 
 static void printFragmentsInSameFile(FILE* output, MessageFragment** start_order, size_t frag_count, int numwidth, bool color) {
@@ -318,7 +402,6 @@ static void printFragmentsInSameFile(FILE* output, MessageFragment** start_order
                 if (end_order[end_pos]->position.end.offset < current_loc.offset) {
                     current_loc = end_order[end_pos]->position.end;
                 }
-                /* fprintf(stderr, "%zi %zi\n", last_line, current_loc.line); */
                 if (last_line + MAX_INTERMEDIATE_LINES + 1 >= current_loc.line) {
                     printSourceLines(output, file, last_line + 2, current_loc.line - last_line, numwidth, color);
                 } else {
