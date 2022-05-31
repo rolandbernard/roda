@@ -6,6 +6,7 @@ void initCompilerContext(CompilerContext* context) {
     initMessageContext(&context->msgs);
     initMessageFilter(&context->msgfilter);
     initSymbolContext(&context->syms);
+    initTypeContext(&context->types);
     initSymbolTable(&context->buildins, NULL);
     addSymbolToTable(&context->buildins, createVariable(getSymbol(&context->syms, str("i8")), invalidSpan()));
     addSymbolToTable(&context->buildins, createVariable(getSymbol(&context->syms, str("i16")), invalidSpan()));

@@ -17,9 +17,9 @@ void initSymbolTable(SymbolTable* self, SymbolTable* parent);
 
 void deinitSymbolTable(SymbolTable* self);
 
-Variable* findSymbolInTable(SymbolTable* self, Symbol name);
-
 void addSymbolToTable(SymbolTable* self, Variable* var);
+
+Variable* findSymbolInTable(SymbolTable* self, Symbol name);
 
 Variable* findImmediateSymbolInTable(SymbolTable* self, Symbol name);
 

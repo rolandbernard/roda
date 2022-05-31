@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 #include "ast/ast.h"
+#include "errors/fatalerror.h"
 #include "util/alloc.h"
 #include "util/console.h"
 
@@ -352,6 +353,8 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
                 printAstChildNode(file, n->type, colors, indent, "type", true);
                 break;
             }
+            default:
+                UNREACHABLE(", unhandled ast kind");
         }
     }
 }

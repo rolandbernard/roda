@@ -1,6 +1,7 @@
 
 #include <inttypes.h>
 
+#include "errors/fatalerror.h"
 #include "util/alloc.h"
 
 #include "ast/ast.h"
@@ -307,6 +308,8 @@ void freeAstNode(AstNode* node) {
             case AST_ERROR:
             case AST_INT:
             case AST_REAL: break;
+            default:
+                UNREACHABLE(", unhandled ast kind");
         }
         FREE(node);
     }
