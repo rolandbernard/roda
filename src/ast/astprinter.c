@@ -146,7 +146,8 @@ static void printAstNodeLocation(FILE* file, AstNode* node, bool colors) {
         }
         fprintf(file, " [");
         if (node->location.file != NULL) {
-            fprintf(file, "%s:", cstr(node->location.file->original_path));
+            fwrite(node->location.file->original_path.data, 1, node->location.file->original_path.length, file);
+            fputc(':', file);
         }
         if (node->location.begin.offset != NO_POS) {
             fprintf(file, "%zi:%zi", node->location.begin.line + 1, node->location.begin.column + 1);
@@ -255,7 +256,7 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
             }
             case AST_VAR: {
                 AstVar* n = (AstVar*)node;
-                fprintf(file, " (name = %s)\n", toCString(str(n->name)));
+                fprintf(file, " (name = %s)\n", n->name);
                 break;
             }
             case AST_VARDEF: {

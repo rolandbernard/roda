@@ -80,7 +80,7 @@ static Span findMainPosition(MessageFragment** fragments, size_t counts) {
 
 static void printFileName(FILE* output, Span location, bool range) {
     if (location.file != NULL) {
-        fprintf(output, "%s", cstr(location.file->original_path));
+        fwrite(location.file->original_path.data, 1, location.file->original_path.length, output);
     }
     if (location.begin.offset != NO_POS) {
         if (location.file != NULL) {
@@ -218,7 +218,7 @@ static void printFragmentLineFirstLayer(
     bool* text_printed, int numwidth, bool color
 ) {
     printFragmentLineStart(output, numwidth, color);
-    size_t cur_col = NO_POS;
+    size_t cur_col = -1;
     size_t num_open[NUM_MESSAGE_CATEGORY];
     memset(num_open, 0, NUM_MESSAGE_CATEGORY * sizeof(size_t));
     size_t start_seen = 0;
@@ -242,19 +242,25 @@ static void printFragmentLineFirstLayer(
         }
         size_t end_start = end_seen;
         while (end_seen < end_count && ends[end_seen]->position.end.column == cur_col) {
-            if (isMultilineSpan(ends[end_seen]->position)) {
-                mult_ext[ends[end_seen]->category]++;
-            } else {
+            if (!isMultilineSpan(ends[end_seen]->position)) {
                 num_open[ends[end_seen]->category]--;
             }
             end_seen++;
         }
-        for (size_t i = end_seen; i < end_count && ends[i]->position.end.column == cur_col + 1; i++) {
-            if (isMultilineSpan(ends[i]->position)) {
-                if (ends[i]->category < category) {
-                    category = ends[i]->category;
+        size_t rev_trail = end_seen;
+        while (rev_trail < end_count && ends[rev_trail]->position.end.column == cur_col + 1) {
+            if (isMultilineSpan(ends[rev_trail]->position)) {
+                mult_ext[ends[end_seen]->category]++;
+            }
+            rev_trail++;
+        }
+        while (rev_trail < end_count && ends[rev_trail]->position.end.column == cur_col + 2) {
+            if (isMultilineSpan(ends[rev_trail]->position)) {
+                if (ends[rev_trail]->category < category) {
+                    category = ends[rev_trail]->category;
                 }
             }
+            rev_trail++;
         }
         for (MessageCategory i = 1; i <= NUM_MESSAGE_CATEGORY; i++) {
             if (num_open[NUM_MESSAGE_CATEGORY - i] > 0 || mult_ext[NUM_MESSAGE_CATEGORY - i] > 0) {
@@ -510,7 +516,8 @@ void printMessage(const Message* message, FILE* output, const MessageFilter* fil
         if (color) {
             fputs(message_category_style[category], output);
         }
-        fputs(toCString(getMessageCategoryName(category)), output);
+        ConstString category_name = getMessageCategoryName(category);
+        fwrite(category_name.data, 1, category_name.length, output);
         if (category == MESSAGE_ERROR && message->kind != ERROR_UNKNOWN) {
             fprintf(output, "[E%.4i]", message->kind - ERRORS_START - 1);
         } else if (category == MESSAGE_WARNING && message->kind != WARNING_UNKNOWN) {

@@ -147,7 +147,7 @@ arg_def : error          { $$ = createAstSimple(@$, AST_ERROR); }
 block   : '{' stmts '}'  { $$ = (AstNode*)createAstBlock(@$, toStaticAstList($2)); }
         ;
 
-stmts   : %empty            { $$ = createDynamicAstList(); }
+stmts   : %empty            { $$ = createDynamicAstList(); $$->location = @$; }
         | stmts block_stmt  { $$ = $1; addToDynamicAstList($1, $2); $$->location = @$; }
         | stmts stmt ';'    { $$ = $1; addToDynamicAstList($1, $2); $$->location = @$; }
         | stmts ';'         { $$ = $1; }
