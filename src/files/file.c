@@ -44,12 +44,13 @@ void freeFile(File* file) {
     FREE(file);
 }
 
+Location invalidLocation() {
+    Location ret = { .offset = NO_POS, .line = NO_POS, .column = NO_POS };
+    return ret;
+}
+
 Span invalidSpan() {
-    Span ret = {
-        .file = NULL,
-        .begin = { .offset = NO_POS, .line = NO_POS, .column = NO_POS },
-        .end = { .offset = NO_POS, .line = NO_POS, .column = NO_POS },
-    };
+    Span ret = { .file = NULL, .begin = invalidLocation(), .end = invalidLocation() };
     return ret;
 }
 
@@ -65,12 +66,9 @@ bool isSpanWithPosition(Span span) {
     return isSpanValid(span) && span.begin.offset != NO_POS;
 }
 
-Span createStartSpan(const File* file) {
-    Span ret = {
-        .file = file,
-        .begin = { .offset = 0, .line = 0, .column = 0 },
-        .end = { .offset = 0, .line = 0, .column = 0 },
-    };
+Span createFileOnlySpan(const File* file) {
+    Span ret = invalidSpan();
+    ret.file = file;
     return ret;
 }
 

@@ -37,6 +37,8 @@ void deinitFile(File* file);
 
 void freeFile(File* file);
 
+Location invalidLocation();
+
 Span invalidSpan();
 
 bool isSpanValid(Span span);
@@ -45,7 +47,7 @@ bool isSpanFileOnly(Span span);
 
 bool isSpanWithPosition(Span span);
 
-Span createStartSpan(const File* file);
+Span createFileOnlySpan(const File* file);
 
 Span combineSpans(Span begin, Span end);
 

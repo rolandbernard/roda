@@ -78,9 +78,12 @@ static Span findMainPosition(MessageFragment** fragments, size_t counts) {
 
 static void printFileName(FILE* output, Span location, bool range) {
     if (location.file != NULL) {
-        fprintf(output, "%s:", cstr(location.file->original_path));
+        fprintf(output, "%s", cstr(location.file->original_path));
     }
     if (location.begin.offset != NO_POS) {
+        if (location.file != NULL) {
+            fputc(':', output);
+        }
         fprintf(output, "%zi:%zi", location.begin.line + 1, location.begin.column + 1);
         if (range && location.begin.offset + 1 < location.end.offset) {
             fprintf(output, "-%zi:%zi", location.end.line + 1, location.end.column);
@@ -88,7 +91,7 @@ static void printFileName(FILE* output, Span location, bool range) {
     }
 }
 
-static void printFragmentWithoutSource(FILE* output, MessageFragment* fragment, int numwidth, bool color) {
+static void printFragmentWithoutSource(FILE* output, MessageFragment* fragment, int numwidth, bool pos, bool color) {
     for (int i = 0; i < numwidth; i++) {
         fputc(' ', output);
     }
@@ -96,11 +99,11 @@ static void printFragmentWithoutSource(FILE* output, MessageFragment* fragment, 
         fputs(CONSOLE_SGR(CONSOLE_SGR_BOLD), output);
     }
     fputs("  = ", output);
-    if (isSpanValid(fragment->position)) {
+    if (pos && isSpanValid(fragment->position)) {
         printFileName(output, fragment->position, true);
     }
     if (fragment->message.length != 0) {
-        if (isSpanValid(fragment->position)) {
+        if (pos && isSpanValid(fragment->position)) {
             fputs(": ", output);
         }
         if (color) {
@@ -166,85 +169,201 @@ static void printFileNameLine(FILE* output, Span location, int numwidth, bool co
 
 static void printSourceLines(FILE* output, FILE* file, size_t line, size_t linecount, int numwidth, bool color) {
     for (size_t i = 0; i < linecount; i++) {
-        if (color) {
-            fputs(CONSOLE_SGR(CONSOLE_SGR_BOLD), output);
-        }
-        fprintf(output, " %*zi", numwidth, line);
-        fputs(" | ", output);
-        if (color) {
-            fputs(CONSOLE_SGR(), output);
-        }
         int next_char = getc(file);
-        while (next_char != '\n' && next_char != EOF) {
-            if (next_char == '\t') {
-                next_char = ' ';
+        if (next_char == EOF) {
+            break;
+        } else {
+            if (color) {
+                fputs(CONSOLE_SGR(CONSOLE_SGR_BOLD), output);
             }
-            putc(next_char, output);
-            next_char = getc(file);
+            fprintf(output, " %*zi", numwidth, line);
+            fputs(" | ", output);
+            if (color) {
+                fputs(CONSOLE_SGR(), output);
+            }
+            while (next_char != '\n' && next_char != EOF) {
+                if (next_char == '\t') {
+                    next_char = ' ';
+                }
+                putc(next_char, output);
+                next_char = getc(file);
+            }
+            fputc('\n', output);
+            line++;
         }
-        fputc('\n', output);
-        line++;
     }
+}
+
+static void printFragmentLineStart(FILE* output, int numwidth, bool color) {
+    for (int i = 0; i < numwidth; i++) {
+        fputc(' ', output);
+    }
+    if (color) {
+        fputs(CONSOLE_SGR(CONSOLE_SGR_BOLD), output);
+    }
+    fputs("  |", output);
+    if (color) {
+        fputs(CONSOLE_SGR(), output);
+    }
+}
+
+static bool isMultilineSpan(Span span) {
+    return span.begin.line != span.end.line;
+}
+
+static void printFragmentLineFirstLayer(
+    FILE* output, MessageFragment** starts, MessageFragment** ends, size_t start_count, size_t end_count,
+    bool* text_printed, int numwidth, bool color
+) {
+    printFragmentLineStart(output, numwidth, color);
+    size_t cur_col = NO_POS;
+    size_t num_open[NUM_MESSAGE_CATEGORY];
+    memset(num_open, 0, NUM_MESSAGE_CATEGORY * sizeof(size_t));
+    size_t start_seen = 0;
+    size_t end_seen = 0;
+    MessageCategory trail = NUM_MESSAGE_CATEGORY;
+    while (start_seen < start_count || end_seen < end_count || trail != NUM_MESSAGE_CATEGORY) {
+        MessageCategory cur_trail = trail;
+        trail = NUM_MESSAGE_CATEGORY;
+        size_t mult_ext[NUM_MESSAGE_CATEGORY];
+        memset(mult_ext, 0, NUM_MESSAGE_CATEGORY * sizeof(size_t));
+        while (start_seen < start_count && starts[start_seen]->position.begin.column == cur_col) {
+            if (isMultilineSpan(starts[start_seen]->position)) {
+                mult_ext[starts[start_seen]->category]++;
+                if (starts[start_seen]->category < trail) {
+                    trail = starts[start_seen]->category;
+                }
+            } else {
+                num_open[starts[start_seen]->category]++;
+            }
+            start_seen++;
+        }
+        size_t end_start = end_seen;
+        while (end_seen < end_count && ends[end_seen]->position.end.column == cur_col) {
+            if (isMultilineSpan(ends[end_seen]->position)) {
+                mult_ext[ends[end_seen]->category]++;
+            } else {
+                num_open[ends[end_seen]->category]--;
+            }
+            end_seen++;
+        }
+        for (size_t i = end_seen; i < end_count && ends[i]->position.end.column == cur_col + 1; i++) {
+            if (isMultilineSpan(ends[i]->position)) {
+                if (ends[i]->category < cur_trail) {
+                    cur_trail = ends[i]->category;
+                }
+            }
+        }
+        MessageCategory category = cur_trail;
+        for (MessageCategory i = 1; i <= NUM_MESSAGE_CATEGORY; i++) {
+            if (num_open[NUM_MESSAGE_CATEGORY - i] > 0 || mult_ext[NUM_MESSAGE_CATEGORY - i] > 0) {
+                category = NUM_MESSAGE_CATEGORY - i;
+            }
+        }
+        if (category < NUM_MESSAGE_CATEGORY) {
+            if (color) {
+                fputs(message_category_style[category], output);
+            }
+            if (num_open[category] == 0 && mult_ext[category] == 0) {
+                fputc('~', output);
+            } else if (category <= MESSAGE_WARNING) {
+                fputc('^', output);
+            } else {
+                fputc('-', output);
+            }
+            if (color) {
+                fputs(CONSOLE_SGR(), output);
+            }
+        } else {
+            fputc(' ', output);
+            // TODO: consider printing some message
+            /* fwrite(fragment->message.data, sizeof(char), fragment->message.length, output); */
+            /* size_t next_col = start_seen < start_count ? starts[start_seen]->position.begin.column : NO_POS; */
+            /* if (end_seen < end_count && ends[end_seen]->position.end.column < */ 
+        }
+        cur_col++;
+    }
+    fputc('\n', output);
+}
+
+static void printFragmentLine(
+    FILE* output, MessageFragment** starts, MessageFragment** ends, size_t start_count, size_t end_count, int numwidth, bool color
+) {
+    bool text_printed[end_count + 1];
+    memset(text_printed, 0, end_count * sizeof(bool));
+    printFragmentLineFirstLayer(output, starts, ends, start_count, end_count, text_printed, numwidth, color);
+    /* for (size_t line = 0;; line++) { */
+        
+    /* } */
 }
 
 static void printFragmentsInSameFile(FILE* output, MessageFragment** start_order, size_t frag_count, int numwidth, bool color) {
     FILE* file = openFileStream(start_order[0]->position.file, "rb+");
     if (file != NULL) {
-        MessageFragment* end_order[frag_count];
-        memcpy(end_order, start_order, frag_count * sizeof(MessageFragment*));
-        sortFragmentByEnd(end_order, frag_count);
-        printFileNameLine(output, findMainPosition(start_order, frag_count), numwidth, color);
-        positionToStartOfLine(file, start_order[0]->position.begin.offset, NUM_SURROUNDING_LINES);
-        printSourceLines(output, file, start_order[0]->position.begin.line - NUM_SURROUNDING_LINES + 1, NUM_SURROUNDING_LINES, numwidth, color);
-        size_t last_line = start_order[0]->position.begin.line - 1;
-        size_t start_pos = 0;
-        size_t end_pos = 0;
-        while (end_pos < frag_count) {
-            Location current_loc = start_order[start_pos]->position.begin;
-            if (end_order[end_pos]->position.end.offset < current_loc.offset) {
-                current_loc = end_order[end_pos]->position.end;
-            }
-            /* fprintf(stderr, "%zi %zi\n", last_line, current_loc.line); */
-            if (last_line + MAX_INTERMEDIATE_LINES + 1 >= current_loc.line) {
-                printSourceLines(output, file, last_line + 2, current_loc.line - last_line, numwidth, color);
-            } else {
-                printSourceLines(output, file, last_line + 2, NUM_SURROUNDING_LINES, numwidth, color);
-                for (int i = 0; i < numwidth; i++) {
-                    fputc(' ', output);
+        size_t total_frags = frag_count;
+        while (frag_count > 0 && !isSpanWithPosition(start_order[frag_count - 1]->position)) {
+            frag_count--;
+        }
+        if (frag_count > 0) {
+            MessageFragment* end_order[frag_count];
+            memcpy(end_order, start_order, frag_count * sizeof(MessageFragment*));
+            sortFragmentByEnd(end_order, frag_count);
+            positionToStartOfLine(file, start_order[0]->position.begin.offset, NUM_SURROUNDING_LINES);
+            printSourceLines(output, file, start_order[0]->position.begin.line - NUM_SURROUNDING_LINES + 1, NUM_SURROUNDING_LINES, numwidth, color);
+            size_t last_line = start_order[0]->position.begin.line - 1;
+            size_t start_pos = 0;
+            size_t end_pos = 0;
+            while (end_pos < frag_count) {
+                Location current_loc = start_pos < frag_count ? start_order[start_pos]->position.begin : invalidLocation();
+                if (end_order[end_pos]->position.end.offset < current_loc.offset) {
+                    current_loc = end_order[end_pos]->position.end;
                 }
-                if (color) {
-                    fputs(CONSOLE_SGR(CONSOLE_SGR_BOLD), output);
+                /* fprintf(stderr, "%zi %zi\n", last_line, current_loc.line); */
+                if (last_line + MAX_INTERMEDIATE_LINES + 1 >= current_loc.line) {
+                    printSourceLines(output, file, last_line + 2, current_loc.line - last_line, numwidth, color);
+                } else {
+                    printSourceLines(output, file, last_line + 2, NUM_SURROUNDING_LINES, numwidth, color);
+                    for (int i = 0; i < numwidth; i++) {
+                        fputc(' ', output);
+                    }
+                    if (color) {
+                        fputs(CONSOLE_SGR(CONSOLE_SGR_BOLD), output);
+                    }
+                    fputs(" ...\n", output);
+                    if (color) {
+                        fputs(CONSOLE_SGR(), output);
+                    }
+                    positionToStartOfLine(file, current_loc.offset, NUM_SURROUNDING_LINES);
+                    printSourceLines(output, file, current_loc.line - NUM_SURROUNDING_LINES + 1, 1 + NUM_SURROUNDING_LINES, numwidth, color);
+                    last_line = current_loc.line;
                 }
-                fputs(" ...\n", output);
-                if (color) {
-                    fputs(CONSOLE_SGR(), output);
+                size_t start_count = 0;
+                while (start_pos + start_count < frag_count && start_order[start_pos + start_count]->position.begin.line == current_loc.line) {
+                    start_count++;
                 }
-                positionToStartOfLine(file, current_loc.offset, NUM_SURROUNDING_LINES);
-                printSourceLines(output, file, current_loc.line - NUM_SURROUNDING_LINES + 1, 1 + NUM_SURROUNDING_LINES, numwidth, color);
+                size_t end_count = 0;
+                while (end_pos + end_count < frag_count && start_order[end_pos + end_count]->position.end.line == current_loc.line) {
+                    end_count++;
+                }
+                printFragmentLine(output, start_order + start_pos, end_order + end_pos, start_count, end_count, numwidth, color);
+                start_pos += start_count;
+                end_pos += end_count;
                 last_line = current_loc.line;
             }
-            size_t start_count = 0;
-            while (start_pos + start_count < frag_count && start_order[start_pos + start_count]->position.begin.line == current_loc.line) {
-                start_count++;
-            }
-            size_t end_count = 0;
-            while (end_pos + end_count < frag_count && start_order[end_pos + end_count]->position.begin.line == current_loc.line) {
-                end_count++;
-            }
-            start_pos += start_count;
-            end_pos += end_count;
-            last_line = current_loc.line;
+            printSourceLines(output, file, last_line + 2, NUM_SURROUNDING_LINES, numwidth, color);
         }
-        printSourceLines(output, file, last_line + 2, NUM_SURROUNDING_LINES, numwidth, color);
+        for (size_t i = frag_count; i < total_frags; i++) {
+            printFragmentWithoutSource(output, start_order[i], numwidth, false, color);
+        }
     } else {
         for (size_t i = 0; i < frag_count; i++) {
-            printFragmentWithoutSource(output, start_order[i], numwidth, color);
+            printFragmentWithoutSource(output, start_order[i], numwidth, true, color);
         }
     }
 }
 
 static void printMessageFragments(
-    FILE* output, const MessageFilter* filter, MessageFragment** fragments, size_t frag_count, bool print_source, bool color
+    FILE* output, const MessageFilter* filter, MessageFragment** fragments, size_t frag_count, bool print_source, bool print_headers, bool color
 ) {
     size_t to_print_count = 0;
     for (size_t i = 0; i < frag_count; i++) {
@@ -282,15 +401,18 @@ static void printMessageFragments(
                 while (start + count < to_print_count && start_order[start]->position.file == start_order[start + count]->position.file) {
                     count++;
                 }
-                printFragmentsInSameFile(output, start_order, count, maxwidth, color);
+                if (print_headers) {
+                    printFileNameLine(output, findMainPosition(start_order + start, count), maxwidth, color);
+                }
+                printFragmentsInSameFile(output, start_order + start, count, maxwidth, color);
                 start += count;
             }
             for (size_t i = start; i < to_print_count; i++) {
-                printFragmentWithoutSource(output, start_order[i], maxwidth, color);
+                printFragmentWithoutSource(output, start_order[i], maxwidth, true, color);
             }
         } else {
             for (size_t i = 0; i < to_print_count; i++) {
-                printFragmentWithoutSource(output, start_order[i], MIN_NUMWIDTH, color);
+                printFragmentWithoutSource(output, start_order[i], MIN_NUMWIDTH, true, color);
             }
         }
     }
@@ -331,7 +453,7 @@ void printMessage(const Message* message, FILE* output, const MessageFilter* fil
         }
         fputc('\n', output);
         if (print_fragments) {
-            printMessageFragments(output, filter, message->fragments, message->fragment_count, print_source, color);
+            printMessageFragments(output, filter, message->fragments, message->fragment_count, print_source, true, color);
         } else if (print_source && message->fragment_count != 0) {
             Span location = findMainPosition(message->fragments, message->fragment_count);
             if (location.begin.offset != NO_POS) {
@@ -341,7 +463,7 @@ void printMessage(const Message* message, FILE* output, const MessageFilter* fil
                     .position = location,
                 };
                 MessageFragment* fragments = &dummy;
-                printMessageFragments(output, filter, &fragments, 1, true, color);
+                printMessageFragments(output, filter, &fragments, 1, true, false, color);
             }
         }
     }
