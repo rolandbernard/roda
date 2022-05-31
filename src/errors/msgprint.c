@@ -373,7 +373,9 @@ static void printFragmentLine(
     FILE* output, MessageFragment** starts, MessageFragment** ends, size_t start_count, size_t end_count, int numwidth, bool color
 ) {
     bool text_printed[end_count + 1];
-    memset(text_printed, 0, end_count * sizeof(bool));
+    for (size_t i = 0; i < end_count; i++) {
+        text_printed[i] = (ends[i]->message.length == 0);
+    }
     printFragmentLineFirstLayer(output, starts, ends, start_count, end_count, text_printed, numwidth, color);
     bool snd = true;
     while (printFragmentLineSecondaryLayer(output, ends, end_count, text_printed, snd, numwidth, color)) {
