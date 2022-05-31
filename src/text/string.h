@@ -60,6 +60,8 @@ void freeString(String string);
 
 const char* toCString(ConstString string);
 
+char* copyToCString(ConstString string);
+
 String resizeStringData(String string);
 
 String copyFromCString(const char* cstr);

@@ -14,8 +14,12 @@ export fn main() {
     test -= 25;
     return 0
 }
+type Test1 = int;
+type Test2 = Test1;
+type Test3 = Test2;
 
 fn add(a: u32, b: u32): u32 {
+    Test1 += Test2;
     let test = 1_000; let test = 1_000; let test = 1_000_000; let test = 1_000_000;
     return a + b;
 }

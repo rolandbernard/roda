@@ -69,6 +69,7 @@ Path inlineReducePath(Path path) {
         insert_pos--;
     }
     path.length = insert_pos;
+    path.data[insert_pos] = 0;
     return path;
 }
 
@@ -124,7 +125,7 @@ Path getWorkingDirectory() {
         str = REALLOC(char, str, capacity);
     }
     if (ret == NULL) {
-        return createString(NULL, 0);
+        return createEmptyString();
     } else {
         return inlineReducePath(resizeStringData(createFromCString(ret)));
     }

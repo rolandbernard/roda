@@ -19,7 +19,6 @@ type Test2 = Test1;
 type Test3 = Test2;
 
 export fn main(argc: int, argv: **u8): Test1 {
-    Test1 += 1;
     /* Print some stuff! */
     print("Hello \t \"world\"!");
     print("猕猴桃");     // Supports utf8 in string literals.

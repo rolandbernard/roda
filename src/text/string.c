@@ -5,6 +5,7 @@
 #include <stdarg.h>
 
 #include "text/string.h"
+#include "errors/fatalerror.h"
 
 #include "util/alloc.h"
 
@@ -156,7 +157,15 @@ void freeString(String string) {
 }
 
 const char* toCString(ConstString string) {
+    ASSERT(string.data[string.length] == 0); // If this fails, you must create a copy!
     return string.data;
+}
+
+char* copyToCString(ConstString string) {
+    char* ret = ALLOC(char, string.length + 1);
+    memcpy(ret, string.data, string.length * sizeof(char));
+    ret[string.length] = 0;
+    return ret;
 }
 
 String toNonConstString(ConstString string) {
