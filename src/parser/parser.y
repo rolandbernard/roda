@@ -112,17 +112,19 @@ extern void yyerror(YYLTYPE* yyllocp, yyscan_t scanner, ParserContext* context, 
 program : root  { context->result = $1; }
         ;
 
-root : root_stmts  { $$ = (AstNode*)createAstBlock(@$, AST_ROOT, toStaticAstList($1)); }
+root : root_stmts  { $$ = (AstNode*)createAstRoot(@$, toStaticAstList($1)); }
      ;
 
 root_stmts : %empty                     { $$ = createDynamicAstList(); $$->location = @$; }
            | root_stmts root_stmt       { $$ = $1; addToDynamicAstList($1, $2); $$->location = @$; }
+           | root_stmts ';'             { $$ = $1; }
            ;
 
 root_stmt : error                                                   { $$ = createAstSimple(@$, AST_ERROR); }
           | "export" "fn" ident '(' args_defs ')' opt_type block    { $$ = (AstNode*)createAstFn(@$, $3, $5, $7, $8, AST_FN_FLAG_EXPORT); }
           | "import" "fn" ident '(' args_defs ')' opt_type ';'      { $$ = (AstNode*)createAstFn(@$, $3, $5, $7, NULL, AST_FN_FLAG_IMPORT); }
           | "fn" ident '(' args_defs ')' opt_type block             { $$ = (AstNode*)createAstFn(@$, $2, $4, $6, $7, AST_FN_FLAG_NONE); }
+          | "type" ident '=' type ';'                               { $$ = (AstNode*)createAstTypeDef(@$, $2, $4); }
           ;
 
 opt_type : %empty   { $$ = NULL; }
@@ -142,7 +144,7 @@ arg_def : error          { $$ = createAstSimple(@$, AST_ERROR); }
         | ident ':' type { $$ = (AstNode*)createAstArgDef(@$, $1, $3); }
         ;
 
-block   : '{' stmts '}'  { $$ = (AstNode*)createAstBlock(@$, AST_BLOCK, toStaticAstList($2)); }
+block   : '{' stmts '}'  { $$ = (AstNode*)createAstBlock(@$, toStaticAstList($2)); }
         ;
 
 stmts   : %empty            { $$ = createDynamicAstList(); }
@@ -164,7 +166,6 @@ stmt    : expr                           { $$ = $1; }
         | "return" expr                  { $$ = (AstNode*)createAstUnary(@$, AST_RETURN, $2); }
         | "let" ident opt_type '=' expr  { $$ = (AstNode*)createAstVarDef(@$, $2, $3, $5); }
         | "let" ident opt_type           { $$ = (AstNode*)createAstVarDef(@$, $2, $3, NULL); }
-        | "type" ident '=' type          { $$ = (AstNode*)createAstTypeDef(@$, $2, $4); }
         ;
 
 assign : expr '=' expr      { $$ = (AstNode*)createAstBinary(@$, AST_ASSIGN, $1, $3); }

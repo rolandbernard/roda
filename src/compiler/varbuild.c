@@ -5,7 +5,10 @@
 
 #include "compiler/varbuild.h"
 
-static void putInSymbolTable(CompilerContext* context, SymbolTable* scope, AstVar* name) {
+#define VARIABLE_NAME "variable"
+#define TYPE_NAME "type"
+
+static void putInSymbolTable(CompilerContext* context, SymbolTable* scope, AstVar* name, const char* kind) {
     Variable* existing = findImmediateSymbolInTable(scope, name->name);
     if (existing == NULL) {
         Variable* var = createVariable(name->name, name->location);
@@ -15,16 +18,16 @@ static void putInSymbolTable(CompilerContext* context, SymbolTable* scope, AstVa
             &context->msgs,
             createMessage(
                 ERROR_ALREADY_DEFINED,
-                createFormattedString("the symbol `%s` is already defined", name->name),
+                createFormattedString("the %s `%s` is already defined", kind, name->name),
                 2,
-                createMessageFragment(MESSAGE_ERROR, copyFromCString("already defined symbol"), name->location),
+                createMessageFragment(MESSAGE_ERROR, createFormattedString("already defined %s", kind), name->location),
                 createMessageFragment(MESSAGE_NOTE, copyFromCString("note: previously defined here"), existing->def_loc)
             )
         );
     }
 }
 
-static void recursivelyBuildSymbolTables(CompilerContext* context, AstNode* node, SymbolTable* scope) {
+static void recursivelyBuildSymbolTables(CompilerContext* context, AstNode* node, SymbolTable* vars, SymbolTable* types, bool type) {
     if (node != NULL) {
         switch (node->kind) {
             case AST_ADD_ASSIGN:
@@ -39,8 +42,8 @@ static void recursivelyBuildSymbolTables(CompilerContext* context, AstNode* node
             case AST_BXOR_ASSIGN:
             case AST_ASSIGN: { // Executed right to left
                 AstBinary* n = (AstBinary*)node;
-                recursivelyBuildSymbolTables(context, n->right, scope);
-                recursivelyBuildSymbolTables(context, n->left, scope);
+                recursivelyBuildSymbolTables(context, n->right, vars, types, type);
+                recursivelyBuildSymbolTables(context, n->left, vars, types, type);
                 break;
             }
             case AST_INDEX:
@@ -63,14 +66,14 @@ static void recursivelyBuildSymbolTables(CompilerContext* context, AstNode* node
             case AST_GT:
             case AST_ADD: { // Executed left to right
                 AstBinary* n = (AstBinary*)node;
-                recursivelyBuildSymbolTables(context, n->left, scope);
-                recursivelyBuildSymbolTables(context, n->right, scope);
+                recursivelyBuildSymbolTables(context, n->left, vars, types, type);
+                recursivelyBuildSymbolTables(context, n->right, vars, types, type);
                 break;
             }
             case AST_ARRAY: { // Part of a type
                 AstBinary* n = (AstBinary*)node;
-                recursivelyBuildSymbolTables(context, n->right, scope);
-                recursivelyBuildSymbolTables(context, n->left, scope);
+                recursivelyBuildSymbolTables(context, n->right, vars, types, true);
+                recursivelyBuildSymbolTables(context, n->left, vars, types, false);
                 break;
             }
             case AST_POS:
@@ -79,82 +82,91 @@ static void recursivelyBuildSymbolTables(CompilerContext* context, AstNode* node
             case AST_RETURN:
             case AST_DEREF: {
                 AstUnary* n = (AstUnary*)node;
-                recursivelyBuildSymbolTables(context, n->op, scope);
+                recursivelyBuildSymbolTables(context, n->op, vars, types, type);
                 break;
             }
             case AST_LIST: {
                 AstList* n = (AstList*)node;
                 for (size_t i = 0; i < n->count; i++) {
-                    recursivelyBuildSymbolTables(context, n->nodes[i], scope);
+                    recursivelyBuildSymbolTables(context, n->nodes[i], vars, types, type);
                 }
                 break;
             }
-            case AST_ROOT:
+            case AST_ROOT: {
+                AstRoot* n = (AstRoot*)node;
+                n->vars.parent = vars;
+                n->types.parent = types;
+                recursivelyBuildSymbolTables(context, (AstNode*)n->nodes, &n->vars, &n->types, type);
+                break;
+            }
             case AST_BLOCK: {
                 AstBlock* n = (AstBlock*)node;
-                n->vars.parent = scope;
-                recursivelyBuildSymbolTables(context, (AstNode*)n->nodes, &n->vars);
+                n->vars.parent = vars;
+                recursivelyBuildSymbolTables(context, (AstNode*)n->nodes, &n->vars, types, type);
                 break;
             }
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
-                putInSymbolTable(context, scope, n->name);
-                recursivelyBuildSymbolTables(context, n->type, scope);
-                recursivelyBuildSymbolTables(context, n->val, scope);
+                putInSymbolTable(context, vars, n->name, VARIABLE_NAME);
+                recursivelyBuildSymbolTables(context, n->type, vars, types, true);
+                recursivelyBuildSymbolTables(context, n->val, vars, types, type);
                 break;
             }
             case AST_IF_ELSE: {
                 AstIfElse* n = (AstIfElse*)node;
-                recursivelyBuildSymbolTables(context, n->condition, scope);
-                recursivelyBuildSymbolTables(context, n->else_block, scope);
-                recursivelyBuildSymbolTables(context, n->if_block, scope);
+                recursivelyBuildSymbolTables(context, n->condition, vars, types, type);
+                recursivelyBuildSymbolTables(context, n->else_block, vars, types, type);
+                recursivelyBuildSymbolTables(context, n->if_block, vars, types, type);
                 break;
             }
             case AST_WHILE: {
                 AstWhile* n = (AstWhile*)node;
-                recursivelyBuildSymbolTables(context, n->condition, scope);
-                recursivelyBuildSymbolTables(context, n->block, scope);
+                recursivelyBuildSymbolTables(context, n->condition, vars, types, type);
+                recursivelyBuildSymbolTables(context, n->block, vars, types, type);
                 break;
             }
             case AST_FN: {
                 AstFn* n = (AstFn*)node;
-                putInSymbolTable(context, scope, n->name);
-                recursivelyBuildSymbolTables(context, n->ret_type, scope);
-                n->vars.parent = scope;
-                recursivelyBuildSymbolTables(context, (AstNode*)n->arguments, &n->vars);
-                recursivelyBuildSymbolTables(context, n->body, &n->vars);
+                putInSymbolTable(context, vars, n->name, VARIABLE_NAME);
+                recursivelyBuildSymbolTables(context, n->ret_type, vars, types, true);
+                n->vars.parent = vars;
+                recursivelyBuildSymbolTables(context, (AstNode*)n->arguments, &n->vars, types, type);
+                recursivelyBuildSymbolTables(context, n->body, &n->vars, types, type);
                 break;
             }
             case AST_CALL: {
                 AstCall* n = (AstCall*)node;
-                recursivelyBuildSymbolTables(context, n->function, scope);
-                recursivelyBuildSymbolTables(context, (AstNode*)n->arguments, scope);
+                recursivelyBuildSymbolTables(context, n->function, vars, types, type);
+                recursivelyBuildSymbolTables(context, (AstNode*)n->arguments, vars, types, type);
                 break;
             }
             case AST_TYPEDEF: {
                 AstTypeDef* n = (AstTypeDef*)node;
-                recursivelyBuildSymbolTables(context, n->value, scope);
-                putInSymbolTable(context, scope, n->name);
+                recursivelyBuildSymbolTables(context, n->value, vars, types, true);
+                putInSymbolTable(context, types, n->name, TYPE_NAME);
                 break;
             }
             case AST_ARGDEF: {
                 AstArgDef* n = (AstArgDef*)node;
-                recursivelyBuildSymbolTables(context, n->type, scope);
-                putInSymbolTable(context, scope, n->name);
+                recursivelyBuildSymbolTables(context, n->type, vars, types, true);
+                putInSymbolTable(context, vars, n->name, VARIABLE_NAME);
                 break;
             }
             case AST_VAR: {
                 AstVar* n = (AstVar*)node;
-                if (findSymbolInTable(scope, n->name) == NULL) {
-                    addMessageToContext(
-                        &context->msgs,
-                        createMessage(
-                            ERROR_ALREADY_DEFINED,
-                            createFormattedString("use of undefined symbol `%s`", n->name),
-                            1,
-                            createMessageFragment(MESSAGE_ERROR, copyFromCString("undefined symbol"), n->location)
-                        )
+                if (findSymbolInTable(type ? types : vars, n->name) == NULL) {
+                    String err_msg = createFormattedString("use of undefined %s `%s`", type ? TYPE_NAME : VARIABLE_NAME, n->name);
+                    MessageFragment* err_frag = createMessageFragment(
+                        MESSAGE_ERROR, createFormattedString("undefined %s", type ? TYPE_NAME : VARIABLE_NAME), n->location
                     );
+                    if (findSymbolInTable(type ? vars : types, n->name) != NULL) {
+                        MessageFragment* note_frag = createMessageFragment(
+                            MESSAGE_NOTE, createFormattedString("note: a %s exists with the same name", type ? VARIABLE_NAME : TYPE_NAME), invalidSpan()
+                        );
+                        addMessageToContext(&context->msgs, createMessage(ERROR_UNDEFINED, err_msg, 2, err_frag, note_frag));
+                    } else {
+                        addMessageToContext(&context->msgs, createMessage(ERROR_UNDEFINED, err_msg, 1, err_frag));
+                    }
                 }
                 break;
             }
@@ -168,5 +180,5 @@ static void recursivelyBuildSymbolTables(CompilerContext* context, AstNode* node
 
 void buildSymbolTables(CompilerContext* context, AstNode* root) {
     ASSERT(root->kind == AST_ROOT);
-    recursivelyBuildSymbolTables(context, root, &context->buildins);
+    recursivelyBuildSymbolTables(context, root, NULL, &context->buildins, false);
 }

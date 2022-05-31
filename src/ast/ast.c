@@ -154,9 +154,20 @@ AstArgDef* createAstArgDef(Span loc, AstVar* name, AstNode* type) {
     return node;
 }
 
-AstBlock* createAstBlock(Span loc, AstNodeKind kind, AstList* nodes) {
+AstRoot* createAstRoot(Span loc, AstList* nodes) {
+    AstRoot* node = NEW(AstRoot);
+    node->kind = AST_ROOT;
+    node->location = loc;
+    initSymbolTable(&node->vars, NULL);
+    initSymbolTable(&node->types, NULL);
+    node->nodes = nodes;
+    SET_PARENT(nodes);
+    return node;
+}
+
+AstBlock* createAstBlock(Span loc, AstList* nodes) {
     AstBlock* node = NEW(AstBlock);
-    node->kind = kind;
+    node->kind = AST_BLOCK;
     node->location = loc;
     initSymbolTable(&node->vars, NULL);
     node->nodes = nodes;
@@ -227,7 +238,13 @@ void freeAstNode(AstNode* node) {
                 FREE(n->nodes);
                 break;
             }
-            case AST_ROOT:
+            case AST_ROOT: {
+                AstRoot* n = (AstRoot*)node;
+                deinitSymbolTable(&n->vars);
+                deinitSymbolTable(&n->types);
+                freeAstNode((AstNode*)n->nodes);
+                break;
+            }
             case AST_BLOCK: {
                 AstBlock* n = (AstBlock*)node;
                 deinitSymbolTable(&n->vars);

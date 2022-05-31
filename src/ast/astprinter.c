@@ -239,7 +239,13 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
                 }
                 break;
             }
-            case AST_ROOT:
+            case AST_ROOT: {
+                AstRoot* n = (AstRoot*)node;
+                printAstNodeLocation(file, node, colors);
+                fprintf(file, "\n");
+                printAstChildNode(file, (AstNode*)n->nodes, colors, indent, "nodes", true);
+                break;
+            }
             case AST_BLOCK: {
                 AstBlock* n = (AstBlock*)node;
                 printAstNodeLocation(file, node, colors);

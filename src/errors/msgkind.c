@@ -7,6 +7,7 @@ static const char* message_kind_strings[] = {
     [ERROR_UNKNOWN] = "unknown",
     [ERROR_SYNTAX] = "syntax",
     [ERROR_ALREADY_DEFINED] = "already-defined",
+    [ERROR_UNDEFINED] = "undefined",
     [ERROR_CANT_OPEN_FILE] = "cant-open-file",
     [ERROR_INVALID_STR] = "invalid-str",
     [ERROR_INVALID_INT] = "invalid-int",

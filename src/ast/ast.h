@@ -52,10 +52,6 @@ typedef enum {
     AST_DEREF,
     AST_RETURN,
 
-    // AstBlock
-    AST_ROOT,
-    AST_BLOCK,
-
     // Other
     AST_VAR,
     AST_VARDEF,
@@ -69,6 +65,8 @@ typedef enum {
     AST_TYPEDEF,
     AST_ARGDEF,
     AST_LIST,
+    AST_ROOT,
+    AST_BLOCK,
 } AstNodeKind;
 
 #define AST_NODE_BASE \
@@ -178,6 +176,13 @@ typedef struct {
 typedef struct {
     AST_NODE_BASE
     SymbolTable vars;
+    SymbolTable types;
+    AstList* nodes;
+} AstRoot;
+
+typedef struct {
+    AST_NODE_BASE
+    SymbolTable vars;
     AstList* nodes;
 } AstBlock;
 
@@ -189,7 +194,9 @@ AstUnary* createAstUnary(Span loc, AstNodeKind kind, AstNode* operand);
 
 AstList* createAstList(Span loc, AstNodeKind kind, size_t count, AstNode** nodes);
 
-AstBlock* createAstBlock(Span loc, AstNodeKind kind, AstList* nodes);
+AstRoot* createAstRoot(Span loc, AstList* nodes);
+
+AstBlock* createAstBlock(Span loc, AstList* nodes);
 
 AstIfElse* createAstIfElse(Span loc, AstNode* cond, AstNode* if_block, AstNode* else_block);
 

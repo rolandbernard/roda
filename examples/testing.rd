@@ -14,7 +14,12 @@ fn fma(a: uint, b: uint /* Hello world! */, c: uint): uint {
     return a * b + c;
 }
 
-export fn main(argc: int, argv: **u8): int {
+type Test1 = int;
+type Test2 = Test1;
+type Test3 = Test2;
+
+export fn main(argc: int, argv: **u8): Test1 {
+    Test1 += 1;
     /* Print some stuff! */
     print("Hello \t \"world\"!");
     print("猕猴桃");     // Supports utf8 in string literals.
