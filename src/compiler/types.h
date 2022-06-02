@@ -1,11 +1,14 @@
 #ifndef _COMPILER_TYPES_H_
 #define _COMPILER_TYPES_H_
 
+#include "text/string.h"
+
 #include <stddef.h>
 
 typedef enum {
     TYPE_VOID,
     TYPE_INT,
+    TYPE_UINT,
     TYPE_REAL,
     TYPE_POINTER,
     TYPE_ARRAY,
@@ -61,5 +64,7 @@ TypePointer* createPointer(TypeContext* cxt, Type* base);
 TypeArray* createArray(TypeContext* cxt, Type* base, size_t size);
 
 TypeFunction* createFunction(TypeContext* cxt, Type* ret_type, size_t arg_count, Type** arguments);
+
+String buildTypeName(Type* type);
 
 #endif

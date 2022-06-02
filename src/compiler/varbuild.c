@@ -188,8 +188,6 @@ static void recursivelyBuildSymbolTables(CompilerContext* context, AstNode* node
             case AST_STR:
             case AST_INT:
             case AST_REAL: break;
-            default:
-                UNREACHABLE(", unhandled ast kind");
         }
     }
 }

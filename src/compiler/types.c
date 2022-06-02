@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "errors/fatalerror.h"
+#include "text/format.h"
 #include "util/alloc.h"
 #include "util/hash.h"
 
@@ -25,6 +26,7 @@ static void freeType(Type* type) {
         switch (type->kind) {
             case TYPE_VOID:
             case TYPE_INT:
+            case TYPE_UINT:
             case TYPE_REAL:
             case TYPE_POINTER:
             case TYPE_ARRAY:
@@ -34,8 +36,6 @@ static void freeType(Type* type) {
                 FREE(t->arguments);
                 break;
             }
-            default:
-                UNREACHABLE(", unhandled type kind");
         }
     }
     FREE(type);
@@ -60,6 +60,7 @@ static bool areTypesEqual(const Type* a, const Type* b) {
             case TYPE_VOID:
                 return true;
             case TYPE_INT:
+            case TYPE_UINT:
             case TYPE_REAL: {
                 TypeSizedPrimitive* ta = (TypeSizedPrimitive*)a;
                 TypeSizedPrimitive* tb = (TypeSizedPrimitive*)b;
@@ -100,6 +101,7 @@ static size_t hashType(const Type* type) {
         case TYPE_VOID:
             return hashInt(type->kind);
         case TYPE_INT:
+        case TYPE_UINT:
         case TYPE_REAL: {
             TypeSizedPrimitive* t = (TypeSizedPrimitive*)type;
             return hashCombine(hashInt(t->kind), hashInt(t->size));
@@ -194,5 +196,61 @@ TypeArray* createArray(TypeContext* cxt, Type* base, size_t size) {
 TypeFunction* createFunction(TypeContext* cxt, Type* ret_type, size_t arg_count, Type** arguments) {
     TypeFunction type = { .kind = TYPE_FUNCTION, .ret_type = ret_type, .arguments = arguments, .arg_count = arg_count };
     return (TypeFunction*)createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeFunction));
+}
+
+void buildTypeNameInto(String* dst, Type* type) {
+    ASSERT(type != NULL);
+    switch (type->kind) {
+        case TYPE_VOID: {
+            *dst = pushToString(*dst, str("void"));
+            break;
+        }
+        case TYPE_INT: {
+            TypeSizedPrimitive* t = (TypeSizedPrimitive*)type;
+            pushFormattedString(dst, "i%zi", t->size);
+            break;
+        }
+        case TYPE_UINT: {
+            TypeSizedPrimitive* t = (TypeSizedPrimitive*)type;
+            pushFormattedString(dst, "u%zi", t->size);
+            break;
+        }
+        case TYPE_REAL: {
+            TypeSizedPrimitive* t = (TypeSizedPrimitive*)type;
+            pushFormattedString(dst, "f%zi", t->size);
+            break;
+        }
+        case TYPE_POINTER: {
+            TypePointer* t = (TypePointer*)type;
+            *dst = pushToString(*dst, str("*"));
+            buildTypeNameInto(dst, t->base);
+            break;
+        }
+        case TYPE_ARRAY: {
+            TypeArray* t = (TypeArray*)type;
+            pushFormattedString(dst, "[%zi]", t->size);
+            buildTypeNameInto(dst, t->base);
+            break;
+        }
+        case TYPE_FUNCTION: {
+            TypeFunction* t = (TypeFunction*)type;
+            *dst = pushToString(*dst, str("fn ("));
+            for (size_t i = 0; i < t->arg_count; i++) {
+                if (i != 0) {
+                    *dst = pushToString(*dst, str(", "));
+                }
+                buildTypeNameInto(dst, t->arguments[i]);
+            }
+            *dst = pushToString(*dst, str("): "));
+            buildTypeNameInto(dst, t->ret_type);
+            break;
+        }
+    }
+}
+
+String buildTypeName(Type* type) {
+    String ret = createEmptyString();
+    buildTypeNameInto(&ret, type);
+    return ret;
 }
 
