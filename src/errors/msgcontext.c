@@ -35,6 +35,8 @@ void addMessageToContext(MessageContext* message_context, Message* message) {
         }
         message_context->messages[message_context->message_count] = message;
         message_context->message_count++;
+    } else {
+        freeMessage(message);
     }
 }
 
