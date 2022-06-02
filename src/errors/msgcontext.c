@@ -5,10 +5,11 @@
 
 #define INITIAL_MESSAGE_CAPACITY 32
 
-void initMessageContext(MessageContext* message_context) {
+void initMessageContext(MessageContext* message_context, const MessageFilter* filter) {
     message_context->messages = NULL;
     message_context->message_count = 0;
     message_context->message_capacity = 0;
+    message_context->filter = filter;
 }
 
 void deinitMessageContext(MessageContext* message_context) {
@@ -28,11 +29,13 @@ static void extendMessageContextCapacity(MessageContext* message_context) {
 }
 
 void addMessageToContext(MessageContext* message_context, Message* message) {
-    if (message_context->message_count == message_context->message_capacity) {
-        extendMessageContextCapacity(message_context);
+    if (applyFilterForKind(message_context->filter, message->kind)) {
+        if (message_context->message_count == message_context->message_capacity) {
+            extendMessageContextCapacity(message_context);
+        }
+        message_context->messages[message_context->message_count] = message;
+        message_context->message_count++;
     }
-    message_context->messages[message_context->message_count] = message;
-    message_context->message_count++;
 }
 
 void addAllMessagesFromContext(MessageContext* dest_context, MessageContext* src_context) {
@@ -41,8 +44,3 @@ void addAllMessagesFromContext(MessageContext* dest_context, MessageContext* src
     }
 }
 
-void addFilteredMessageToContext(MessageContext* message_context, Message* message, MessageFilter* filter) {
-    if (applyFilterForKind(filter, message->kind)) {
-        addMessageToContext(message_context, message);
-    }
-}

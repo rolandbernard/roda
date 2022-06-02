@@ -8,9 +8,14 @@
 #include "text/symbol.h"
 
 typedef struct {
+    bool debug;
+} CompilerSettings;
+
+typedef struct {
+    CompilerSettings settings;
+    MessageFilter msgfilter;
     FileSet files;
     MessageContext msgs;
-    MessageFilter msgfilter;
     SymbolContext syms;
     TypeContext types;
     SymbolTable buildins;

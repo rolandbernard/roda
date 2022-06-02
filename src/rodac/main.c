@@ -25,7 +25,7 @@ int main(int argc, const char* const* argv) {
         buildSymbolTables(&context, ast);
     }
     freeAstNode(ast);
-    printMessages(&context.msgs, stderr, &context.msgfilter, true, true);
+    printMessages(&context.msgs, stderr, true, true);
     deinitCompilerContext(&context);
     return EXIT_SUCCESS;
 }

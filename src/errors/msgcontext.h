@@ -7,9 +7,10 @@ typedef struct {
     Message** messages;
     size_t message_count;
     size_t message_capacity;
+    const MessageFilter* filter;
 } MessageContext;
 
-void initMessageContext(MessageContext* message_context);
+void initMessageContext(MessageContext* message_context, const MessageFilter* filter);
 
 void deinitMessageContext(MessageContext* message_context);
 
@@ -18,7 +19,5 @@ void addMessageToContext(MessageContext* message_context, Message* message);
 void addAllMessagesFromContext(MessageContext* dest_context, MessageContext* src_context);
 
 void addMessageToContext(MessageContext* message_context, Message* message);
-
-void addFilteredMessageToContext(MessageContext* message_context, Message* message, MessageFilter* filter);
 
 #endif

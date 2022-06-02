@@ -16,6 +16,7 @@ void initFile(File* file, ConstPath file_path) {
     file->directory = getParentDirectory(toConstPath(file->absolute_path));
     file->extention = getExtention(toConstPath(file->absolute_path));
     file->name = getFilename(toConstPath(file->absolute_path));
+    file->ast = NULL;
 }
 
 File* copyFile(const File* file) {

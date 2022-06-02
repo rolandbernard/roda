@@ -13,6 +13,7 @@ typedef struct {
     ConstPath directory;
     ConstString name;
     ConstString extention;
+    struct AstNode* ast;
 } File;
 
 typedef struct {

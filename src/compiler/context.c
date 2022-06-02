@@ -1,13 +1,7 @@
 
 #include "compiler/context.h"
 
-void initCompilerContext(CompilerContext* context) {
-    initFileSet(&context->files);
-    initMessageContext(&context->msgs);
-    initMessageFilter(&context->msgfilter);
-    initSymbolContext(&context->syms);
-    initTypeContext(&context->types);
-    initSymbolTable(&context->buildins, NULL);
+static void addPrimitiveTypes(CompilerContext* context) {
     addSymbolToTable(&context->buildins, (SymbolEntry*)createTypeSymbol(getSymbol(&context->syms, str("i8")), NULL));
     addSymbolToTable(&context->buildins, (SymbolEntry*)createTypeSymbol(getSymbol(&context->syms, str("i16")), NULL));
     addSymbolToTable(&context->buildins, (SymbolEntry*)createTypeSymbol(getSymbol(&context->syms, str("i32")), NULL));
@@ -22,6 +16,21 @@ void initCompilerContext(CompilerContext* context) {
     addSymbolToTable(&context->buildins, (SymbolEntry*)createTypeSymbol(getSymbol(&context->syms, str("uint")), NULL));
     addSymbolToTable(&context->buildins, (SymbolEntry*)createTypeSymbol(getSymbol(&context->syms, str("isize")), NULL));
     addSymbolToTable(&context->buildins, (SymbolEntry*)createTypeSymbol(getSymbol(&context->syms, str("usize")), NULL));
+}
+
+static void initCompilerSettings(CompilerSettings* settings) {
+    settings->debug = false;
+}
+
+void initCompilerContext(CompilerContext* context) {
+    initCompilerSettings(&context->settings);
+    initMessageFilter(&context->msgfilter);
+    initFileSet(&context->files);
+    initMessageContext(&context->msgs, &context->msgfilter);
+    initSymbolContext(&context->syms);
+    initTypeContext(&context->types);
+    initSymbolTable(&context->buildins, NULL);
+    addPrimitiveTypes(context);
 }
 
 void deinitCompilerContext(CompilerContext* context) {

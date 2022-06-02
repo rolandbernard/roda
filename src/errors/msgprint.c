@@ -561,9 +561,9 @@ void printMessage(const Message* message, FILE* output, const MessageFilter* fil
     }
 }
 
-void printMessages(const MessageContext* message_context, FILE* output, const MessageFilter* filter, bool print_fragments, bool print_source) {
+void printMessages(const MessageContext* message_context, FILE* output, bool print_fragments, bool print_source) {
     for (size_t i = 0; i < message_context->message_count; i++) {
-        printMessage(message_context->messages[i], output, filter, print_fragments, print_source);
+        printMessage(message_context->messages[i], output, message_context->filter, print_fragments, print_source);
     }
 }
 
