@@ -3,14 +3,26 @@
 
 #include "compiler/variable.h"
 
-Variable* createVariable(Symbol name, Span def_loc) {
-    Variable* var = NEW(Variable);
-    var->name = name;
-    var->def_loc = def_loc;
-    return var;
+SymbolVariable* createVariableSymbol(Symbol name, const struct AstVar* def) {
+    SymbolVariable* sym = NEW(SymbolVariable);
+    sym->name = name;
+    sym->def = def;
+    return sym;
 }
 
-void freeVariable(Variable* var) {
+SymbolType* createTypeSymbol(Symbol name, const struct AstVar* def) {
+    SymbolType* sym = NEW(SymbolType);
+    sym->name = name;
+    sym->def = def;
+    return sym;
+}
+
+void freeSymbolEntry(SymbolEntry* var) {
+    switch (var->kind) {
+        case SYMBOL_VARIABLE:
+        case SYMBOL_TYPE:
+            break;
+    }
     FREE(var);
 }
 

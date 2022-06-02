@@ -9,6 +9,7 @@ typedef enum {
     TYPE_REAL,
     TYPE_POINTER,
     TYPE_ARRAY,
+    TYPE_FUNCTION,
 } TypeKind;
 
 #define TYPE_BASE \
@@ -35,6 +36,13 @@ typedef struct {
 } TypeArray;
 
 typedef struct {
+    TYPE_BASE
+    Type* ret_type;
+    Type** arguments;
+    size_t arg_count;
+} TypeFunction;
+
+typedef struct {
     Type** types;
     size_t count;
     size_t capacity;
@@ -46,10 +54,12 @@ void deinitTypeContext(TypeContext* cxt);
 
 Type* createUnsizedPrimitive(TypeContext* cxt, TypeKind kind);
 
-Type* createSizedPrimitive(TypeContext* cxt, TypeKind kind, size_t size);
+TypeSizedPrimitive* createSizedPrimitive(TypeContext* cxt, TypeKind kind, size_t size);
 
-Type* createPointer(TypeContext* cxt, Type* base);
+TypePointer* createPointer(TypeContext* cxt, Type* base);
 
-Type* createArray(TypeContext* cxt, Type* base, size_t size);
+TypeArray* createArray(TypeContext* cxt, Type* base, size_t size);
+
+TypeFunction* createFunction(TypeContext* cxt, Type* ret_type, size_t arg_count, Type** arguments);
 
 #endif

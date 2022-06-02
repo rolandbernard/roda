@@ -8,20 +8,20 @@ void initCompilerContext(CompilerContext* context) {
     initSymbolContext(&context->syms);
     initTypeContext(&context->types);
     initSymbolTable(&context->buildins, NULL);
-    addSymbolToTable(&context->buildins, createVariable(getSymbol(&context->syms, str("i8")), invalidSpan()));
-    addSymbolToTable(&context->buildins, createVariable(getSymbol(&context->syms, str("i16")), invalidSpan()));
-    addSymbolToTable(&context->buildins, createVariable(getSymbol(&context->syms, str("i32")), invalidSpan()));
-    addSymbolToTable(&context->buildins, createVariable(getSymbol(&context->syms, str("i64")), invalidSpan()));
-    addSymbolToTable(&context->buildins, createVariable(getSymbol(&context->syms, str("u8")), invalidSpan()));
-    addSymbolToTable(&context->buildins, createVariable(getSymbol(&context->syms, str("u16")), invalidSpan()));
-    addSymbolToTable(&context->buildins, createVariable(getSymbol(&context->syms, str("u32")), invalidSpan()));
-    addSymbolToTable(&context->buildins, createVariable(getSymbol(&context->syms, str("u64")), invalidSpan()));
-    addSymbolToTable(&context->buildins, createVariable(getSymbol(&context->syms, str("f32")), invalidSpan()));
-    addSymbolToTable(&context->buildins, createVariable(getSymbol(&context->syms, str("f64")), invalidSpan()));
-    addSymbolToTable(&context->buildins, createVariable(getSymbol(&context->syms, str("int")), invalidSpan()));
-    addSymbolToTable(&context->buildins, createVariable(getSymbol(&context->syms, str("uint")), invalidSpan()));
-    addSymbolToTable(&context->buildins, createVariable(getSymbol(&context->syms, str("isize")), invalidSpan()));
-    addSymbolToTable(&context->buildins, createVariable(getSymbol(&context->syms, str("usize")), invalidSpan()));
+    addSymbolToTable(&context->buildins, (SymbolEntry*)createTypeSymbol(getSymbol(&context->syms, str("i8")), NULL));
+    addSymbolToTable(&context->buildins, (SymbolEntry*)createTypeSymbol(getSymbol(&context->syms, str("i16")), NULL));
+    addSymbolToTable(&context->buildins, (SymbolEntry*)createTypeSymbol(getSymbol(&context->syms, str("i32")), NULL));
+    addSymbolToTable(&context->buildins, (SymbolEntry*)createTypeSymbol(getSymbol(&context->syms, str("i64")), NULL));
+    addSymbolToTable(&context->buildins, (SymbolEntry*)createTypeSymbol(getSymbol(&context->syms, str("u8")), NULL));
+    addSymbolToTable(&context->buildins, (SymbolEntry*)createTypeSymbol(getSymbol(&context->syms, str("u16")), NULL));
+    addSymbolToTable(&context->buildins, (SymbolEntry*)createTypeSymbol(getSymbol(&context->syms, str("u32")), NULL));
+    addSymbolToTable(&context->buildins, (SymbolEntry*)createTypeSymbol(getSymbol(&context->syms, str("u64")), NULL));
+    addSymbolToTable(&context->buildins, (SymbolEntry*)createTypeSymbol(getSymbol(&context->syms, str("f32")), NULL));
+    addSymbolToTable(&context->buildins, (SymbolEntry*)createTypeSymbol(getSymbol(&context->syms, str("f64")), NULL));
+    addSymbolToTable(&context->buildins, (SymbolEntry*)createTypeSymbol(getSymbol(&context->syms, str("int")), NULL));
+    addSymbolToTable(&context->buildins, (SymbolEntry*)createTypeSymbol(getSymbol(&context->syms, str("uint")), NULL));
+    addSymbolToTable(&context->buildins, (SymbolEntry*)createTypeSymbol(getSymbol(&context->syms, str("isize")), NULL));
+    addSymbolToTable(&context->buildins, (SymbolEntry*)createTypeSymbol(getSymbol(&context->syms, str("usize")), NULL));
 }
 
 void deinitCompilerContext(CompilerContext* context) {

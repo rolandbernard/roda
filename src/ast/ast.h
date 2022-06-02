@@ -70,8 +70,8 @@ typedef enum {
 } AstNodeKind;
 
 #define AST_NODE_BASE \
-    struct AstNode* parent; \
     AstNodeKind kind;       \
+    struct AstNode* parent; \
     Span location;
 
 typedef struct AstNode {
@@ -102,9 +102,10 @@ typedef struct {
     AstNode* else_block;
 } AstIfElse;
 
-typedef struct {
+typedef struct AstVar {
     AST_NODE_BASE
     Symbol name;
+    SymbolEntry* binding;
 } AstVar;
 
 typedef struct {
@@ -176,7 +177,6 @@ typedef struct {
 typedef struct {
     AST_NODE_BASE
     SymbolTable vars;
-    SymbolTable types;
     AstList* nodes;
 } AstRoot;
 

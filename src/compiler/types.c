@@ -20,10 +20,31 @@ static bool isIndexValid(TypeContext* table, size_t idx) {
     return table->types[idx] != NULL;
 }
 
+static void freeType(Type* type) {
+    if (type != NULL) {
+        switch (type->kind) {
+            case TYPE_VOID:
+            case TYPE_INT:
+            case TYPE_REAL:
+            case TYPE_POINTER:
+            case TYPE_ARRAY:
+                break;
+            case TYPE_FUNCTION: {
+                TypeFunction* t = (TypeFunction*)type;
+                FREE(t->arguments);
+                break;
+            }
+            default:
+                UNREACHABLE(", unhandled type kind");
+        }
+    }
+    FREE(type);
+}
+
 void deinitTypeContext(TypeContext* cxt) {
     for (size_t i = 0; i < cxt->capacity; i++) {
         if (isIndexValid(cxt, i)) {
-            FREE(cxt->types[i]);
+            freeType(cxt->types[i]);
         }
     }
     FREE(cxt->types);
@@ -54,6 +75,20 @@ static bool areTypesEqual(const Type* a, const Type* b) {
                 TypeArray* tb = (TypeArray*)b;
                 return ta->base == tb->base && ta->size == tb->size;
             }
+            case TYPE_FUNCTION: {
+                TypeFunction* ta = (TypeFunction*)a;
+                TypeFunction* tb = (TypeFunction*)b;
+                if (ta->arg_count != tb->arg_count || ta->ret_type != tb->ret_type) {
+                    return false;
+                } else {
+                    for (size_t i = 0; i < ta->arg_count; i++) {
+                        if (ta->arguments[i] != tb->arguments[i]) {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+            }
         }
         UNREACHABLE(", unhandled type kind");
     }
@@ -76,6 +111,14 @@ static size_t hashType(const Type* type) {
         case TYPE_ARRAY: {
             TypeArray* t = (TypeArray*)type;
             return hashCombine(hashCombine(hashInt(t->kind), hashInt((size_t)t->base)), hashInt(t->size));
+        }
+        case TYPE_FUNCTION: {
+            TypeFunction* t = (TypeFunction*)type;
+            size_t hash = hashCombine(hashCombine(hashInt(t->kind), hashInt((size_t)t->ret_type)), hashInt(t->arg_count));
+            for (size_t i = 0; i < t->arg_count; i++) {
+                hash = hashCombine(hash, hashInt((size_t)t->arguments[i]));
+            }
+            return hash;
         }
     }
     UNREACHABLE(", unhandled type kind");
@@ -133,18 +176,23 @@ Type* createUnsizedPrimitive(TypeContext* cxt, TypeKind kind) {
     return createTypeIfAbsent(cxt, &type, sizeof(Type));
 }
 
-Type* createSizedPrimitive(TypeContext* cxt, TypeKind kind, size_t size) {
+TypeSizedPrimitive* createSizedPrimitive(TypeContext* cxt, TypeKind kind, size_t size) {
     TypeSizedPrimitive type = { .kind = kind, .size = size };
-    return createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeSizedPrimitive));
+    return (TypeSizedPrimitive*)createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeSizedPrimitive));
 }
 
-Type* createPointer(TypeContext* cxt, Type* base) {
+TypePointer* createPointer(TypeContext* cxt, Type* base) {
     TypePointer type = { .kind = TYPE_POINTER, .base = base };
-    return createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypePointer));
+    return (TypePointer*)createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypePointer));
 }
 
-Type* createArray(TypeContext* cxt, Type* base, size_t size) {
+TypeArray* createArray(TypeContext* cxt, Type* base, size_t size) {
     TypeArray type = { .kind = TYPE_ARRAY, .base = base, .size = size };
-    return createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeArray));
+    return (TypeArray*)createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeArray));
+}
+
+TypeFunction* createFunction(TypeContext* cxt, Type* ret_type, size_t arg_count, Type** arguments) {
+    TypeFunction type = { .kind = TYPE_FUNCTION, .ret_type = ret_type, .arguments = arguments, .arg_count = arg_count };
+    return (TypeFunction*)createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeFunction));
 }
 

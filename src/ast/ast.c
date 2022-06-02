@@ -58,6 +58,7 @@ AstVar* createAstVar(Span loc, Symbol name) {
     node->kind = AST_VAR;
     node->location = loc;
     node->name = name;
+    node->binding = NULL;
     return node;
 }
 
@@ -160,7 +161,6 @@ AstRoot* createAstRoot(Span loc, AstList* nodes) {
     node->kind = AST_ROOT;
     node->location = loc;
     initSymbolTable(&node->vars, NULL);
-    initSymbolTable(&node->types, NULL);
     node->nodes = nodes;
     SET_PARENT(nodes);
     return node;
@@ -242,7 +242,6 @@ void freeAstNode(AstNode* node) {
             case AST_ROOT: {
                 AstRoot* n = (AstRoot*)node;
                 deinitSymbolTable(&n->vars);
-                deinitSymbolTable(&n->types);
                 freeAstNode((AstNode*)n->nodes);
                 break;
             }
