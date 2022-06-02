@@ -72,7 +72,8 @@ typedef enum {
 #define AST_NODE_BASE \
     AstNodeKind kind;       \
     struct AstNode* parent; \
-    Span location;
+    Span location;          \
+    Type* res_type;
 
 typedef struct AstNode {
     AST_NODE_BASE

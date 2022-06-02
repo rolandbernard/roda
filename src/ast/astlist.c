@@ -20,6 +20,8 @@ DynamicAstList* createDynamicAstListOfSize(size_t size) {
 
 void initDynamicAstList(DynamicAstList* list, size_t size) {
     list->kind = AST_LIST;
+    list->res_type = NULL;
+    list->parent = NULL;
     list->nodes = ALLOC(AstNode*, size);
     list->count = 0;
     list->capacity = size;
