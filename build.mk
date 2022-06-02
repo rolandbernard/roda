@@ -22,6 +22,8 @@ SANITIZE := address,leak,undefined
 # SANITIZE ?= thread,undefined
 WARNINGS := -Wall -Wextra -Wno-unused-parameter
 
+CCFLAGS.gdb 	+= -O0 -g -DDEBUG
+LDFLAGS.gdb 	+= -O0 -g
 CCFLAGS.debug   += -O0 -g -fsanitize=$(SANITIZE) -DDEBUG
 LDFLAGS.debug   += -O0 -g -fsanitize=$(SANITIZE)
 CCFLAGS.release += -O3

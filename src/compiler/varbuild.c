@@ -10,8 +10,6 @@ static void variableExistsError(CompilerContext* context, AstVar* name, SymbolEn
     String message = createFormattedString("the %s `%s` is already defined", kind_name, name->name);
     MessageFragment* error = createMessageFragment(MESSAGE_ERROR, createFormattedString("already defined %s", kind_name), name->location);
     if (existing->def != NULL) {
-        addMessageToContext(&context->msgs, createMessage(ERROR_ALREADY_DEFINED, message, 1, error));
-    } else {
         addMessageToContext(
             &context->msgs,
             createMessage(
@@ -19,6 +17,8 @@ static void variableExistsError(CompilerContext* context, AstVar* name, SymbolEn
                 createMessageFragment(MESSAGE_NOTE, copyFromCString("note: previously defined here"), existing->def->location)
             )
         );
+    } else {
+        addMessageToContext(&context->msgs, createMessage(ERROR_ALREADY_DEFINED, message, 1, error));
     }
 }
 

@@ -5,6 +5,7 @@
 
 SymbolVariable* createVariableSymbol(Symbol name, const struct AstVar* def) {
     SymbolVariable* sym = NEW(SymbolVariable);
+    sym->kind = SYMBOL_VARIABLE;
     sym->name = name;
     sym->def = def;
     return sym;
@@ -12,6 +13,7 @@ SymbolVariable* createVariableSymbol(Symbol name, const struct AstVar* def) {
 
 SymbolType* createTypeSymbol(Symbol name, const struct AstVar* def) {
     SymbolType* sym = NEW(SymbolType);
+    sym->kind = SYMBOL_TYPE;
     sym->name = name;
     sym->def = def;
     return sym;

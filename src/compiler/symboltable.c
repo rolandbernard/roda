@@ -67,12 +67,10 @@ static void tryResizingHashTable(SymbolTable* table) {
 void addSymbolToTable(SymbolTable* self, SymbolEntry* var) {
     tryResizingHashTable(self);
     size_t idx = findIndexHashTable(self, var->name, var->kind);
-    if (isIndexValid(self, idx)) {
-        self->hashed[idx] = var;
-    } else {
-        self->hashed[idx] = var;
+    if (!isIndexValid(self, idx)) {
         self->count++;
     }
+    self->hashed[idx] = var;
 }
 
 SymbolEntry* findImmediateEntryInTable(SymbolTable* self, Symbol name, SymbolEntryKind kind) {
