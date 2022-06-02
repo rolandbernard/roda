@@ -110,7 +110,7 @@ static void printAstChildNode(
         if (colors) {
             fprintf(file,
                 " " CONSOLE_SGR(CONSOLE_SGR_FG_BRIGHT_WHITE)
-                "│" CONSOLE_SGR(CONSOLE_SGR_FG_BRIGHT_BLACK;CONSOLE_SGR_ITALIC)
+                "│" CONSOLE_SGR(CONSOLE_SGR_FG_BRIGHT_BLACK;CONSOLE_SGR_ITALIC;CONSOLE_SGR_FAINT)
                 "%s:" CONSOLE_SGR() "\n", name
             );
         } else {
