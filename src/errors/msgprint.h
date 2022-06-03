@@ -11,4 +11,6 @@ void printMessage(const Message* error, FILE* output, const MessageFilter* filte
 
 void printMessages(const MessageContext* message_context, FILE* output, bool print_fragments, bool print_source);
 
+void printAndClearMessages(MessageContext* message_context, FILE* output, bool print_fragments, bool print_source);
+
 #endif

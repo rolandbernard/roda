@@ -20,27 +20,40 @@ int main(int argc, const char* const* argv) {
     setlocale(LC_ALL, ""); // Set locale to user preference
     CompilerContext context;
     initCompilerContext(&context);
-    parseProgramParams(argc, argv, &context);
-    printMessages(&context.msgs, stderr, false, false);
-    clearMessageContext(&context.msgs);
-    if (context.settings.version) {
-        printVersionInfo();
-    } else if (context.settings.help) {
-        printHelpText();
-    } else {
-        AstNode* ast;
-        if (argc > 1) {
-            ast = parseFile(createFileInSet(&context.files, str(argv[1])), &context);
+    int arg_count = parseProgramParams(argc, argv, &context);
+    printAndClearMessages(&context.msgs, stderr, false, false);
+    if (context.settings.version || context.settings.help) {
+        if (arg_count > 1) {
+            addMessageToContext(&context.msgs,
+                createMessage(WARNING_CMD_ARGS, copyFromCString("some command line arguments were ignored"), 0)
+            );
+            printAndClearMessages(&context.msgs, stderr, false, false);
+        }
+        if (context.settings.version) {
+            printVersionInfo();
         } else {
-            ast = parseStdin(&context);
+            printHelpText();
         }
-        printAst(stderr, ast);
-        if (ast != NULL) {
-            buildSymbolTables(&context, ast);
+    } else {
+        if (context.files.file_count == 0) {
+            addMessageToContext(&context.msgs,
+                createMessage(WARNING_CMD_ARGS, copyFromCString("no input files were given"), 0)
+            );
+        } else {
+            for (size_t i = 0; i < context.files.file_count; i++) {
+                File* file = context.files.files[i];
+                file->ast = parseFile(file, &context);
+                if (context.settings.debug) {
+                    printAst(stderr, file->ast);
+                }
+                if (file->ast != NULL) {
+                    buildSymbolTables(&context, file->ast);
+                }
+                printAndClearMessages(&context.msgs, stderr, true, true);
+            }
         }
-        freeAstNode(ast);
-        printMessages(&context.msgs, stderr, true, true);
     }
+    printAndClearMessages(&context.msgs, stderr, false, false);
     deinitCompilerContext(&context);
     return EXIT_SUCCESS;
 }

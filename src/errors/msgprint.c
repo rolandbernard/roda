@@ -567,3 +567,8 @@ void printMessages(const MessageContext* message_context, FILE* output, bool pri
     }
 }
 
+void printAndClearMessages(MessageContext* message_context, FILE* output, bool print_fragments, bool print_source) {
+    printMessages(message_context, output, print_fragments, print_source);
+    clearMessageContext(message_context);
+}
+

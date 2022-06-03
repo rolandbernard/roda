@@ -26,7 +26,7 @@ void printHelpText() {
     PARAM_PRINT_HELP(parameterSpecFunction, NULL);
 }
 
-void parseProgramParams(int argc, const char* const* argv, CompilerContext* context) {
-    PARAM_PARSE_ARGS(parameterSpecFunction, argc, argv, context);
+int parseProgramParams(int argc, const char* const* argv, CompilerContext* context) {
+    return PARAM_PARSE_ARGS(parameterSpecFunction, argc, argv, context);
 }
 

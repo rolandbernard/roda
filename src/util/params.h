@@ -61,6 +61,7 @@
                     bool _names = false;                                                                \
                     bool _def = true;                                                                   \
                     const char* option = NULL;                                                          \
+                    _args++;                                                                            \
                     BODY                                                                                \
                 }                                                                                       \
             }                                                                                           \
@@ -89,7 +90,6 @@
         if (NAME != NULL && strcmp(argv[_i] + 2, ((const char*)NAME)) == 0) {   \
             ACTION; continue;                                                   \
         }                                                                       \
-    } else if (_def) {                                                          \
     }
 
 #define PARAM_STRING(LETTER, NAME, ACTION, DESC)

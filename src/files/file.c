@@ -5,6 +5,7 @@
 
 #include "errors/fatalerror.h"
 #include "text/string.h"
+#include "ast/ast.h"
 #include "util/alloc.h"
 #include "text/utf8.h"
 
@@ -38,6 +39,7 @@ File* createFile(ConstPath file_path) {
 void deinitFile(File* file) {
     freePath(file->original_path);
     freePath(file->absolute_path);
+    freeAstNode(file->ast);
 }
 
 void freeFile(File* file) {

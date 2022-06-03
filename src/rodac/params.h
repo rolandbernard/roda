@@ -5,6 +5,6 @@
 
 void printHelpText();
 
-void parseProgramParams(int argc, const char* const* argv, CompilerContext* context);
+int parseProgramParams(int argc, const char* const* argv, CompilerContext* context);
 
 #endif
