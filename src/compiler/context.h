@@ -9,6 +9,8 @@
 
 typedef struct {
     bool debug;
+    bool help;
+    bool version;
 } CompilerSettings;
 
 typedef struct {

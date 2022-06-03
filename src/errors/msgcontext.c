@@ -46,3 +46,13 @@ void addAllMessagesFromContext(MessageContext* dest_context, MessageContext* src
     }
 }
 
+size_t countMessagesInContext(MessageContext* context, MessageCategory max_cat) {
+    size_t count = 0;
+    for (size_t i = 0; i < context->message_count; i++) {
+        if (getMessageCategory(context->messages[i]->kind) <= max_cat) {
+            count++;
+        }
+    }
+    return count;
+}
+

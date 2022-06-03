@@ -20,4 +20,6 @@ void addAllMessagesFromContext(MessageContext* dest_context, MessageContext* src
 
 void addMessageToContext(MessageContext* message_context, Message* message);
 
+size_t countMessagesInContext(MessageContext* context, MessageCategory max_cat);
+
 #endif

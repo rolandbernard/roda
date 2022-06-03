@@ -20,6 +20,8 @@ static void addPrimitiveTypes(CompilerContext* context) {
 
 static void initCompilerSettings(CompilerSettings* settings) {
     settings->debug = false;
+    settings->help = false;
+    settings->version = false;
 }
 
 void initCompilerContext(CompilerContext* context) {
