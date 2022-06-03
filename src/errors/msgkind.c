@@ -13,6 +13,7 @@ static const char* message_kind_strings[] = {
     [ERROR_INVALID_INT] = "invalid-int",
     [ERROR_INVALID_REAL] = "invalid-real",
     [WARNING_UNKNOWN] = "unknown",
+    [WARNING_CMD_ARGS] = "cmd-line-args",
     [NOTE_UNKNOWN] = "unknown",
     [HELP_UNKNOWN] = "unknown",
 };

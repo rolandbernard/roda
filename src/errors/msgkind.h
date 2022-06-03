@@ -32,6 +32,7 @@ typedef enum {
 
     WARNINGS_START,
     WARNING_UNKNOWN,
+    WARNING_CMD_ARGS,
     WARNINGS_END,
     
     NOTES_START,

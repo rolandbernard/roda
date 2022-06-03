@@ -4,57 +4,68 @@
 #include <stdbool.h>
 #include <string.h>
 
-#define PARAM_SPEC_FUNCTION(NAME, PARAM, BODY)                                                  \
-    void _warning ## NAME(const char* warning, int argc, const char* const* argv, PARAM) {      \
-        bool _help = false;                                                                     \
-        bool _letters = false;                                                                  \
-        bool _names = false;                                                                    \
-        bool _def = false;                                                                      \
-        bool _warning = true;                                                                   \
-        int _i = 0, _j = 0;                                                                     \
-        do {                                                                                    \
-            BODY                                                                                \
-        } while (false);                                                                        \
-    }                                                                                           \
-    void NAME(bool _help, int argc, const char* const* argv, PARAM) {                           \
-        void (*_raiseWarning)(const char*, int, const char* const*, PARAM) = _warning ## NAME;  \
-        bool _warning = false;                                                                  \
-        int _i = 0, _j = 0;                                                                     \
-        if (_help) {                                                                            \
-            do {                                                                                \
-                bool _letters = false;                                                          \
-                bool _names = false;                                                            \
-                bool _def = false;                                                              \
-                BODY                                                                            \
-            } while (false);                                                                    \
-        } else {                                                                                \
-            for (_i = 1; _i < argc; _i++) {                                                     \
-                const char* warning = NULL;                                                     \
-                if (argv[_i][0] == '-') {                                                       \
-                    if (argv[_i][1] == '-') {                                                   \
-                        bool _letters = false;                                                  \
-                        bool _names = true;                                                     \
-                        bool _def = false;                                                      \
-                        const char* option = argv[_i];                                          \
-                        BODY                                                                    \
-                    } else {                                                                    \
-                        bool _letters = true;                                                   \
-                        bool _names = false;                                                    \
-                        bool _def = false;                                                      \
-                        for (_j = 1; argv[_i][_j] != 0; _j++) {                                 \
-                            const char option[3] = {'-', argv[_i][_j], 0};                      \
-                            BODY                                                                \
-                        }                                                                       \
-                    }                                                                           \
-                } else {                                                                        \
-                    bool _letters = false;                                                      \
-                    bool _names = false;                                                        \
-                    bool _def = true;                                                           \
-                    const char* value = argv[_i];                                               \
-                    BODY                                                                        \
-                }                                                                               \
-            }                                                                                   \
-        }                                                                                       \
+#define PARAM_SPEC_FUNCTION(NAME, PARAM, BODY)                                                          \
+    void _warning_ ## NAME(                                                                             \
+        const char* option, const char* warning, int argc, const char* const* argv, PARAM context       \
+    ) {                                                                                                 \
+        bool _help = false;                                                                             \
+        bool _letters = false;                                                                          \
+        bool _names = false;                                                                            \
+        bool _def = false;                                                                              \
+        bool _warning = true;                                                                           \
+        int _i = 0, _j = 0;                                                                             \
+        do {                                                                                            \
+            BODY                                                                                        \
+        } while (false);                                                                                \
+    }                                                                                                   \
+    int NAME(bool _help, int argc, const char* const* argv, PARAM context) {                            \
+        void (*_raiseWarning)(                                                                          \
+            const char*, const char*, int, const char* const*, PARAM                                    \
+        ) = _warning_ ## NAME;                                                                          \
+        bool _warning = false;                                                                          \
+        const char* warning = NULL;                                                                     \
+        int _args = 0;                                                                                  \
+        int _i = 0, _j = 0;                                                                             \
+        if (_help) {                                                                                    \
+            do {                                                                                        \
+                bool _letters = false;                                                                  \
+                bool _names = false;                                                                    \
+                bool _def = false;                                                                      \
+                const char* option = NULL;                                                              \
+                BODY                                                                                    \
+            } while (false);                                                                            \
+        } else {                                                                                        \
+            for (_i = 1; _i < argc; _i++) {                                                             \
+                if (argv[_i][0] == '-') {                                                               \
+                    if (argv[_i][1] == '-') {                                                           \
+                        bool _letters = false;                                                          \
+                        bool _names = true;                                                             \
+                        bool _def = false;                                                              \
+                        const char* option = argv[_i];                                                  \
+                        _args++;                                                                        \
+                        BODY                                                                            \
+                        _raiseWarning(option, "unknown command line option", argc, argv, context);      \
+                    } else {                                                                            \
+                        bool _letters = true;                                                           \
+                        bool _names = false;                                                            \
+                        bool _def = false;                                                              \
+                        for (_j = 1; argv[_i][_j] != 0; _j++) {                                         \
+                            const char option[3] = {'-', argv[_i][_j], 0};                              \
+                            _args++;                                                                    \
+                            BODY                                                                        \
+                            _raiseWarning(option, "unknown command line option", argc, argv, context);  \
+                        }                                                                               \
+                    }                                                                                   \
+                } else {                                                                                \
+                    bool _letters = false;                                                              \
+                    bool _names = false;                                                                \
+                    bool _def = true;                                                                   \
+                    const char* option = NULL;                                                          \
+                    BODY                                                                                \
+                }                                                                                       \
+            }                                                                                           \
+        }                                                                                               \
+        return _args;                                                                                   \
     }
 
 #define PARAM_PRINT_HELP(SPEC, PARAM) SPEC(true, 0, NULL, PARAM)
@@ -83,8 +94,11 @@
 
 #define PARAM_STRING(LETTER, NAME, ACTION, DESC)
 
-#define PARAM_DEFAULT(ACTION)       \
-    if (_def) { ACTION; continue; }
+#define PARAM_DEFAULT(ACTION)           \
+    if (_def) {                         \
+        const char* value = argv[_i];   \
+        ACTION; continue;               \
+    }
 
 #define PARAM_WARNING(ACTION)       \
     if (_warning) { ACTION }

@@ -2,20 +2,23 @@
 #include <stdio.h>
 
 #include "rodac/version.h"
+#include "text/format.h"
 #include "util/params.h"
 
 #include "rodac/params.h"
 
-static PARAM_SPEC_FUNCTION(parameterSpecFunction, CompilerContext* context, {
+static PARAM_SPEC_FUNCTION(parameterSpecFunction, CompilerContext*, {
     PARAM_USAGE(PROGRAM_NAME " [options] files...");
     PARAM_FLAG("h", "help", { context->settings.help = true; }, "print this help information and quit");
     PARAM_FLAG(NULL, "version", { context->settings.version = true; }, "print version information and quit");
     PARAM_FLAG(NULL, "debug", { context->settings.debug = true; }, "print debug information while compiling");
     PARAM_DEFAULT({
-        // TODO
+        createFileInSet(&context->files, str(value));
     });
     PARAM_WARNING({
-        // TODO
+        addMessageToContext(&context->msgs, createMessage(
+            WARNING_CMD_ARGS, createFormattedString("%s: %s", option, warning), 0
+        ));
     });
 })
 

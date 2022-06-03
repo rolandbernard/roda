@@ -12,6 +12,8 @@ typedef struct {
 
 void initMessageContext(MessageContext* message_context, const MessageFilter* filter);
 
+void clearMessageContext(MessageContext* context);
+
 void deinitMessageContext(MessageContext* message_context);
 
 void addMessageToContext(MessageContext* message_context, Message* message);

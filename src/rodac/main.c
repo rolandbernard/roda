@@ -21,6 +21,8 @@ int main(int argc, const char* const* argv) {
     CompilerContext context;
     initCompilerContext(&context);
     parseProgramParams(argc, argv, &context);
+    printMessages(&context.msgs, stderr, false, false);
+    clearMessageContext(&context.msgs);
     if (context.settings.version) {
         printVersionInfo();
     } else if (context.settings.help) {

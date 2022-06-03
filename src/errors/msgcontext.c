@@ -12,6 +12,11 @@ void initMessageContext(MessageContext* message_context, const MessageFilter* fi
     message_context->filter = filter;
 }
 
+void clearMessageContext(MessageContext* context) {
+    deinitMessageContext(context);
+    initMessageContext(context, context->filter);
+}
+
 void deinitMessageContext(MessageContext* message_context) {
     for (size_t i = 0; i < message_context->message_count; i++) {
         freeMessage(message_context->messages[i]);
