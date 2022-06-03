@@ -181,6 +181,8 @@ static void recursivelyBuildSymbolTables(CompilerContext* context, AstNode* node
                     } else {
                         addMessageToContext(&context->msgs, createMessage(ERROR_UNDEFINED, err_msg, 1, err_frag));
                     }
+                } else {
+                    addSymbolReference(n->binding, n);
                 }
                 break;
             }

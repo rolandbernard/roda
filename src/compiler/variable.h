@@ -14,7 +14,10 @@ typedef enum {
 #define SYMBOL_ENTRY_BASE       \
     SymbolEntryKind kind;       \
     Symbol name;                \
-    const struct AstVar* def;
+    struct AstVar* def;   \
+    struct AstVar** refs; \
+    size_t ref_count;           \
+    size_t ref_capacity;
 
 typedef struct {
     SYMBOL_ENTRY_BASE
@@ -31,8 +34,10 @@ typedef struct {
 
 void freeSymbolEntry(SymbolEntry* var);
 
-SymbolVariable* createVariableSymbol(Symbol name, const struct AstVar* def);
+SymbolVariable* createVariableSymbol(Symbol name, struct AstVar* def);
 
-SymbolType* createTypeSymbol(Symbol name, const struct AstVar* def);
+SymbolType* createTypeSymbol(Symbol name, struct AstVar* def);
+
+void addSymbolReference(SymbolEntry* entry, struct AstVar* var);
 
 #endif
