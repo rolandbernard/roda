@@ -17,7 +17,6 @@ static void printVersionInfo() {
 }
 
 int main(int argc, const char* const* argv) {
-    setlocale(LC_ALL, ""); // Set locale to user preference
     CompilerContext context;
     initCompilerContext(&context);
     int arg_count = parseProgramParams(argc, argv, &context);
@@ -43,7 +42,7 @@ int main(int argc, const char* const* argv) {
             for (size_t i = 0; i < context.files.file_count; i++) {
                 File* file = context.files.files[i];
                 file->ast = parseFile(file, &context);
-                if (context.settings.debug) {
+                if (context.settings.debug & COMPILER_DEBUG_AST) {
                     printAst(stderr, file->ast);
                 }
                 if (file->ast != NULL) {

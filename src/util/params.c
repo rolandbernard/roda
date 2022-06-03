@@ -3,7 +3,7 @@
 
 #include "util/params.h"
 
-#define COLUMN_WIDTH 25
+#define COLUMN_WIDTH 27
 
 void printOptionHelpLine(const char* single, const char* word, const char* value, const char* desc) {
     fputs("  ", stderr);
@@ -23,11 +23,10 @@ void printOptionHelpLine(const char* single, const char* word, const char* value
         col += strlen(word) + 2;
     }
     if (value != NULL) {
-        fputs("=", stderr);
         fputs(value, stderr);
-        col += strlen(value) + 1;
+        col += strlen(value);
     }
-    if (col > COLUMN_WIDTH) {
+    if (col >= COLUMN_WIDTH) {
         fputs("\n", stderr);
         col = 0;
     }

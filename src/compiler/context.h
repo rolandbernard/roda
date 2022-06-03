@@ -7,8 +7,13 @@
 #include "files/fileset.h"
 #include "text/symbol.h"
 
+typedef enum {
+    COMPILER_DEBUG_NONE = 0,
+    COMPILER_DEBUG_AST = (1 << 0),
+} CompilerDebugFlags;
+
 typedef struct {
-    bool debug;
+    CompilerDebugFlags debug;
     bool help;
     bool version;
 } CompilerSettings;
