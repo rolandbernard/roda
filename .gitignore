@@ -6,6 +6,9 @@ build/
 .idea/
 .vim*
 
+# cachegrind profiling
+cachegrind.out.*
+
 # Prerequisites
 *.d
 
