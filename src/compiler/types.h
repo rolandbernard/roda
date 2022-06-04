@@ -1,9 +1,10 @@
 #ifndef _COMPILER_TYPES_H_
 #define _COMPILER_TYPES_H_
 
-#include "text/string.h"
-
 #include <stddef.h>
+#include <stdbool.h>
+
+#include "text/string.h"
 
 typedef enum {
     TYPE_ERROR,
@@ -18,8 +19,9 @@ typedef enum {
     TYPE_FUNCTION,
 } TypeKind;
 
-#define TYPE_BASE \
-    TypeKind kind;
+#define TYPE_BASE   \
+    TypeKind kind;  \
+    bool recursive; \
 
 typedef struct {
     TYPE_BASE
@@ -67,6 +69,8 @@ TypePointer* createPointerType(TypeContext* cxt, Type* base);
 TypeArray* createArrayType(TypeContext* cxt, Type* base, size_t size);
 
 TypeFunction* createFunctionType(TypeContext* cxt, Type* ret_type, size_t arg_count, Type** arguments);
+
+Type* canonicalTypeFor(TypeContext* cxt, Type* base);
 
 String buildTypeName(Type* type);
 

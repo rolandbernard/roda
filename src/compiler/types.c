@@ -171,7 +171,20 @@ static void tryResizingHashTable(TypeContext* table) {
     }
 }
 
-Type* createTypeIfAbsent(TypeContext* context, const Type* type, size_t size) {
+Type* canonicalTypeFor(TypeContext* cxt, Type* type) {
+    // TODO: Fix for recursive types (Use nominal types?)
+    tryResizingHashTable(cxt);
+    size_t idx = findIndexHashTable(cxt, type);
+    if (!isIndexValid(cxt, idx)) {
+        cxt->types[idx] = type;
+        cxt->count++;
+    } else {
+        freeType(type);
+    }
+    return cxt->types[idx];
+}
+
+static Type* createTypeIfAbsent(TypeContext* context, const Type* type, size_t size) {
     tryResizingHashTable(context);
     size_t idx = findIndexHashTable(context, type);
     if (!isIndexValid(context, idx)) {
@@ -183,88 +196,93 @@ Type* createTypeIfAbsent(TypeContext* context, const Type* type, size_t size) {
 }
 
 Type* createUnsizedPrimitiveType(TypeContext* cxt, TypeKind kind) {
-    Type type = { .kind = kind };
+    Type type = { .kind = kind, .recursive = false };
     return createTypeIfAbsent(cxt, &type, sizeof(Type));
 }
 
 TypeSizedPrimitive* createSizedPrimitiveType(TypeContext* cxt, TypeKind kind, size_t size) {
-    TypeSizedPrimitive type = { .kind = kind, .size = size };
+    TypeSizedPrimitive type = { .kind = kind, .recursive = false, .size = size };
     return (TypeSizedPrimitive*)createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeSizedPrimitive));
 }
 
 TypePointer* createPointerType(TypeContext* cxt, Type* base) {
-    TypePointer type = { .kind = TYPE_POINTER, .base = base };
+    TypePointer type = { .kind = TYPE_POINTER, .recursive = false, .base = base };
     return (TypePointer*)createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypePointer));
 }
 
 TypeArray* createArrayType(TypeContext* cxt, Type* base, size_t size) {
-    TypeArray type = { .kind = TYPE_ARRAY, .base = base, .size = size };
+    TypeArray type = { .kind = TYPE_ARRAY, .recursive = false, .base = base, .size = size };
     return (TypeArray*)createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeArray));
 }
 
 TypeFunction* createFunctionType(TypeContext* cxt, Type* ret_type, size_t arg_count, Type** arguments) {
-    TypeFunction type = { .kind = TYPE_FUNCTION, .ret_type = ret_type, .arguments = arguments, .arg_count = arg_count };
+    TypeFunction type = { .kind = TYPE_FUNCTION, .recursive = false, .ret_type = ret_type, .arguments = arguments, .arg_count = arg_count };
     return (TypeFunction*)createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeFunction));
 }
 
 void buildTypeNameInto(String* dst, Type* type) {
-    ASSERT(type != NULL);
-    switch (type->kind) {
-        case TYPE_ERROR: {
-            break;
-        }
-        case TYPE_NEVER: {
-            *dst = pushToString(*dst, str("!"));
-            break;
-        }
-        case TYPE_VOID: {
-            *dst = pushToString(*dst, str("()"));
-            break;
-        }
-        case TYPE_BOOL: {
-            *dst = pushToString(*dst, str("bool"));
-            break;
-        }
-        case TYPE_INT: {
-            TypeSizedPrimitive* t = (TypeSizedPrimitive*)type;
-            pushFormattedString(dst, "i%zi", t->size);
-            break;
-        }
-        case TYPE_UINT: {
-            TypeSizedPrimitive* t = (TypeSizedPrimitive*)type;
-            pushFormattedString(dst, "u%zi", t->size);
-            break;
-        }
-        case TYPE_REAL: {
-            TypeSizedPrimitive* t = (TypeSizedPrimitive*)type;
-            pushFormattedString(dst, "f%zi", t->size);
-            break;
-        }
-        case TYPE_POINTER: {
-            TypePointer* t = (TypePointer*)type;
-            *dst = pushToString(*dst, str("*"));
-            buildTypeNameInto(dst, t->base);
-            break;
-        }
-        case TYPE_ARRAY: {
-            TypeArray* t = (TypeArray*)type;
-            pushFormattedString(dst, "[%zi]", t->size);
-            buildTypeNameInto(dst, t->base);
-            break;
-        }
-        case TYPE_FUNCTION: {
-            TypeFunction* t = (TypeFunction*)type;
-            *dst = pushToString(*dst, str("fn ("));
-            for (size_t i = 0; i < t->arg_count; i++) {
-                if (i != 0) {
-                    *dst = pushToString(*dst, str(", "));
-                }
-                buildTypeNameInto(dst, t->arguments[i]);
+    if (type == NULL || type->recursive) {
+        *dst = pushToString(*dst, str("_"));
+    } else {
+        type->recursive = true;
+        switch (type->kind) {
+            case TYPE_ERROR: {
+                break;
             }
-            *dst = pushToString(*dst, str("): "));
-            buildTypeNameInto(dst, t->ret_type);
-            break;
+            case TYPE_NEVER: {
+                *dst = pushToString(*dst, str("!"));
+                break;
+            }
+            case TYPE_VOID: {
+                *dst = pushToString(*dst, str("()"));
+                break;
+            }
+            case TYPE_BOOL: {
+                *dst = pushToString(*dst, str("bool"));
+                break;
+            }
+            case TYPE_INT: {
+                TypeSizedPrimitive* t = (TypeSizedPrimitive*)type;
+                pushFormattedString(dst, "i%zi", t->size);
+                break;
+            }
+            case TYPE_UINT: {
+                TypeSizedPrimitive* t = (TypeSizedPrimitive*)type;
+                pushFormattedString(dst, "u%zi", t->size);
+                break;
+            }
+            case TYPE_REAL: {
+                TypeSizedPrimitive* t = (TypeSizedPrimitive*)type;
+                pushFormattedString(dst, "f%zi", t->size);
+                break;
+            }
+            case TYPE_POINTER: {
+                TypePointer* t = (TypePointer*)type;
+                *dst = pushToString(*dst, str("*"));
+                buildTypeNameInto(dst, t->base);
+                break;
+            }
+            case TYPE_ARRAY: {
+                TypeArray* t = (TypeArray*)type;
+                pushFormattedString(dst, "[%zi]", t->size);
+                buildTypeNameInto(dst, t->base);
+                break;
+            }
+            case TYPE_FUNCTION: {
+                TypeFunction* t = (TypeFunction*)type;
+                *dst = pushToString(*dst, str("fn ("));
+                for (size_t i = 0; i < t->arg_count; i++) {
+                    if (i != 0) {
+                        *dst = pushToString(*dst, str(", "));
+                    }
+                    buildTypeNameInto(dst, t->arguments[i]);
+                }
+                *dst = pushToString(*dst, str("): "));
+                buildTypeNameInto(dst, t->ret_type);
+                break;
+            }
         }
+        type->recursive = false;
     }
 }
 
