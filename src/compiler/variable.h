@@ -25,6 +25,8 @@ typedef struct {
 
 typedef struct {
     SYMBOL_ENTRY_BASE
+    Type* type;
+    bool constant;
 } SymbolVariable;
 
 typedef struct {

@@ -15,6 +15,8 @@ static void initSymbolEntry(SymbolEntry* entry, SymbolEntryKind kind, Symbol nam
 SymbolVariable* createVariableSymbol(Symbol name, struct AstVar* def) {
     SymbolVariable* sym = NEW(SymbolVariable);
     initSymbolEntry((SymbolEntry*)sym, SYMBOL_VARIABLE, name, def);
+    sym->type = NULL;
+    sym->constant = false;
     return sym;
 }
 
