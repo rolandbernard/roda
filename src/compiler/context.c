@@ -2,6 +2,7 @@
 #include "compiler/context.h"
 
 static void addPrimitiveTypes(CompilerContext* context) {
+    addSymbolToTable(&context->buildins, (SymbolEntry*)createTypeSymbol(getSymbol(&context->syms, str("bool")), NULL));
     addSymbolToTable(&context->buildins, (SymbolEntry*)createTypeSymbol(getSymbol(&context->syms, str("i8")), NULL));
     addSymbolToTable(&context->buildins, (SymbolEntry*)createTypeSymbol(getSymbol(&context->syms, str("i16")), NULL));
     addSymbolToTable(&context->buildins, (SymbolEntry*)createTypeSymbol(getSymbol(&context->syms, str("i32")), NULL));

@@ -72,6 +72,11 @@ static const char* ast_type_names[] = {
     [AST_TYPEDEF] = "typedef",
 };
 
+
+const char* getAstPrintName(AstNodeKind kind) {
+    return ast_type_names[kind];
+}
+
 typedef struct {
     char* data;
     size_t count;
@@ -191,7 +196,7 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
     if (node == NULL) {
         fprintf(file, "null\n");
     } else {
-        fprintf(file, "%s", ast_type_names[node->kind]);
+        fprintf(file, "%s", getAstPrintName(node->kind));
     }
     if (colors) {
         fprintf(file, CONSOLE_SGR());

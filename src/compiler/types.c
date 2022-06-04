@@ -27,6 +27,7 @@ static void freeType(Type* type) {
             case TYPE_ERROR:
             case TYPE_NEVER:
             case TYPE_VOID:
+            case TYPE_BOOL:
             case TYPE_INT:
             case TYPE_UINT:
             case TYPE_REAL:
@@ -62,6 +63,7 @@ static bool areTypesEqual(const Type* a, const Type* b) {
             case TYPE_ERROR:
             case TYPE_NEVER:
             case TYPE_VOID:
+            case TYPE_BOOL:
                 return true;
             case TYPE_INT:
             case TYPE_UINT:
@@ -105,6 +107,7 @@ static size_t hashType(const Type* type) {
         case TYPE_ERROR:
         case TYPE_NEVER:
         case TYPE_VOID:
+        case TYPE_BOOL:
             return hashInt(type->kind);
         case TYPE_INT:
         case TYPE_UINT:
@@ -216,6 +219,10 @@ void buildTypeNameInto(String* dst, Type* type) {
         }
         case TYPE_VOID: {
             *dst = pushToString(*dst, str("()"));
+            break;
+        }
+        case TYPE_BOOL: {
+            *dst = pushToString(*dst, str("bool"));
             break;
         }
         case TYPE_INT: {

@@ -6,6 +6,8 @@
 #include "compiler/context.h"
 #include "ast/ast.h"
 
+const char* getAstPrintName(AstNodeKind kind);
+
 void printAst(FILE* file, AstNode* ast);
 
 #endif
