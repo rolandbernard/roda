@@ -33,6 +33,7 @@ void freeSymbolEntry(SymbolEntry* var) {
         case SYMBOL_TYPE:
             break;
     }
+    FREE(var->refs);
     FREE(var);
 }
 
