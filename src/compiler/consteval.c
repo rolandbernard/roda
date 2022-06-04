@@ -6,7 +6,7 @@
 #include "compiler/consteval.h"
 
 ConstValue createConstError(CompilerContext* context) {
-    ConstValue ret = { .type = createUnsizedPrimitive(&context->types, TYPE_ERROR) };
+    ConstValue ret = { .type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR) };
     return ret;
 }
 
@@ -16,7 +16,7 @@ static intmax_t wrapSignedInteger(intmax_t value, size_t size) {
 
 ConstValue createConstInt(CompilerContext* context, size_t size, intmax_t value) {
     ConstValue ret = {
-        .type = (Type*)createSizedPrimitive(&context->types, TYPE_INT, size),
+        .type = (Type*)createSizedPrimitiveType(&context->types, TYPE_INT, size),
         .sint = wrapSignedInteger(value, size),
     };
     return ret;
@@ -28,24 +28,24 @@ static uintmax_t wrapUnsignedInteger(uintmax_t value, size_t size) {
 
 ConstValue createConstUInt(CompilerContext* context, size_t size, uintmax_t value) {
     ConstValue ret = {
-        .type = (Type*)createSizedPrimitive(&context->types, TYPE_INT, size),
+        .type = (Type*)createSizedPrimitiveType(&context->types, TYPE_INT, size),
         .uint = wrapUnsignedInteger(value, size),
     };
     return ret;
 }
 
 ConstValue createConstF32(CompilerContext* context, float value) {
-    ConstValue ret = { .type = (Type*)createSizedPrimitive(&context->types, TYPE_REAL, 32), .f32 = value };
+    ConstValue ret = { .type = (Type*)createSizedPrimitiveType(&context->types, TYPE_REAL, 32), .f32 = value };
     return ret;
 }
 
 ConstValue createConstF64(CompilerContext* context, double value) {
-    ConstValue ret = { .type = (Type*)createSizedPrimitive(&context->types, TYPE_REAL, 64), .f64 = value };
+    ConstValue ret = { .type = (Type*)createSizedPrimitiveType(&context->types, TYPE_REAL, 64), .f64 = value };
     return ret;
 }
 
 ConstValue createConstBool(CompilerContext* context, bool value) {
-    ConstValue ret = { .type = (Type*)createUnsizedPrimitive(&context->types, TYPE_BOOL), .boolean = value };
+    ConstValue ret = { .type = (Type*)createUnsizedPrimitiveType(&context->types, TYPE_BOOL), .boolean = value };
     return ret;
 }
 
@@ -54,8 +54,8 @@ static ConstValue raiseOpErrorNotInConst(CompilerContext* context, AstNode* node
     addMessageToContext(
         &context->msgs,
         createMessage(
-            ERROR_INCOMPATIBLE_TYPE,
-            createFormattedString("%s operations are not allowed in constant expressions", ast_name), 1,
+            ERROR_NOT_CONSTEXPR,
+            createFormattedString("%s expression not allowed in constant expressions", ast_name), 1,
             createMessageFragment(MESSAGE_ERROR, createFormattedString("%s not allowed here", ast_name), node->location)
         )
     );
@@ -71,7 +71,7 @@ static ConstValue raiseTypeErrorDifferent(
         &context->msgs,
         createMessage(
             ERROR_INCOMPATIBLE_TYPE,
-            createFormattedString("incompatible types in %s operation", getAstPrintName(node->kind)), 3,
+            createFormattedString("incompatible types in %s expression, `%S ` and `%S`", getAstPrintName(node->kind), lhs_type, rhs_type), 3,
             createMessageFragment(MESSAGE_ERROR, createFormattedString("types `%S` and `%S` are incompatible", lhs_type, rhs_type), node->location),
             createMessageFragment(MESSAGE_NOTE, createFormattedString("note: lhs has type `%S`", lhs_type), left->location),
             createMessageFragment(MESSAGE_NOTE, createFormattedString("note: rhs has type `%S`", rhs_type), right->location)
@@ -88,7 +88,7 @@ static ConstValue raiseTypeErrorNotInConst(CompilerContext* context, AstNode* no
         &context->msgs,
         createMessage(
             ERROR_INCOMPATIBLE_TYPE,
-            createFormattedString("in constant expession, incompatible type for %s operation", getAstPrintName(node->kind)), 1,
+            createFormattedString("in constant expession, incompatible type `%S` for %s expession", type, getAstPrintName(node->kind)), 1,
             createMessageFragment(MESSAGE_ERROR, createFormattedString("`%S` type not allowed here", type), node->location)
         )
     );
@@ -200,9 +200,12 @@ static ConstValue raiseTypeErrorNotInConst(CompilerContext* context, AstNode* no
 
 ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
     if (node == NULL) {
-        return raiseOpErrorNotInConst(context, node);
+        UNREACHABLE(", should not evaluate");
     } else {
         switch (node->kind) {
+            case AST_ERROR: {
+                return createConstError(context);
+            }
             case AST_IF_ELSE: // TODO <- if-else expessions
             case AST_FN:
             case AST_TYPEDEF:
@@ -228,8 +231,7 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
             case AST_VARDEF: {
                 UNREACHABLE(", should not evaluate");
             }
-            case AST_ERROR:
-            case AST_VAR: // TODO <- constant variables?
+            case AST_VAR: // TODO <- constant variables? (We need a scope!)
             case AST_INDEX: // TODO <- constant arrays?
             case AST_CALL: // TODO <- constant calls?
             case AST_STR: // TODO <- constant strings?
@@ -263,7 +265,7 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
                 AstInt* n = (AstInt*)node;
                 if (n->res_type->kind != TYPE_ERROR) {
                     if (n->res_type == NULL) {
-                        n->res_type = (Type*)createSizedPrimitive(&context->types, TYPE_INT, 64);
+                        n->res_type = (Type*)createSizedPrimitiveType(&context->types, TYPE_INT, 64);
                     }
                     TypeSizedPrimitive* t = (TypeSizedPrimitive*)n->res_type;
                     if (n->res_type->kind == TYPE_INT) {

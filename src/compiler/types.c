@@ -182,27 +182,27 @@ Type* createTypeIfAbsent(TypeContext* context, const Type* type, size_t size) {
     return context->types[idx];
 }
 
-Type* createUnsizedPrimitive(TypeContext* cxt, TypeKind kind) {
+Type* createUnsizedPrimitiveType(TypeContext* cxt, TypeKind kind) {
     Type type = { .kind = kind };
     return createTypeIfAbsent(cxt, &type, sizeof(Type));
 }
 
-TypeSizedPrimitive* createSizedPrimitive(TypeContext* cxt, TypeKind kind, size_t size) {
+TypeSizedPrimitive* createSizedPrimitiveType(TypeContext* cxt, TypeKind kind, size_t size) {
     TypeSizedPrimitive type = { .kind = kind, .size = size };
     return (TypeSizedPrimitive*)createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeSizedPrimitive));
 }
 
-TypePointer* createPointer(TypeContext* cxt, Type* base) {
+TypePointer* createPointerType(TypeContext* cxt, Type* base) {
     TypePointer type = { .kind = TYPE_POINTER, .base = base };
     return (TypePointer*)createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypePointer));
 }
 
-TypeArray* createArray(TypeContext* cxt, Type* base, size_t size) {
+TypeArray* createArrayType(TypeContext* cxt, Type* base, size_t size) {
     TypeArray type = { .kind = TYPE_ARRAY, .base = base, .size = size };
     return (TypeArray*)createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeArray));
 }
 
-TypeFunction* createFunction(TypeContext* cxt, Type* ret_type, size_t arg_count, Type** arguments) {
+TypeFunction* createFunctionType(TypeContext* cxt, Type* ret_type, size_t arg_count, Type** arguments) {
     TypeFunction type = { .kind = TYPE_FUNCTION, .ret_type = ret_type, .arguments = arguments, .arg_count = arg_count };
     return (TypeFunction*)createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeFunction));
 }
