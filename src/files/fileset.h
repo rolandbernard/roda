@@ -7,6 +7,8 @@ typedef struct {
     File** files;
     size_t file_count;
     size_t file_capacity;
+    File** hashed;
+    size_t hashed_capacity;
 } FileSet;
 
 void initFileSet(FileSet* fileset);
