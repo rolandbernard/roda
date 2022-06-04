@@ -17,7 +17,7 @@ void initTypeContext(TypeContext* cxt) {
     cxt->capacity = 0;
 }
 
-static bool isIndexValid(TypeContext* table, size_t idx) {
+static bool isIndexValid(const TypeContext* table, size_t idx) {
     return table->types[idx] != NULL;
 }
 
@@ -135,11 +135,11 @@ static size_t hashType(const Type* type) {
     UNREACHABLE(", unhandled type kind");
 }
 
-static bool continueSearch(TypeContext* table, size_t idx, const Type* key) {
+static bool continueSearch(const TypeContext* table, size_t idx, const Type* key) {
     return table->types[idx] != NULL && !areTypesEqual(table->types[idx], key);
 }
 
-static size_t findIndexHashTable(TypeContext* table, const Type* key) {
+static size_t findIndexHashTable(const TypeContext* table, const Type* key) {
     size_t idx = hashType(key) % table->capacity;
     while (continueSearch(table, idx, key)) {
         idx = (idx + 1) % table->capacity;
@@ -166,7 +166,7 @@ static void rebuildHashTable(TypeContext* table, size_t size) {
 }
 
 static void tryResizingHashTable(TypeContext* table) {
-    if (table->capacity == 0 || table->capacity < table->count * 2) {
+    if (table->capacity == 0 || 2 * table->capacity < 3 * table->count) {
         rebuildHashTable(table, (table->capacity == 0 ? INITIAL_CAPACITY : 3 * table->capacity / 2));
     }
 }

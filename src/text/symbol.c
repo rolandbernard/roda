@@ -15,7 +15,7 @@ void initSymbolContext(SymbolContext* context) {
     context->count = 0;
 }
 
-static bool isIndexValid(SymbolContext* table, size_t idx) {
+static bool isIndexValid(const SymbolContext* table, size_t idx) {
     return table->symbols[idx].data != NULL;
 }
 
@@ -28,11 +28,11 @@ void deinitSymbolContext(SymbolContext* context) {
     FREE(context->symbols);
 }
 
-static bool continueSearch(SymbolContext* table, size_t idx, ConstString key) {
+static bool continueSearch(const SymbolContext* table, size_t idx, ConstString key) {
     return table->symbols[idx].data != NULL && compareStrings(tocnstr(table->symbols[idx]), key) != 0;
 }
 
-static size_t findIndexHashTable(SymbolContext* table, ConstString key) {
+static size_t findIndexHashTable(const SymbolContext* table, ConstString key) {
     size_t idx = hashString(key) % table->capacity;
     while (continueSearch(table, idx, key)) {
         idx = (idx + 1) % table->capacity;
@@ -59,7 +59,7 @@ static void rebuildHashTable(SymbolContext* table, size_t size) {
 }
 
 static void tryResizingHashTable(SymbolContext* table) {
-    if (table->capacity == 0 || table->capacity < table->count * 2) {
+    if (table->capacity == 0 || 2 * table->capacity < 3 * table->count) {
         rebuildHashTable(table, (table->capacity == 0 ? INITIAL_CAPACITY : 3 * table->capacity / 2));
     }
 }

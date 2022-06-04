@@ -19,8 +19,8 @@ void deinitSymbolTable(SymbolTable* self);
 
 void addSymbolToTable(SymbolTable* self, SymbolEntry* var);
 
-SymbolEntry* findImmediateEntryInTable(SymbolTable* self, Symbol name, SymbolEntryKind kind);
+SymbolEntry* findImmediateEntryInTable(const SymbolTable* self, Symbol name, SymbolEntryKind kind);
 
-SymbolEntry* findEntryInTable(SymbolTable* self, Symbol name, SymbolEntryKind kind);
+SymbolEntry* findEntryInTable(const SymbolTable* self, Symbol name, SymbolEntryKind kind);
 
 #endif

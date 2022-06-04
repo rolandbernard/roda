@@ -56,7 +56,7 @@ static void rebuildHashTable(FileSet* table, size_t size) {
 }
 
 static void tryResizingHashTable(FileSet* table) {
-    if (table->hashed_capacity == 0 || table->hashed_capacity < table->file_count * 2) {
+    if (table->hashed_capacity == 0 || 2 * table->hashed_capacity < 3 * table->file_count) {
         rebuildHashTable(table, (table->hashed_capacity == 0 ? INITIAL_CAPACITY : 3 * table->hashed_capacity / 2));
     }
 }

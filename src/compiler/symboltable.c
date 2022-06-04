@@ -6,7 +6,7 @@
 
 #include "compiler/symboltable.h"
 
-#define INITIAL_CAPACITY 32
+#define INITIAL_CAPACITY 8
 
 void initSymbolTable(SymbolTable* self, SymbolTable* parent) {
     self->parent = parent;
@@ -24,15 +24,15 @@ void deinitSymbolTable(SymbolTable* self) {
     FREE(self->hashed);
 }
 
-static bool isIndexValid(SymbolTable* table, size_t idx) {
+static bool isIndexValid(const SymbolTable* table, size_t idx) {
     return table->hashed[idx] != NULL;
 }
 
-static bool continueSearch(SymbolTable* table, size_t idx, Symbol key, SymbolEntryKind kind) {
+static bool continueSearch(const SymbolTable* table, size_t idx, Symbol key, SymbolEntryKind kind) {
     return table->hashed[idx] != NULL && (table->hashed[idx]->name != key || table->hashed[idx]->kind != kind);
 }
 
-static size_t findIndexHashTable(SymbolTable* table, Symbol key, SymbolEntryKind kind) {
+static size_t findIndexHashTable(const SymbolTable* table, Symbol key, SymbolEntryKind kind) {
     size_t idx = hashCombine(hashInt((size_t)key), hashInt(kind)) % table->capacity;
     while (continueSearch(table, idx, key, kind)) {
         idx = (idx + 1) % table->capacity;
@@ -59,7 +59,7 @@ static void rebuildHashTable(SymbolTable* table, size_t size) {
 }
 
 static void tryResizingHashTable(SymbolTable* table) {
-    if (table->capacity == 0 || table->capacity < table->count * 2) {
+    if (table->capacity == 0 || 2 * table->capacity < 3 * table->count) {
         rebuildHashTable(table, (table->capacity == 0 ? INITIAL_CAPACITY : 3 * table->capacity / 2));
     }
 }
@@ -73,7 +73,7 @@ void addSymbolToTable(SymbolTable* self, SymbolEntry* var) {
     self->hashed[idx] = var;
 }
 
-SymbolEntry* findImmediateEntryInTable(SymbolTable* self, Symbol name, SymbolEntryKind kind) {
+SymbolEntry* findImmediateEntryInTable(const SymbolTable* self, Symbol name, SymbolEntryKind kind) {
     if (self->count != 0) {
         size_t idx = findIndexHashTable(self, name, kind);
         if (isIndexValid(self, idx)) {
@@ -83,7 +83,7 @@ SymbolEntry* findImmediateEntryInTable(SymbolTable* self, Symbol name, SymbolEnt
     return NULL;
 }
 
-SymbolEntry* findEntryInTable(SymbolTable* self, Symbol name, SymbolEntryKind kind) {
+SymbolEntry* findEntryInTable(const SymbolTable* self, Symbol name, SymbolEntryKind kind) {
     SymbolEntry* ret = findImmediateEntryInTable(self, name, kind);
     if (ret != NULL) {
         return ret;
