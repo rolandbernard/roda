@@ -11,6 +11,7 @@
 
 typedef enum {
     AST_ERROR,
+    AST_NEVER,
 
     // AstBinary
     AST_ADD,
@@ -50,6 +51,7 @@ typedef enum {
     AST_NEG,
     AST_ADDR,
     AST_DEREF,
+    AST_NOT,
     AST_RETURN,
 
     // Other

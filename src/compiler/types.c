@@ -24,6 +24,8 @@ static bool isIndexValid(TypeContext* table, size_t idx) {
 static void freeType(Type* type) {
     if (type != NULL) {
         switch (type->kind) {
+            case TYPE_ERROR:
+            case TYPE_NEVER:
             case TYPE_VOID:
             case TYPE_INT:
             case TYPE_UINT:
@@ -57,6 +59,8 @@ static bool areTypesEqual(const Type* a, const Type* b) {
         return false;
     } else {
         switch (a->kind) {
+            case TYPE_ERROR:
+            case TYPE_NEVER:
             case TYPE_VOID:
                 return true;
             case TYPE_INT:
@@ -98,6 +102,8 @@ static bool areTypesEqual(const Type* a, const Type* b) {
 static size_t hashType(const Type* type) {
     ASSERT(type != NULL);
     switch (type->kind) {
+        case TYPE_ERROR:
+        case TYPE_NEVER:
         case TYPE_VOID:
             return hashInt(type->kind);
         case TYPE_INT:
@@ -201,8 +207,15 @@ TypeFunction* createFunction(TypeContext* cxt, Type* ret_type, size_t arg_count,
 void buildTypeNameInto(String* dst, Type* type) {
     ASSERT(type != NULL);
     switch (type->kind) {
+        case TYPE_ERROR: {
+            break;
+        }
+        case TYPE_NEVER: {
+            *dst = pushToString(*dst, str("!"));
+            break;
+        }
         case TYPE_VOID: {
-            *dst = pushToString(*dst, str("void"));
+            *dst = pushToString(*dst, str("()"));
             break;
         }
         case TYPE_INT: {

@@ -6,6 +6,8 @@
 #include <stddef.h>
 
 typedef enum {
+    TYPE_ERROR,
+    TYPE_NEVER,
     TYPE_VOID,
     TYPE_INT,
     TYPE_UINT,
