@@ -22,8 +22,10 @@ static PARAM_SPEC_FUNCTION(parameterSpecFunction, CompilerContext*, {
                 }
                 if (len == 3 && strncmp("all", value, 3) == 0) {
                     context->settings.debug = ~0;
-                } else if (len == 3 && strncmp("ast", value, 3) == 0) {
-                    context->settings.debug |= COMPILER_DEBUG_AST;
+                } else if (len == 9 && strncmp("parse-ast", value, 9) == 0) {
+                    context->settings.debug |= COMPILER_DEBUG_PARSE_AST;
+                } else if (len == 9 && strncmp("typed-ast", value, 9) == 0) {
+                    context->settings.debug |= COMPILER_DEBUG_TYPED_AST;
                 } else {
                     const char* msg_base = "unexpected value, ignoring this value";
                     char msg[len + strlen(msg_base) + 3];

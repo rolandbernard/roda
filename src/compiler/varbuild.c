@@ -116,7 +116,8 @@ static void recursivelyBuildLocalSymbolTables(CompilerContext* context, AstNode*
                 recursivelyBuildLocalSymbolTables(context, n->type, scope, true, root);
                 recursivelyBuildLocalSymbolTables(context, n->val, scope, type, root);
                 if (checkNotExisting(context, scope, n->name, SYMBOL_VARIABLE)) {
-                    addSymbolToTable(scope, (SymbolEntry*)createVariableSymbol(n->name->name, n->name));
+                    n->name->binding = (SymbolEntry*)createVariableSymbol(n->name->name, n->name);
+                    addSymbolToTable(scope, n->name->binding);
                 }
                 break;
             }
@@ -156,7 +157,8 @@ static void recursivelyBuildLocalSymbolTables(CompilerContext* context, AstNode*
                 AstArgDef* n = (AstArgDef*)node;
                 recursivelyBuildLocalSymbolTables(context, n->type, scope, true, root);
                 if (checkNotExisting(context, scope, n->name, SYMBOL_VARIABLE)) {
-                    addSymbolToTable(scope, (SymbolEntry*)createVariableSymbol(n->name->name, n->name));
+                    n->name->binding = (SymbolEntry*)createVariableSymbol(n->name->name, n->name);
+                    addSymbolToTable(scope, n->name->binding);
                 }
                 break;
             }
@@ -266,14 +268,16 @@ static void recursivelyBuildRootSymbolTables(CompilerContext* context, AstNode* 
             case AST_FN: {
                 AstFn* n = (AstFn*)node;
                 if (checkNotExisting(context, scope, n->name, SYMBOL_VARIABLE)) {
-                    addSymbolToTable(scope, (SymbolEntry*)createVariableSymbol(n->name->name, n->name));
+                    n->name->binding = (SymbolEntry*)createVariableSymbol(n->name->name, n->name);
+                    addSymbolToTable(scope, n->name->binding);
                 }
                 break;
             }
             case AST_TYPEDEF: {
                 AstTypeDef* n = (AstTypeDef*)node;
                 if (checkNotExisting(context, scope, n->name, SYMBOL_TYPE)) {
-                    addSymbolToTable(scope, (SymbolEntry*)createTypeSymbol(n->name->name, n->name));
+                    n->name->binding = (SymbolEntry*)createTypeSymbol(n->name->name, n->name);
+                    addSymbolToTable(scope, n->name->binding);
                 }
                 break;
             }

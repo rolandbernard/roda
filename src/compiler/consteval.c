@@ -28,7 +28,7 @@ static uintmax_t wrapUnsignedInteger(uintmax_t value, size_t size) {
 
 ConstValue createConstUInt(CompilerContext* context, size_t size, uintmax_t value) {
     ConstValue ret = {
-        .type = (const Type*)createSizedPrimitiveType(&context->types, TYPE_INT, size),
+        .type = (const Type*)createSizedPrimitiveType(&context->types, TYPE_UINT, size),
         .uint = wrapUnsignedInteger(value, size),
     };
     return ret;
@@ -267,7 +267,7 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
             case AST_NOT: UNARY_OP(UACTIONS_T(UACTION_INTS(~o) else UACTION_BOOLS(!o)))
             case AST_INT: {
                 AstInt* n = (AstInt*)node;
-                if (n->res_type->kind != TYPE_ERROR) {
+                if (n->res_type == NULL || n->res_type->kind != TYPE_ERROR) {
                     if (n->res_type == NULL) {
                         n->res_type = (const Type*)createSizedPrimitiveType(&context->types, TYPE_INT, 64);
                     }

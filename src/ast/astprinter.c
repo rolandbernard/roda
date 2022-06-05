@@ -285,7 +285,9 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
             }
             case AST_VAR: {
                 AstVar* n = (AstVar*)node;
-                fprintf(file, " (name = %s)\n", n->name);
+                fprintf(file, " (name = %s)", n->name);
+                printAstNodeExtraInfo(file, node, colors);
+                fprintf(file, "\n");
                 break;
             }
             case AST_VARDEF: {

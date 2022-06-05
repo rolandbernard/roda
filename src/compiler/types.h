@@ -97,6 +97,8 @@ const TypePointer* isPointerType(const Type* type);
 
 const TypeArray* isArrayType(const Type* type);
 
+const TypeFunction* isFunctionType(const Type* type);
+
 bool compareStructuralTypes(const Type* a, const Type* b);
 
 #endif

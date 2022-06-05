@@ -182,45 +182,55 @@ static void tryResizingHashTable(TypeContext* table) {
     }
 }
 
-static Type* createTypeIfAbsent(TypeContext* context, const Type* type, size_t size) {
+static Type* createTypeIfAbsent(TypeContext* context, const Type* type, size_t size, bool* new) {
     tryResizingHashTable(context);
     size_t idx = findIndexHashTable(context, type);
     if (!isIndexValid(context, idx)) {
         context->types[idx] = checkedAlloc(size);
         memcpy(context->types[idx], type, size);
         context->count++;
+        if (new != NULL) {
+            *new = true;
+        }
+    } else if (new != NULL) {
+        *new = false;
     }
     return context->types[idx];
 }
 
 const Type* createUnsizedPrimitiveType(TypeContext* cxt, TypeKind kind) {
     Type type = { .kind = kind };
-    return createTypeIfAbsent(cxt, &type, sizeof(Type));
+    return createTypeIfAbsent(cxt, &type, sizeof(Type), NULL);
 }
 
 const TypeSizedPrimitive* createSizedPrimitiveType(TypeContext* cxt, TypeKind kind, size_t size) {
     TypeSizedPrimitive type = { .kind = kind, .size = size };
-    return (TypeSizedPrimitive*)createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeSizedPrimitive));
+    return (TypeSizedPrimitive*)createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeSizedPrimitive), NULL);
 }
 
 const TypePointer* createPointerType(TypeContext* cxt, const Type* base) {
     TypePointer type = { .kind = TYPE_POINTER, .base = base };
-    return (TypePointer*)createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypePointer));
+    return (TypePointer*)createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypePointer), NULL);
 }
 
 const TypeArray* createArrayType(TypeContext* cxt, const Type* base, size_t size) {
     TypeArray type = { .kind = TYPE_ARRAY, .base = base, .size = size };
-    return (TypeArray*)createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeArray));
+    return (TypeArray*)createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeArray), NULL);
 }
 
 const TypeFunction* createFunctionType(TypeContext* cxt, const Type* ret_type, size_t arg_count, const Type** arguments) {
     TypeFunction type = { .kind = TYPE_FUNCTION, .ret_type = ret_type, .arguments = arguments, .arg_count = arg_count };
-    return (TypeFunction*)createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeFunction));
+    bool new;
+    const TypeFunction* ret = (TypeFunction*)createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeFunction), &new);
+    if (!new) {
+        FREE(arguments);
+    }
+    return ret;
 }
 
 const TypeReference* createTypeReference(TypeContext* cxt, struct SymbolType* binding) {
     TypeReference type = { .kind = TYPE_REFERENCE, .binding = binding };
-    return (TypeReference*)createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeReference));
+    return (TypeReference*)createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeReference), NULL);
 }
 
 static void buildTypeNameInto(String* dst, const Type* type) {
@@ -378,6 +388,12 @@ CYCLIC_CHECK(
     else { return NULL; }
 )
 
+CYCLIC_CHECK(
+    TypeFunction, isFunctionType,
+    if (type->kind == TYPE_FUNCTION) { return (const TypeFunction*)type; },
+    else { return NULL; }
+)
+
 typedef struct DoubleTypeReferenceStack {
     struct DoubleTypeReferenceStack* last;
     const Type* types[2];
@@ -391,32 +407,40 @@ static bool compareStructuralTypesHelper(const Type* a, const Type* b, DoubleTyp
     } if (a->kind != b->kind) {
         if (a->kind == TYPE_REFERENCE) {
             TypeReference* t = (TypeReference*)a;
-            DoubleTypeReferenceStack elem = {
-                .last = stack, .types = { a, b }
-            };
-            DoubleTypeReferenceStack* cur = stack;
-            while (cur != NULL) {
-                if (cur->types[0] != a || cur->types[1] != b) {
-                    cur = cur->last;
-                } else {
-                    return true;
+            if (t->binding->type == b) {
+                return true;
+            } else {
+                DoubleTypeReferenceStack elem = {
+                    .last = stack, .types = { a, b }
+                };
+                DoubleTypeReferenceStack* cur = stack;
+                while (cur != NULL) {
+                    if (cur->types[0] != a || cur->types[1] != b) {
+                        cur = cur->last;
+                    } else {
+                        return true;
+                    }
                 }
+                return compareStructuralTypesHelper(t->binding->type, b, &elem);
             }
-            return compareStructuralTypesHelper(t->binding->type, b, &elem);
         } else if (b->kind == TYPE_REFERENCE) {
             TypeReference* t = (TypeReference*)b;
-            DoubleTypeReferenceStack elem = {
-                .last = stack, .types = { a, b }
-            };
-            DoubleTypeReferenceStack* cur = stack;
-            while (cur != NULL) {
-                if (cur->types[0] != a || cur->types[1] != b) {
-                    cur = cur->last;
-                } else {
-                    return true;
+            if (a == t->binding->type) {
+                return true;
+            } else {
+                DoubleTypeReferenceStack elem = {
+                    .last = stack, .types = { a, b }
+                };
+                DoubleTypeReferenceStack* cur = stack;
+                while (cur != NULL) {
+                    if (cur->types[0] != a || cur->types[1] != b) {
+                        cur = cur->last;
+                    } else {
+                        return true;
+                    }
                 }
+                return compareStructuralTypesHelper(a, t->binding->type, &elem);
             }
-            return compareStructuralTypesHelper(a, t->binding->type, &elem);
         } else {
             return false;
         }
@@ -461,18 +485,22 @@ static bool compareStructuralTypesHelper(const Type* a, const Type* b, DoubleTyp
             case TYPE_REFERENCE: {
                 TypeReference* ta = (TypeReference*)a;
                 TypeReference* tb = (TypeReference*)b;
-                DoubleTypeReferenceStack elem = {
-                    .last = stack, .types = { a, b }
-                };
-                DoubleTypeReferenceStack* cur = stack;
-                while (cur != NULL) {
-                    if (cur->types[0] != a || cur->types[1] != b) {
-                        cur = cur->last;
-                    } else {
-                        return true;
+                if (ta->binding->type == tb->binding->type) {
+                    return true;
+                } else {
+                    DoubleTypeReferenceStack elem = {
+                        .last = stack, .types = { a, b }
+                    };
+                    DoubleTypeReferenceStack* cur = stack;
+                    while (cur != NULL) {
+                        if (cur->types[0] != a || cur->types[1] != b) {
+                            cur = cur->last;
+                        } else {
+                            return true;
+                        }
                     }
+                    return compareStructuralTypesHelper(ta->binding->type, tb->binding->type, &elem);
                 }
-                return compareStructuralTypesHelper(ta->binding->type, tb->binding->type, &elem);
             }
         }
         UNREACHABLE(", unhandled type kind");

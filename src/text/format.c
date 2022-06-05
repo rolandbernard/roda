@@ -21,20 +21,18 @@ static size_t formatCustomString(char* output, const char* format, va_list args)
                 size += value.length;
             } else {
                 size_t end = i + 1;
-                while (format[end] != 0 && format[end] != '%' && !isalpha(format[end])) {
+                while (format[end] != 0 && format[end] != '%') {
                     end++;
                 }
-                if (format[end] == '%' || isalpha(format[end])) {
-                    char tmp[end - i + 2];
-                    memcpy(tmp, format + i, end - i + 1);
-                    tmp[end - i + 1] = 0;
-                    if (output != NULL) {
-                        size += vsprintf(output + size, tmp, args);
-                    } else {
-                        size += vsnprintf(NULL, 0, tmp, args);
-                    }
-                    i = end;
+                char tmp[end - i + 1];
+                memcpy(tmp, format + i, end - i + 1);
+                tmp[end - i] = 0;
+                if (output != NULL) {
+                    size += vsprintf(output + size, tmp, args);
+                } else {
+                    size += vsnprintf(NULL, 0, tmp, args);
                 }
+                i = end - 1;
             }
         } else {
             if (output != NULL) {

@@ -12,7 +12,8 @@ const Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
     } else {
         switch (node->kind) {
             case AST_ERROR: {
-                return createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
+                node->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
+                break;
             }
             case AST_IF_ELSE:
             case AST_FN:
@@ -67,20 +68,22 @@ const Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
             case AST_VAR: {
                 AstVar* n = (AstVar*)node;
                 if (n->binding == NULL) {
-                    return createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
+                    n->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
                 } else {
                     SymbolVariable* var = (SymbolVariable*)n->binding;
-                    return (const Type*)createTypeReference(&context->types, (SymbolType*)var);;
+                    n->res_type = (const Type*)createTypeReference(&context->types, (SymbolType*)var);;
                 }
+                break;
             }
             case AST_ADDR: {
                 AstUnary* n = (AstUnary*)node;
                 const Type* base = evaluateTypeExpr(context, n->op);
                 if (base->kind == TYPE_ERROR) {
-                    return base;
+                    n->res_type = base;
                 } else {
-                    return (const Type*)createPointerType(&context->types, base);
+                    n->res_type = (const Type*)createPointerType(&context->types, base);
                 }
+                break;
             }
             case AST_ARRAY: {
                 AstBinary* n = (AstBinary*)node;
@@ -88,10 +91,10 @@ const Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
                 ConstValue size = evaluateConstExpr(context, n->left);
                 const TypeSizedPrimitive* size_type = isIntegerType(size.type);
                 if (base->kind == TYPE_ERROR) {
-                    return base;
+                    n->res_type = base;
                 } else if (size.type->kind == TYPE_ERROR) {
-                    return size.type;
-                } else if (size_type != NULL) {
+                    n->res_type = size.type;
+                } else if (size_type == NULL) {
                     String idx_type = buildTypeName(size.type);
                     addMessageToContext(
                         &context->msgs,
@@ -102,7 +105,7 @@ const Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
                         )
                     );
                     freeString(idx_type);
-                    return createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
+                    n->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
                 } else if (size_type->kind == TYPE_INT && size.sint < 0) {
                     addMessageToContext(
                         &context->msgs,
@@ -112,17 +115,19 @@ const Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
                             createMessageFragment(MESSAGE_ERROR, createFormattedString("array length of `%i` not allowed here", size.sint), n->left->location)
                         )
                     );
-                    return createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
+                    n->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
                 } else {
                     size_t len = size_type->kind == TYPE_INT ? (size_t)size.sint : (size_t)size.uint;
-                    return (const Type*)createArrayType(&context->types, base, len);
+                    n->res_type = (const Type*)createArrayType(&context->types, base, len);
                 }
+                break;
             }
             case AST_NEVER: {
-                return createUnsizedPrimitiveType(&context->types, TYPE_NEVER);
+                node->res_type = createUnsizedPrimitiveType(&context->types, TYPE_NEVER);
+                break;
             }
         }
-        UNREACHABLE();
+        return node->res_type;
     }
 }
 
