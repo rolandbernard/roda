@@ -380,7 +380,7 @@ CYCLIC_CHECK(
 
 typedef struct DoubleTypeReferenceStack {
     struct DoubleTypeReferenceStack* last;
-    const SymbolType* bindings[2];
+    const Type* types[2];
 } DoubleTypeReferenceStack;
 
 static bool compareStructuralTypesHelper(const Type* a, const Type* b, DoubleTypeReferenceStack* stack) {
@@ -391,10 +391,32 @@ static bool compareStructuralTypesHelper(const Type* a, const Type* b, DoubleTyp
     } if (a->kind != b->kind) {
         if (a->kind == TYPE_REFERENCE) {
             TypeReference* t = (TypeReference*)a;
-            return compareStructuralTypesHelper(t->binding->type, b, stack);
+            DoubleTypeReferenceStack elem = {
+                .last = stack, .types = { a, b }
+            };
+            DoubleTypeReferenceStack* cur = stack;
+            while (cur != NULL) {
+                if (cur->types[0] != a || cur->types[1] != b) {
+                    cur = cur->last;
+                } else {
+                    return true;
+                }
+            }
+            return compareStructuralTypesHelper(t->binding->type, b, &elem);
         } else if (b->kind == TYPE_REFERENCE) {
             TypeReference* t = (TypeReference*)b;
-            return compareStructuralTypesHelper(a, t->binding->type, stack);
+            DoubleTypeReferenceStack elem = {
+                .last = stack, .types = { a, b }
+            };
+            DoubleTypeReferenceStack* cur = stack;
+            while (cur != NULL) {
+                if (cur->types[0] != a || cur->types[1] != b) {
+                    cur = cur->last;
+                } else {
+                    return true;
+                }
+            }
+            return compareStructuralTypesHelper(a, t->binding->type, &elem);
         } else {
             return false;
         }
@@ -439,14 +461,12 @@ static bool compareStructuralTypesHelper(const Type* a, const Type* b, DoubleTyp
             case TYPE_REFERENCE: {
                 TypeReference* ta = (TypeReference*)a;
                 TypeReference* tb = (TypeReference*)b;
-                /* return ta->binding == tb->binding; */
                 DoubleTypeReferenceStack elem = {
-                    .last = stack,
-                    .bindings = { ta->binding, tb->binding }
+                    .last = stack, .types = { a, b }
                 };
                 DoubleTypeReferenceStack* cur = stack;
                 while (cur != NULL) {
-                    if (cur->bindings[0] != elem.bindings[0] || cur->bindings[1] != elem.bindings[1]) {
+                    if (cur->types[0] != a || cur->types[1] != b) {
                         cur = cur->last;
                     } else {
                         return true;
