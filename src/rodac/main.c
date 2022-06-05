@@ -2,11 +2,8 @@
 #include <locale.h>
 #include <stdlib.h>
 
-#include "ast/astprinter.h"
-#include "compiler/varbuild.h"
-#include "errors/msgcontext.h"
+#include "compiler/compiler.h"
 #include "errors/msgprint.h"
-#include "files/fileset.h"
 #include "parser/wrapper.h"
 #include "rodac/params.h"
 #include "rodac/version.h"
@@ -39,20 +36,14 @@ int main(int argc, const char* const* argv) {
                 createMessage(WARNING_CMD_ARGS, copyFromCString("no input files were given"), 0)
             );
         } else {
-            for (size_t i = 0; i < context.files.file_count; i++) {
-                File* file = context.files.files[i];
-                file->ast = parseFile(file, &context);
-                if (context.settings.debug & COMPILER_DEBUG_AST) {
-                    printAst(stderr, file->ast);
-                }
-                if (file->ast != NULL) {
-                    buildSymbolTables(&context, file->ast);
-                }
-                printAndClearMessages(&context.msgs, stderr, true, true);
-            }
+            runCompilation(&context);
         }
     }
     printAndClearMessages(&context.msgs, stderr, false, false);
     deinitCompilerContext(&context);
-    return EXIT_SUCCESS;
+    if (context.msgs.error_count == 0) {
+        return EXIT_SUCCESS;
+    } else {
+        return EXIT_FAILURE;
+    }
 }

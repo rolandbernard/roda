@@ -40,6 +40,9 @@ void addMessageToContext(MessageContext* message_context, Message* message) {
         }
         message_context->messages[message_context->message_count] = message;
         message_context->message_count++;
+        if (getMessageCategory(message->kind) == MESSAGE_ERROR) {
+            message_context->error_count++;
+        }
     } else {
         freeMessage(message);
     }
@@ -49,15 +52,5 @@ void addAllMessagesFromContext(MessageContext* dest_context, MessageContext* src
     for (size_t i = 0; i < src_context->message_count; i++) {
         addMessageToContext(dest_context, src_context->messages[i]);
     }
-}
-
-size_t countMessagesInContext(MessageContext* context, MessageCategory max_cat) {
-    size_t count = 0;
-    for (size_t i = 0; i < context->message_count; i++) {
-        if (getMessageCategory(context->messages[i]->kind) <= max_cat) {
-            count++;
-        }
-    }
-    return count;
 }
 

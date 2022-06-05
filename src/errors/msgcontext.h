@@ -7,6 +7,7 @@ typedef struct {
     Message** messages;
     size_t message_count;
     size_t message_capacity;
+    size_t error_count;
     const MessageFilter* filter;
 } MessageContext;
 
@@ -21,7 +22,5 @@ void addMessageToContext(MessageContext* message_context, Message* message);
 void addAllMessagesFromContext(MessageContext* dest_context, MessageContext* src_context);
 
 void addMessageToContext(MessageContext* message_context, Message* message);
-
-size_t countMessagesInContext(MessageContext* context, MessageCategory max_cat);
 
 #endif
