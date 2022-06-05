@@ -184,6 +184,9 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
     }
 }
 
+static void diffuseTypeFromAstNode(CompilerContext* context, AstNode* root) {
+}
+
 static void infereTypesStrong(CompilerContext* context, AstNode* root) {
     // TODO
 }

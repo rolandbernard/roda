@@ -11,7 +11,8 @@ static PARAM_SPEC_FUNCTION(parameterSpecFunction, CompilerContext*, {
     PARAM_USAGE(PROGRAM_NAME " [options] files...");
     PARAM_FLAG("h", "help", { context->settings.help = true; }, "print this help information and quit");
     PARAM_FLAG(NULL, "version", { context->settings.version = true; }, "print version information and quit");
-    PARAM_VALUED(NULL, "debug", {
+#ifdef DEBUG
+    PARAM_VALUED(NULL, "compiler-debug", {
         if (value == NULL) {
             PARAM_WARN("expected a value, ignoring this option");
         } else {
@@ -41,7 +42,8 @@ static PARAM_SPEC_FUNCTION(parameterSpecFunction, CompilerContext*, {
                 }
             }
         }
-    }, "={all|ast}[,...]", "print debug information while compiling");
+    }, "={all|parse-ast|typed-ast}[,...]", "print debug information while compiling");
+#endif
     PARAM_DEFAULT({
         createFileInSet(&context->files, str(value));
     });

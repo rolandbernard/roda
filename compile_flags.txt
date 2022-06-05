@@ -1,3 +1,4 @@
 -Isrc/
 -Wall
 -Wextra
+-DDEBUG
