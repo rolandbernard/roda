@@ -35,7 +35,7 @@ static int fragmentCompare(const MessageFragment* a, const MessageFragment* b, b
     } else if (by_end && a->position.end.offset != b->position.end.offset) {
         return a->position.end.offset - b->position.end.offset;
     } else if (a->category != b->category) {
-        return b->category - a->category;
+        return a->category - b->category;
     } else if (getSpanLength(a->position) != getSpanLength(b->position)) {
         return getSpanLength(a->position) - getSpanLength(b->position);
     } else {
@@ -345,7 +345,12 @@ static bool printFragmentLineSecondaryLayer(
                             fputs(message_category_style[ends[i]->category], output);
                         }
                         if (snd) {
+                            if (isMultilineSpan(ends[i]->position) || getSpanColumnLength(ends[i]->position) < 3) {
+                                fputc(' ', output);
+                                cur_col += 1;
+                            }
                             fputc('`', output);
+                            cur_col += 1;
                         }
                         fwrite(ends[i]->message.data, sizeof(char), ends[i]->message.length, output);
                         text_printed[i] = true;

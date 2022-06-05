@@ -88,6 +88,14 @@ size_t getSpanLength(Span span) {
     return span.end.offset - span.begin.offset;
 }
 
+size_t getSpanColumnLength(Span span) {
+    if (span.end.column < span.begin.column) {
+        return 0;
+    } else {
+        return span.end.column - span.begin.column;
+    }
+}
+
 Location advanceLocationWith(Location start, const char* text, size_t len) {
     Utf8Stream stream;
     initUtf8Stream(&stream, createConstString(text, len));

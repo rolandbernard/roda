@@ -54,6 +54,8 @@ Span combineSpans(Span begin, Span end);
 
 size_t getSpanLength(Span span);
 
+size_t getSpanColumnLength(Span span);
+
 Location advanceLocationWith(Location start, const char* text, size_t len);
 
 bool loadFileData(const File* file, String* output);
