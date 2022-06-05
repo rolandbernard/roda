@@ -103,8 +103,10 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                 n->res_type = createUnsizedPrimitiveType(&context->types, TYPE_VOID);
                 if (n->type != NULL) {
                     SymbolVariable* var = (SymbolVariable*)n->name->binding;
-                    var->type = evaluateTypeExpr(context, n->type);
-                    n->name->res_type = var->type;
+                    if (var != NULL) {
+                        var->type = evaluateTypeExpr(context, n->type);
+                        n->name->res_type = var->type;
+                    }
                 }
                 evaluateTypeHints(context, n->val);
                 break;
@@ -138,11 +140,17 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                 for (size_t i = 0; i < n->arguments->count; i++) {
                     AstArgDef* def = (AstArgDef*)n->arguments->nodes[i];
                     SymbolVariable* var = (SymbolVariable*)def->name->binding;
-                    arg_types[i] = var->type;
+                    if (var != NULL) {
+                        arg_types[i] = var->type;
+                    } else {
+                        arg_types[i] = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
+                    }
                 }
                 SymbolVariable* func = (SymbolVariable*)n->name->binding;
-                func->type = (Type*)createFunctionType(&context->types, ret_type, n->arguments->count, arg_types);
-                n->name->res_type = func->type;
+                if (func != NULL) {
+                    func->type = (Type*)createFunctionType(&context->types, ret_type, n->arguments->count, arg_types);
+                    n->name->res_type = func->type;
+                }
                 evaluateTypeHints(context, n->body);
                 break;
             }
@@ -156,15 +164,17 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                 AstTypeDef* n = (AstTypeDef*)node;
                 n->res_type = createUnsizedPrimitiveType(&context->types, TYPE_VOID);
                 SymbolType* type = (SymbolType*)n->name->binding;
-                type->type = evaluateTypeExpr(context, n->value);
-                n->name->res_type = type->type;
+                if (type != NULL) {
+                    type->type = evaluateTypeExpr(context, n->value);
+                    n->name->res_type = type->type;
+                }
                 break;
             }
             case AST_ARGDEF: {
                 AstArgDef* n = (AstArgDef*)node;
                 n->res_type = createUnsizedPrimitiveType(&context->types, TYPE_VOID);
                 SymbolVariable* var  = (SymbolVariable*)n->name->binding;
-                if (n->type != NULL) {
+                if (n->type != NULL && var != NULL) {
                     var->type = evaluateTypeExpr(context, n->type);
                     n->name->res_type = var->type;
                 }

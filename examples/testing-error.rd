@@ -21,6 +21,12 @@ type Test3 = Test2;
 fn add(a: u32, b: u32): u32 {
     Test1 += Test2;
     let test = 1_000; let test = 1_000; let test = 1_000_000; let test = 1_000_000;
+    test += undefined;
+    test += undefined2;
     return a + b;
+}
+
+fn test(): Undefined {
+    return 0;
 }
 

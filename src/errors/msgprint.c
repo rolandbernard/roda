@@ -27,7 +27,7 @@ static const char* message_category_style[] = {
 
 static int fragmentCompare(const MessageFragment* a, const MessageFragment* b, bool by_end) {
     if (a->position.file != b->position.file) {
-        return b->position.file - a->position.file;
+        return a->position.file - b->position.file;
     } else if (isSpanWithPosition(a->position) != isSpanWithPosition(b->position)) {
         return isSpanWithPosition(a->position) ? -1 : 1;
     } else if (!by_end && a->position.end.offset != b->position.begin.offset) {
