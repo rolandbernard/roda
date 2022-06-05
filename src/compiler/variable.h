@@ -29,7 +29,7 @@ typedef struct {
     bool constant;
 } SymbolVariable;
 
-typedef struct {
+typedef struct SymbolType {
     SYMBOL_ENTRY_BASE
     Type* type;
 } SymbolType;

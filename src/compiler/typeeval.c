@@ -6,7 +6,7 @@
 
 #include "compiler/typeeval.h"
 
-Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
+const Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
     if (node == NULL) {
         UNREACHABLE(", should not evaluate");
     } else {
@@ -70,30 +70,28 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
                     return createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
                 } else {
                     SymbolVariable* var = (SymbolVariable*)n->binding;
-                    if (var->type == NULL) {
-                        // TODO: try to build the type
-                    }
-                    return var->type;
+                    return (const Type*)createTypeReference(&context->types, (SymbolType*)var);;
                 }
             }
             case AST_ADDR: {
                 AstUnary* n = (AstUnary*)node;
-                Type* base = evaluateTypeExpr(context, n->op);
+                const Type* base = evaluateTypeExpr(context, n->op);
                 if (base->kind == TYPE_ERROR) {
                     return base;
                 } else {
-                    return (Type*)createPointerType(&context->types, base);
+                    return (const Type*)createPointerType(&context->types, base);
                 }
             }
             case AST_ARRAY: {
                 AstBinary* n = (AstBinary*)node;
-                Type* base = evaluateTypeExpr(context, n->right);
+                const Type* base = evaluateTypeExpr(context, n->right);
                 ConstValue size = evaluateConstExpr(context, n->left);
+                const TypeSizedPrimitive* size_type = isIntegerType(size.type);
                 if (base->kind == TYPE_ERROR) {
                     return base;
                 } else if (size.type->kind == TYPE_ERROR) {
                     return size.type;
-                } else if (size.type->kind != TYPE_INT && size.type->kind != TYPE_UINT) {
+                } else if (size_type != NULL) {
                     String idx_type = buildTypeName(size.type);
                     addMessageToContext(
                         &context->msgs,
@@ -105,7 +103,7 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
                     );
                     freeString(idx_type);
                     return createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
-                } else if (size.type->kind == TYPE_INT && size.sint < 0) {
+                } else if (size_type->kind == TYPE_INT && size.sint < 0) {
                     addMessageToContext(
                         &context->msgs,
                         createMessage(
@@ -116,12 +114,11 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
                     );
                     return createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
                 } else {
-                    size_t len = size.type->kind == TYPE_INT ? (size_t)size.sint : (size_t)size.uint;
-                    return (Type*)createArrayType(&context->types, base, len);
+                    size_t len = size_type->kind == TYPE_INT ? (size_t)size.sint : (size_t)size.uint;
+                    return (const Type*)createArrayType(&context->types, base, len);
                 }
             }
             case AST_NEVER: {
-                // None of these are allowed in constant expressions.
                 return createUnsizedPrimitiveType(&context->types, TYPE_NEVER);
             }
         }

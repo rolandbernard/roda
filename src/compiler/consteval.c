@@ -16,7 +16,7 @@ static intmax_t wrapSignedInteger(intmax_t value, size_t size) {
 
 ConstValue createConstInt(CompilerContext* context, size_t size, intmax_t value) {
     ConstValue ret = {
-        .type = (Type*)createSizedPrimitiveType(&context->types, TYPE_INT, size),
+        .type = (const Type*)createSizedPrimitiveType(&context->types, TYPE_INT, size),
         .sint = wrapSignedInteger(value, size),
     };
     return ret;
@@ -28,24 +28,24 @@ static uintmax_t wrapUnsignedInteger(uintmax_t value, size_t size) {
 
 ConstValue createConstUInt(CompilerContext* context, size_t size, uintmax_t value) {
     ConstValue ret = {
-        .type = (Type*)createSizedPrimitiveType(&context->types, TYPE_INT, size),
+        .type = (const Type*)createSizedPrimitiveType(&context->types, TYPE_INT, size),
         .uint = wrapUnsignedInteger(value, size),
     };
     return ret;
 }
 
 ConstValue createConstF32(CompilerContext* context, float value) {
-    ConstValue ret = { .type = (Type*)createSizedPrimitiveType(&context->types, TYPE_REAL, 32), .f32 = value };
+    ConstValue ret = { .type = (const Type*)createSizedPrimitiveType(&context->types, TYPE_REAL, 32), .f32 = value };
     return ret;
 }
 
 ConstValue createConstF64(CompilerContext* context, double value) {
-    ConstValue ret = { .type = (Type*)createSizedPrimitiveType(&context->types, TYPE_REAL, 64), .f64 = value };
+    ConstValue ret = { .type = (const Type*)createSizedPrimitiveType(&context->types, TYPE_REAL, 64), .f64 = value };
     return ret;
 }
 
 ConstValue createConstBool(CompilerContext* context, bool value) {
-    ConstValue ret = { .type = (Type*)createUnsizedPrimitiveType(&context->types, TYPE_BOOL), .boolean = value };
+    ConstValue ret = { .type = (const Type*)createUnsizedPrimitiveType(&context->types, TYPE_BOOL), .boolean = value };
     return ret;
 }
 
@@ -63,7 +63,7 @@ static ConstValue raiseOpErrorNotInConst(CompilerContext* context, AstNode* node
 }
 
 static ConstValue raiseTypeErrorDifferent(
-    CompilerContext* context, AstNode* node, AstNode* left, AstNode* right, Type* type_left, Type* type_right
+    CompilerContext* context, AstNode* node, AstNode* left, AstNode* right, const Type* type_left, const Type* type_right
 ) {
     String lhs_type = buildTypeName(type_left);
     String rhs_type = buildTypeName(type_right);
@@ -82,7 +82,7 @@ static ConstValue raiseTypeErrorDifferent(
     return createConstError(context);
 }
 
-static ConstValue raiseTypeErrorNotInConst(CompilerContext* context, AstNode* node, Type* t) {
+static ConstValue raiseTypeErrorNotInConst(CompilerContext* context, AstNode* node, const Type* t) {
     String type = buildTypeName(t);
     addMessageToContext(
         &context->msgs,
@@ -97,45 +97,48 @@ static ConstValue raiseTypeErrorNotInConst(CompilerContext* context, AstNode* no
 }
 
 #define BACTION_INTS(ACTION)                                \
-    if (left.type->kind == TYPE_INT) {                      \
+    if (isSignedIntegerType(left.type) != NULL) {           \
         intmax_t l = left.sint;                             \
         intmax_t r = right.sint;                            \
         return createConstInt(context, t->size, ACTION);    \
-    } else if (left.type->kind == TYPE_UINT) {              \
+    } else if (isUnsignedIntegerType(left.type) != NULL) {  \
         uintmax_t l = left.uint;                            \
         uintmax_t r = right.uint;                           \
         return createConstUInt(context, t->size, ACTION);   \
     }
 
-#define BACTION_FLOATS(ACTION)                                      \
-    if (left.type->kind == TYPE_REAL && t->size == 32) {            \
-        float l = left.f32;                                         \
-        float r = right.f32;                                        \
-        return createConstF32(context, ACTION);                     \
-    } else if (left.type->kind == TYPE_REAL && t->size == 64) {     \
-        double l = left.f32;                                        \
-        double r = right.f32;                                       \
-        return createConstF64(context, ACTION);                     \
+#define BACTION_FLOATS(ACTION)                              \
+    if (isFloatType(left.type) != NULL) {                   \
+        float l = left.f32;                                 \
+        float r = right.f32;                                \
+        return createConstF32(context, ACTION);             \
+    } else if (isDoubleType(left.type) != NULL) {           \
+        double l = left.f32;                                \
+        double r = right.f32;                               \
+        return createConstF64(context, ACTION);             \
     }
 
 #define BACTION_BOOLS(ACTION)                       \
-    if (left.type->kind == TYPE_BOOL) {             \
-        bool l = left.f32;                          \
-        bool r = right.f32;                         \
+    if (isBooleanType(left.type) != NULL) {         \
+        bool l = left.boolean;                      \
+        bool r = right.boolean;                     \
         return createConstBool(context, ACTION);    \
     }
 
+#define BACTIONS_T(ACTIONS)                                             \
+    const TypeSizedPrimitive* t = (const TypeSizedPrimitive*)left.type; \
+    BACTIONS(ACTIONS)
+
 #define BACTIONS(ACTIONS)                                               \
-    TypeSizedPrimitive* t = (TypeSizedPrimitive*)left.type;             \
     ACTIONS else {                                                      \
         return raiseTypeErrorNotInConst(context, n->left, left.type);   \
     }
 
-#define BACTION_INT(ACTION) BACTIONS(BACTION_INTS(ACTION))
+#define BACTION_INT(ACTION) BACTIONS_T(BACTION_INTS(ACTION))
 
-#define BACTION_NUM(ACTION) BACTIONS(BACTION_INTS(ACTION) else BACTION_FLOATS(ACTION))
+#define BACTION_NUM(ACTION) BACTIONS_T(BACTION_INTS(ACTION) else BACTION_FLOATS(ACTION))
 
-#define BACTION_ALL(ACTION) BACTIONS(BACTION_INTS(ACTION) else BACTION_FLOATS(ACTION) else BACTION_BOOLS(ACTION))
+#define BACTION_ALL(ACTION) BACTIONS_T(BACTION_INTS(ACTION) else BACTION_FLOATS(ACTION) else BACTION_BOOLS(ACTION))
 
 #define BACTION_BOOL(ACTION)                                            \
     BACTION_BOOLS(ACTION) else {                                        \
@@ -145,49 +148,50 @@ static ConstValue raiseTypeErrorNotInConst(CompilerContext* context, AstNode* no
 #define BINARY_OP(ACTION) {                                                                         \
     AstBinary* n = (AstBinary*)node;                                                                \
     ConstValue left = evaluateConstExpr(context, n->left);                                          \
-    n->left->res_type = left.type;                                                                  \
     ConstValue right = evaluateConstExpr(context, n->right);                                        \
-    n->right->res_type = right.type;                                                                \
     if (left.type->kind == TYPE_ERROR) {                                                            \
         return left;                                                                                \
     } else if (right.type->kind == TYPE_ERROR) {                                                    \
         return right;                                                                               \
-    } else if (left.type != right.type) {                                                           \
+    } else if (!compareStructuralTypes(left.type, right.type)) {                                    \
         return raiseTypeErrorDifferent(context, node, n->left, n->right, left.type, right.type);    \
     } else { ACTION }                                                                               \
 }
 
 #define UACTION_INTS(ACTION)                                \
-    if (op.type->kind == TYPE_INT) {                        \
+    if (isSignedIntegerType(op.type) != NULL) {             \
         intmax_t o = op.sint;                               \
         return createConstInt(context, t->size, ACTION);    \
-    } else if (op.type->kind == TYPE_UINT) {                \
+    } else if (isUnsignedIntegerType(op.type) != NULL) {    \
         uintmax_t o = op.uint;                              \
         return createConstUInt(context, t->size, ACTION);   \
     }
 
-#define UACTION_FLOATS(ACTION)                                      \
-    if (op.type->kind == TYPE_REAL && t->size == 32) {              \
-        float o = op.f32;                                           \
-        return createConstF32(context, ACTION);                     \
-    } else if (op.type->kind == TYPE_REAL && t->size == 64) {       \
-        double o = op.f32;                                          \
-        return createConstF64(context, ACTION);                     \
+#define UACTION_FLOATS(ACTION)                              \
+    if (isFloatType(op.type) != NULL) {                     \
+        float o = op.f32;                                   \
+        return createConstF32(context, ACTION);             \
+    } else if (isDoubleType(op.type) != NULL) {             \
+        double o = op.f32;                                  \
+        return createConstF64(context, ACTION);             \
     }
 
 #define UACTION_BOOLS(ACTION)                       \
-    if (op.type->kind == TYPE_BOOL) {               \
-        bool o = op.f32;                            \
+    if (isBooleanType(op.type) != NULL) {           \
+        bool o = op.boolean;                        \
         return createConstBool(context, ACTION);    \
     }
 
-#define UACTIONS(ACTIONS)                                           \
-    TypeSizedPrimitive* t = (TypeSizedPrimitive*)op.type;           \
-    ACTIONS else {                                                  \
-        return raiseTypeErrorNotInConst(context, n->op, op.type);   \
+#define UACTIONS_T(ACTIONS)                                             \
+    const TypeSizedPrimitive* t = (const TypeSizedPrimitive*)op.type;   \
+    UACTIONS(ACTIONS)
+
+#define UACTIONS(ACTIONS)                                               \
+    ACTIONS else {                                                      \
+        return raiseTypeErrorNotInConst(context, n->op, op.type);       \
     }
 
-#define UACTION_NUM(ACTION) UACTIONS(UACTION_INTS(ACTION) else UACTION_FLOATS(ACTION))
+#define UACTION_NUM(ACTION) UACTIONS_T(UACTION_INTS(ACTION) else UACTION_FLOATS(ACTION))
 
 #define UNARY_OP(ACTION) {                              \
     AstUnary* n = (AstUnary*)node;                      \
@@ -260,17 +264,18 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
             case AST_AND: BINARY_OP(BACTION_BOOL(l && r))
             case AST_POS: UNARY_OP(UACTION_NUM(o))
             case AST_NEG: UNARY_OP(UACTION_NUM(-o))
-            case AST_NOT: UNARY_OP(UACTIONS(UACTION_INTS(~o) else UACTION_BOOLS(!o)))
+            case AST_NOT: UNARY_OP(UACTIONS_T(UACTION_INTS(~o) else UACTION_BOOLS(!o)))
             case AST_INT: {
                 AstInt* n = (AstInt*)node;
                 if (n->res_type->kind != TYPE_ERROR) {
                     if (n->res_type == NULL) {
-                        n->res_type = (Type*)createSizedPrimitiveType(&context->types, TYPE_INT, 64);
+                        n->res_type = (const Type*)createSizedPrimitiveType(&context->types, TYPE_INT, 64);
                     }
-                    TypeSizedPrimitive* t = (TypeSizedPrimitive*)n->res_type;
-                    if (n->res_type->kind == TYPE_INT) {
+                    const TypeSizedPrimitive* t = isIntegerType(n->res_type);
+                    ASSERT(t != NULL);
+                    if (t->kind == TYPE_INT) {
                         return createConstInt(context, t->size, n->number);
-                    } else if (n->res_type->kind == TYPE_UINT) {
+                    } else if (t->kind == TYPE_UINT) {
                         return createConstUInt(context, t->size, n->number);
                     } else {
                         UNREACHABLE(", integer type expected");
@@ -282,8 +287,11 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
             case AST_REAL: {
                 AstReal* n = (AstReal*)node;
                 if (n->res_type->kind != TYPE_ERROR) {
-                    ASSERT(n->res_type->kind == TYPE_REAL);
-                    TypeSizedPrimitive* t = (TypeSizedPrimitive*)n->res_type;
+                    if (n->res_type == NULL) {
+                        n->res_type = (const Type*)createSizedPrimitiveType(&context->types, TYPE_REAL, 64);
+                    }
+                    const TypeSizedPrimitive* t = isRealType(n->res_type);
+                    ASSERT(t != NULL);
                     if (t->size == 32) {
                         return createConstF32(context, n->number);
                     } else if (t->size == 64) {
