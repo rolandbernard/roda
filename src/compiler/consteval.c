@@ -16,7 +16,7 @@ static intmax_t wrapSignedInteger(intmax_t value, size_t size) {
 
 ConstValue createConstInt(CompilerContext* context, size_t size, intmax_t value) {
     ConstValue ret = {
-        .type = (const Type*)createSizedPrimitiveType(&context->types, TYPE_INT, size),
+        .type = (Type*)createSizedPrimitiveType(&context->types, TYPE_INT, size),
         .sint = wrapSignedInteger(value, size),
     };
     return ret;
@@ -28,24 +28,24 @@ static uintmax_t wrapUnsignedInteger(uintmax_t value, size_t size) {
 
 ConstValue createConstUInt(CompilerContext* context, size_t size, uintmax_t value) {
     ConstValue ret = {
-        .type = (const Type*)createSizedPrimitiveType(&context->types, TYPE_UINT, size),
+        .type = (Type*)createSizedPrimitiveType(&context->types, TYPE_UINT, size),
         .uint = wrapUnsignedInteger(value, size),
     };
     return ret;
 }
 
 ConstValue createConstF32(CompilerContext* context, float value) {
-    ConstValue ret = { .type = (const Type*)createSizedPrimitiveType(&context->types, TYPE_REAL, 32), .f32 = value };
+    ConstValue ret = { .type = (Type*)createSizedPrimitiveType(&context->types, TYPE_REAL, 32), .f32 = value };
     return ret;
 }
 
 ConstValue createConstF64(CompilerContext* context, double value) {
-    ConstValue ret = { .type = (const Type*)createSizedPrimitiveType(&context->types, TYPE_REAL, 64), .f64 = value };
+    ConstValue ret = { .type = (Type*)createSizedPrimitiveType(&context->types, TYPE_REAL, 64), .f64 = value };
     return ret;
 }
 
 ConstValue createConstBool(CompilerContext* context, bool value) {
-    ConstValue ret = { .type = (const Type*)createUnsizedPrimitiveType(&context->types, TYPE_BOOL), .boolean = value };
+    ConstValue ret = { .type = (Type*)createUnsizedPrimitiveType(&context->types, TYPE_BOOL), .boolean = value };
     return ret;
 }
 
@@ -63,7 +63,7 @@ static ConstValue raiseOpErrorNotInConst(CompilerContext* context, AstNode* node
 }
 
 static ConstValue raiseTypeErrorDifferent(
-    CompilerContext* context, AstNode* node, AstNode* left, AstNode* right, const Type* type_left, const Type* type_right
+    CompilerContext* context, AstNode* node, AstNode* left, AstNode* right, Type* type_left, Type* type_right
 ) {
     String lhs_type = buildTypeName(type_left);
     String rhs_type = buildTypeName(type_right);
@@ -82,7 +82,7 @@ static ConstValue raiseTypeErrorDifferent(
     return createConstError(context);
 }
 
-static ConstValue raiseTypeErrorNotInConst(CompilerContext* context, AstNode* node, const Type* t) {
+static ConstValue raiseTypeErrorNotInConst(CompilerContext* context, AstNode* node, Type* t) {
     String type = buildTypeName(t);
     addMessageToContext(
         &context->msgs,
@@ -126,7 +126,7 @@ static ConstValue raiseTypeErrorNotInConst(CompilerContext* context, AstNode* no
     }
 
 #define BACTIONS_T(ACTIONS)                                             \
-    const TypeSizedPrimitive* t = (const TypeSizedPrimitive*)left.type; \
+    TypeSizedPrimitive* t = (TypeSizedPrimitive*)left.type;             \
     BACTIONS(ACTIONS)
 
 #define BACTIONS(ACTIONS)                                               \
@@ -183,7 +183,7 @@ static ConstValue raiseTypeErrorNotInConst(CompilerContext* context, AstNode* no
     }
 
 #define UACTIONS_T(ACTIONS)                                             \
-    const TypeSizedPrimitive* t = (const TypeSizedPrimitive*)op.type;   \
+    TypeSizedPrimitive* t = (TypeSizedPrimitive*)op.type;               \
     UACTIONS(ACTIONS)
 
 #define UACTIONS(ACTIONS)                                               \
@@ -269,9 +269,9 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
                 AstInt* n = (AstInt*)node;
                 if (n->res_type == NULL || n->res_type->kind != TYPE_ERROR) {
                     if (n->res_type == NULL) {
-                        n->res_type = (const Type*)createSizedPrimitiveType(&context->types, TYPE_INT, 64);
+                        n->res_type = (Type*)createSizedPrimitiveType(&context->types, TYPE_INT, 64);
                     }
-                    const TypeSizedPrimitive* t = isIntegerType(n->res_type);
+                    TypeSizedPrimitive* t = isIntegerType(n->res_type);
                     ASSERT(t != NULL);
                     if (t->kind == TYPE_INT) {
                         return createConstInt(context, t->size, n->number);
@@ -288,9 +288,9 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
                 AstReal* n = (AstReal*)node;
                 if (n->res_type->kind != TYPE_ERROR) {
                     if (n->res_type == NULL) {
-                        n->res_type = (const Type*)createSizedPrimitiveType(&context->types, TYPE_REAL, 64);
+                        n->res_type = (Type*)createSizedPrimitiveType(&context->types, TYPE_REAL, 64);
                     }
-                    const TypeSizedPrimitive* t = isRealType(n->res_type);
+                    TypeSizedPrimitive* t = isRealType(n->res_type);
                     ASSERT(t != NULL);
                     if (t->size == 32) {
                         return createConstF32(context, n->number);

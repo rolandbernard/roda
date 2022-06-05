@@ -7,7 +7,7 @@
 #include "compiler/context.h"
 
 typedef struct {
-    const Type* type;
+    Type* type;
     union {
         intmax_t sint;
         uintmax_t uint;

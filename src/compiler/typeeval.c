@@ -6,7 +6,7 @@
 
 #include "compiler/typeeval.h"
 
-const Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
+Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
     if (node == NULL) {
         UNREACHABLE(", should not evaluate");
     } else {
@@ -71,25 +71,25 @@ const Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
                     n->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
                 } else {
                     SymbolVariable* var = (SymbolVariable*)n->binding;
-                    n->res_type = (const Type*)createTypeReference(&context->types, (SymbolType*)var);;
+                    n->res_type = (Type*)createTypeReference(&context->types, (SymbolType*)var);;
                 }
                 break;
             }
             case AST_ADDR: {
                 AstUnary* n = (AstUnary*)node;
-                const Type* base = evaluateTypeExpr(context, n->op);
+                Type* base = evaluateTypeExpr(context, n->op);
                 if (base->kind == TYPE_ERROR) {
                     n->res_type = base;
                 } else {
-                    n->res_type = (const Type*)createPointerType(&context->types, base);
+                    n->res_type = (Type*)createPointerType(&context->types, base);
                 }
                 break;
             }
             case AST_ARRAY: {
                 AstBinary* n = (AstBinary*)node;
-                const Type* base = evaluateTypeExpr(context, n->right);
+                Type* base = evaluateTypeExpr(context, n->right);
                 ConstValue size = evaluateConstExpr(context, n->left);
-                const TypeSizedPrimitive* size_type = isIntegerType(size.type);
+                TypeSizedPrimitive* size_type = isIntegerType(size.type);
                 if (base->kind == TYPE_ERROR) {
                     n->res_type = base;
                 } else if (size.type->kind == TYPE_ERROR) {
@@ -118,7 +118,7 @@ const Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
                     n->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
                 } else {
                     size_t len = size_type->kind == TYPE_INT ? (size_t)size.sint : (size_t)size.uint;
-                    n->res_type = (const Type*)createArrayType(&context->types, base, len);
+                    n->res_type = (Type*)createArrayType(&context->types, base, len);
                 }
                 break;
             }

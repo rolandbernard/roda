@@ -25,12 +25,12 @@ typedef struct {
 
 typedef struct {
     SYMBOL_ENTRY_BASE
-    const Type* type;
+    Type* type;
 } SymbolVariable;
 
 typedef struct SymbolType {
     SYMBOL_ENTRY_BASE
-    const Type* type;
+    Type* type;
 } SymbolType;
 
 void freeSymbolEntry(SymbolEntry* var);

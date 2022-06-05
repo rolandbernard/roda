@@ -182,7 +182,7 @@ static void tryResizingHashTable(TypeContext* table) {
     }
 }
 
-static Type* createTypeIfAbsent(TypeContext* context, const Type* type, size_t size, bool* new) {
+static Type* createTypeIfAbsent(TypeContext* context, Type* type, size_t size, bool* new) {
     tryResizingHashTable(context);
     size_t idx = findIndexHashTable(context, type);
     if (!isIndexValid(context, idx)) {
@@ -192,43 +192,44 @@ static Type* createTypeIfAbsent(TypeContext* context, const Type* type, size_t s
         if (new != NULL) {
             *new = true;
         }
+        context->types[idx]->equivalent = context->types[idx];
     } else if (new != NULL) {
         *new = false;
     }
     return context->types[idx];
 }
 
-const Type* createUnsizedPrimitiveType(TypeContext* cxt, TypeKind kind) {
+Type* createUnsizedPrimitiveType(TypeContext* cxt, TypeKind kind) {
     Type type = { .kind = kind };
     return createTypeIfAbsent(cxt, &type, sizeof(Type), NULL);
 }
 
-const TypeSizedPrimitive* createSizedPrimitiveType(TypeContext* cxt, TypeKind kind, size_t size) {
+TypeSizedPrimitive* createSizedPrimitiveType(TypeContext* cxt, TypeKind kind, size_t size) {
     TypeSizedPrimitive type = { .kind = kind, .size = size };
     return (TypeSizedPrimitive*)createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeSizedPrimitive), NULL);
 }
 
-const TypePointer* createPointerType(TypeContext* cxt, const Type* base) {
+TypePointer* createPointerType(TypeContext* cxt, Type* base) {
     TypePointer type = { .kind = TYPE_POINTER, .base = base };
     return (TypePointer*)createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypePointer), NULL);
 }
 
-const TypeArray* createArrayType(TypeContext* cxt, const Type* base, size_t size) {
+TypeArray* createArrayType(TypeContext* cxt, Type* base, size_t size) {
     TypeArray type = { .kind = TYPE_ARRAY, .base = base, .size = size };
     return (TypeArray*)createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeArray), NULL);
 }
 
-const TypeFunction* createFunctionType(TypeContext* cxt, const Type* ret_type, size_t arg_count, const Type** arguments) {
+TypeFunction* createFunctionType(TypeContext* cxt, Type* ret_type, size_t arg_count, Type** arguments) {
     TypeFunction type = { .kind = TYPE_FUNCTION, .ret_type = ret_type, .arguments = arguments, .arg_count = arg_count };
     bool new;
-    const TypeFunction* ret = (TypeFunction*)createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeFunction), &new);
+    TypeFunction* ret = (TypeFunction*)createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeFunction), &new);
     if (!new) {
         FREE(arguments);
     }
     return ret;
 }
 
-const TypeReference* createTypeReference(TypeContext* cxt, struct SymbolType* binding) {
+TypeReference* createTypeReference(TypeContext* cxt, struct SymbolType* binding) {
     TypeReference type = { .kind = TYPE_REFERENCE, .binding = binding };
     return (TypeReference*)createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeReference), NULL);
 }
@@ -314,7 +315,7 @@ typedef struct TypeReferenceStack {
 } TypeReferenceStack;
 
 #define CYCLIC_CHECK(TYPE, NAME, TRUE, DEFAULT)                                         \
-    static const TYPE* NAME ## Helper (const Type* type, TypeReferenceStack* stack) {   \
+    static TYPE* NAME ## Helper (Type* type, TypeReferenceStack* stack) {               \
         TRUE else if (type->kind == TYPE_REFERENCE) {                                   \
             TypeReference* t = (TypeReference*)type;                                    \
             TypeReferenceStack elem = {                                                 \
@@ -330,43 +331,43 @@ typedef struct TypeReferenceStack {
             return NAME ## Helper (t->binding->type, &elem);                            \
         } DEFAULT                                                                       \
     }                                                                                   \
-    const TYPE* NAME (const Type* type) {                                               \
+    TYPE* NAME (Type* type) {                                                           \
         return NAME ## Helper (type, NULL);                                             \
     }
 
 CYCLIC_CHECK(
     TypeSizedPrimitive, isSignedIntegerType,
-    if (type->kind == TYPE_INT) { return (const TypeSizedPrimitive*)type; },
+    if (type->kind == TYPE_INT) { return (TypeSizedPrimitive*)type; },
     else { return NULL; }
 )
 
 CYCLIC_CHECK(
     TypeSizedPrimitive, isUnsignedIntegerType,
-    if (type->kind == TYPE_UINT) { return (const TypeSizedPrimitive*)type; },
+    if (type->kind == TYPE_UINT) { return (TypeSizedPrimitive*)type; },
     else { return NULL; }
 )
 
 CYCLIC_CHECK(
     TypeSizedPrimitive, isIntegerType,
-    if (type->kind == TYPE_INT || type->kind == TYPE_UINT) { return (const TypeSizedPrimitive*)type; },
+    if (type->kind == TYPE_INT || type->kind == TYPE_UINT) { return (TypeSizedPrimitive*)type; },
     else { return NULL; }
 )
 
 CYCLIC_CHECK(
     TypeSizedPrimitive, isFloatType,
-    if (type->kind == TYPE_REAL && ((const TypeSizedPrimitive*)type)->size == 32) { return (const TypeSizedPrimitive*)type; },
+    if (type->kind == TYPE_REAL && ((TypeSizedPrimitive*)type)->size == 32) { return (TypeSizedPrimitive*)type; },
     else { return NULL; }
 )
 
 CYCLIC_CHECK(
     TypeSizedPrimitive, isDoubleType,
-    if (type->kind == TYPE_REAL && ((const TypeSizedPrimitive*)type)->size == 64) { return (const TypeSizedPrimitive*)type; },
+    if (type->kind == TYPE_REAL && ((TypeSizedPrimitive*)type)->size == 64) { return (TypeSizedPrimitive*)type; },
     else { return NULL; }
 )
 
 CYCLIC_CHECK(
     TypeSizedPrimitive, isRealType,
-    if (type->kind == TYPE_REAL) { return (const TypeSizedPrimitive*)type; },
+    if (type->kind == TYPE_REAL) { return (TypeSizedPrimitive*)type; },
     else { return NULL; }
 )
 
@@ -378,33 +379,33 @@ CYCLIC_CHECK(
 
 CYCLIC_CHECK(
     TypePointer, isPointerType,
-    if (type->kind == TYPE_POINTER) { return (const TypePointer*)type; },
+    if (type->kind == TYPE_POINTER) { return (TypePointer*)type; },
     else { return NULL; }
 )
 
 CYCLIC_CHECK(
     TypeArray, isArrayType,
-    if (type->kind == TYPE_ARRAY) { return (const TypeArray*)type; },
+    if (type->kind == TYPE_ARRAY) { return (TypeArray*)type; },
     else { return NULL; }
 )
 
 CYCLIC_CHECK(
     TypeFunction, isFunctionType,
-    if (type->kind == TYPE_FUNCTION) { return (const TypeFunction*)type; },
+    if (type->kind == TYPE_FUNCTION) { return (TypeFunction*)type; },
     else { return NULL; }
 )
 
 typedef struct DoubleTypeReferenceStack {
     struct DoubleTypeReferenceStack* last;
-    const Type* types[2];
+    Type* types[2];
 } DoubleTypeReferenceStack;
 
-static bool compareStructuralTypesHelper(const Type* a, const Type* b, DoubleTypeReferenceStack* stack) {
+static bool compareStructuralTypesHelper(Type* a, Type* b, DoubleTypeReferenceStack* stack) {
     if (a == b) {
         return true;
     } else if (a == NULL || b == NULL) {
         return false;
-    } if (a->kind != b->kind) {
+    } else if (a->kind != b->kind) {
         if (a->kind == TYPE_REFERENCE) {
             TypeReference* t = (TypeReference*)a;
             if (t->binding->type == b) {
@@ -507,7 +508,7 @@ static bool compareStructuralTypesHelper(const Type* a, const Type* b, DoubleTyp
     }
 }
 
-bool compareStructuralTypes(const Type* a, const Type* b) {
+bool compareStructuralTypes(Type* a, Type* b) {
     return compareStructuralTypesHelper(a, b, NULL);
 }
 

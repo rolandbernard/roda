@@ -130,13 +130,13 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                 AstFn* n = (AstFn*)node;
                 n->res_type = createUnsizedPrimitiveType(&context->types, TYPE_VOID);
                 evaluateTypeHints(context, (AstNode*)n->arguments);
-                const Type* ret_type;
+                Type* ret_type;
                 if (n->ret_type != NULL) {
                     ret_type = evaluateTypeExpr(context, n->ret_type);
                 } else {
                     ret_type = createUnsizedPrimitiveType(&context->types, TYPE_VOID);
                 }
-                const Type** arg_types = ALLOC(const Type*, n->arguments->count);
+                Type** arg_types = ALLOC(Type*, n->arguments->count);
                 for (size_t i = 0; i < n->arguments->count; i++) {
                     AstArgDef* def = (AstArgDef*)n->arguments->nodes[i];
                     SymbolVariable* var = (SymbolVariable*)def->name->binding;

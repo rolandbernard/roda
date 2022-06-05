@@ -20,10 +20,11 @@ typedef enum {
     TYPE_REFERENCE,
 } TypeKind;
 
-#define TYPE_BASE   \
-    TypeKind kind;
+#define TYPE_BASE       \
+    TypeKind kind;      \
+    struct Type* equivalent;
 
-typedef struct {
+typedef struct Type {
     TYPE_BASE
 } Type;
 
@@ -34,19 +35,19 @@ typedef struct {
 
 typedef struct {
     TYPE_BASE
-    const Type* base;
+    Type* base;
 } TypePointer;
 
 typedef struct {
     TYPE_BASE
-    const Type* base;
+    Type* base;
     size_t size;
 } TypeArray;
 
 typedef struct {
     TYPE_BASE
-    const Type* ret_type;
-    const Type** arguments;
+    Type* ret_type;
+    Type** arguments;
     size_t arg_count;
 } TypeFunction;
 
@@ -65,40 +66,40 @@ void initTypeContext(TypeContext* cxt);
 
 void deinitTypeContext(TypeContext* cxt);
 
-const Type* createUnsizedPrimitiveType(TypeContext* cxt, TypeKind kind);
+Type* createUnsizedPrimitiveType(TypeContext* cxt, TypeKind kind);
 
-const TypeSizedPrimitive* createSizedPrimitiveType(TypeContext* cxt, TypeKind kind, size_t size);
+TypeSizedPrimitive* createSizedPrimitiveType(TypeContext* cxt, TypeKind kind, size_t size);
 
-const TypePointer* createPointerType(TypeContext* cxt, const Type* base);
+TypePointer* createPointerType(TypeContext* cxt, Type* base);
 
-const TypeArray* createArrayType(TypeContext* cxt, const Type* base, size_t size);
+TypeArray* createArrayType(TypeContext* cxt, Type* base, size_t size);
 
-const TypeFunction* createFunctionType(TypeContext* cxt, const Type* ret_type, size_t arg_count, const Type** arguments);
+TypeFunction* createFunctionType(TypeContext* cxt, Type* ret_type, size_t arg_count, Type** arguments);
 
-const TypeReference* createTypeReference(TypeContext* cxt, struct SymbolType* binding);
+TypeReference* createTypeReference(TypeContext* cxt, struct SymbolType* binding);
 
 String buildTypeName(const Type* type);
 
-const TypeSizedPrimitive* isSignedIntegerType(const Type* type);
+TypeSizedPrimitive* isSignedIntegerType(Type* type);
 
-const TypeSizedPrimitive* isUnsignedIntegerType(const Type* type);
+TypeSizedPrimitive* isUnsignedIntegerType(Type* type);
 
-const TypeSizedPrimitive* isIntegerType(const Type* type);
+TypeSizedPrimitive* isIntegerType(Type* type);
 
-const TypeSizedPrimitive* isFloatType(const Type* type);
+TypeSizedPrimitive* isFloatType(Type* type);
 
-const TypeSizedPrimitive* isDoubleType(const Type* type);
+TypeSizedPrimitive* isDoubleType(Type* type);
 
-const TypeSizedPrimitive* isRealType(const Type* type);
+TypeSizedPrimitive* isRealType(Type* type);
 
-const Type* isBooleanType(const Type* type);
+Type* isBooleanType(Type* type);
 
-const TypePointer* isPointerType(const Type* type);
+TypePointer* isPointerType(Type* type);
 
-const TypeArray* isArrayType(const Type* type);
+TypeArray* isArrayType(Type* type);
 
-const TypeFunction* isFunctionType(const Type* type);
+TypeFunction* isFunctionType(Type* type);
 
-bool compareStructuralTypes(const Type* a, const Type* b);
+bool compareStructuralTypes(Type* a, Type* b);
 
 #endif

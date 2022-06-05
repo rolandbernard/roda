@@ -5,6 +5,6 @@
 #include "compiler/types.h"
 #include "compiler/context.h"
 
-const Type* evaluateTypeExpr(CompilerContext* context, AstNode* node);
+Type* evaluateTypeExpr(CompilerContext* context, AstNode* node);
 
 #endif
