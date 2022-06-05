@@ -39,6 +39,8 @@ SymbolVariable* createVariableSymbol(Symbol name, struct AstVar* def);
 
 SymbolType* createTypeSymbol(Symbol name, struct AstVar* def);
 
+SymbolType* createTypeSymbolWithType(Symbol name, struct AstVar* def, Type* type);
+
 void addSymbolReference(SymbolEntry* entry, struct AstVar* var);
 
 #endif

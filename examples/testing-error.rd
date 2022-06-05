@@ -23,6 +23,8 @@ fn add(a: u32, b: u32): u32 {
     let test = 1_000; let test = 1_000; let test = 1_000_000; let test = 1_000_000;
     test += undefined;
     test += undefined2;
+    let test2: [1.0 / 2]int; 
+    let test3: [1.0 / 2.0]int; 
     return a + b;
 }
 

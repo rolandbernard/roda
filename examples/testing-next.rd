@@ -17,7 +17,7 @@ export fn main(argc: int, argv: **u8): int {
     let a: int = 5;
     let b = 7;
     let c = a + b;
-    let d: [5]int;
+    let d: [5 + 7 / 2]int;
     d[0] = a;
     d[1] = b;
     d[2] = c;

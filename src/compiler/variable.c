@@ -20,9 +20,13 @@ SymbolVariable* createVariableSymbol(Symbol name, struct AstVar* def) {
 }
 
 SymbolType* createTypeSymbol(Symbol name, struct AstVar* def) {
+    return createTypeSymbolWithType(name, def, NULL);
+}
+
+SymbolType* createTypeSymbolWithType(Symbol name, struct AstVar* def, Type* type) {
     SymbolType* sym = NEW(SymbolType);
     initSymbolEntry((SymbolEntry*)sym, SYMBOL_TYPE, name, def);
-    sym->type = NULL;
+    sym->type = type;
     return sym;
 }
 
