@@ -30,7 +30,7 @@ export fn main(argc: int, argv: **u8): int {
     }
 }
 
-fn add(a: u32, b: u32): u32 {
+fn add(a: int, b: int): int {
     return a + b;
 }
 

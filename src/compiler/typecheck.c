@@ -231,7 +231,6 @@ static void diffuseTypes(CompilerContext* context, AstNode* node) {
             case AST_LIST:
             case AST_ROOT:
             case AST_BLOCK:
-            case AST_VARDEF:
             case AST_IF_ELSE:
             case AST_WHILE:
             case AST_FN:
@@ -247,8 +246,11 @@ static void diffuseTypes(CompilerContext* context, AstNode* node) {
                     } else if (n->res_type != NULL) {
                         var->type = n->res_type;
                         for (size_t i = 0; i < var->ref_count; i++) {
-                            diffuseTypes(context, (AstNode*)var->refs[i]);
+                            if (n != var->refs[i]) {
+                                diffuseTypes(context, (AstNode*)var->refs[i]);
+                            }
                         }
+                        diffuseTypes(context, (AstNode*)var->def);
                     }
                 }
                 break;
@@ -265,13 +267,28 @@ static void diffuseTypes(CompilerContext* context, AstNode* node) {
             case AST_BXOR_ASSIGN:
             case AST_ASSIGN: {
                 AstBinary* n = (AstBinary*)node;
-                if (n->left->res_type != NULL) {
+                if (n->right->res_type != NULL) {
+                    if (diffuseTypeIntoAstNode(context, n->left, n->right->res_type)) {
+                        diffuseTypes(context, n->left);
+                    }
+                } else if (n->left->res_type != NULL) {
                     if (diffuseTypeIntoAstNode(context, n->right, n->left->res_type)) {
                         diffuseTypes(context, n->right);
                     }
-                } else if (n->right->res_type != NULL) {
-                    if (diffuseTypeIntoAstNode(context, n->left, n->right->res_type)) {
-                        diffuseTypes(context, n->left);
+                }
+                break;
+            }
+            case AST_VARDEF: {
+                AstVarDef* n = (AstVarDef*)node;
+                if (n->val != NULL) {
+                    if (n->name->res_type != NULL) {
+                        if (diffuseTypeIntoAstNode(context, n->val, n->name->res_type)) {
+                            diffuseTypes(context, n->val);
+                        }
+                    } else if (n->val->res_type != NULL) {
+                        if (diffuseTypeIntoAstNode(context, (AstNode*)n->name, n->val->res_type)) {
+                            diffuseTypes(context, (AstNode*)n->name);
+                        }
                     }
                 }
                 break;
@@ -589,7 +606,7 @@ static void checkTypes(CompilerContext* context, AstNode* node) {
     for (size_t i = 0; i < context->files.file_count; i++) {    \
         File* file = context->files.files[i];                   \
         if (file->ast != NULL) ACTION                           \
-    }
+    }                                                           \
 
 void runTypeChecking(CompilerContext* context) {
     FOR_ALL_MODULES({ evaluateTypeHints(context, file->ast); });

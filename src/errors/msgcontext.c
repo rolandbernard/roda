@@ -9,6 +9,7 @@ void initMessageContext(MessageContext* message_context, const MessageFilter* fi
     message_context->messages = NULL;
     message_context->message_count = 0;
     message_context->message_capacity = 0;
+    message_context->error_count = 0;
     message_context->filter = filter;
 }
 
