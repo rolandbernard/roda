@@ -508,6 +508,10 @@ static bool compareStructuralTypesHelper(Type* a, Type* b, DoubleTypeReferenceSt
     }
 }
 
+bool isErrorType(Type* type) {
+    return type->kind == TYPE_ERROR;
+}
+
 bool compareStructuralTypes(Type* a, Type* b) {
     return compareStructuralTypesHelper(a, b, NULL);
 }

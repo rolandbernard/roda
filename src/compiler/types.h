@@ -100,6 +100,8 @@ TypeArray* isArrayType(Type* type);
 
 TypeFunction* isFunctionType(Type* type);
 
+bool isErrorType(Type* type);
+
 bool compareStructuralTypes(Type* a, Type* b);
 
 #endif
