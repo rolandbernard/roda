@@ -71,7 +71,7 @@ static ConstValue raiseTypeErrorDifferent(
         &context->msgs,
         createMessage(
             ERROR_INCOMPATIBLE_TYPE,
-            createFormattedString("incompatible types in %s expression, `%S ` and `%S`", getAstPrintName(node->kind), lhs_type, rhs_type), 3,
+            createFormattedString("type error, incompatible types in %s expression, `%S ` and `%S`", getAstPrintName(node->kind), lhs_type, rhs_type), 3,
             createMessageFragment(MESSAGE_ERROR, createFormattedString("types `%S` and `%S` are incompatible", lhs_type, rhs_type), node->location),
             createMessageFragment(MESSAGE_NOTE, createFormattedString("note: lhs has type `%S`", lhs_type), left->location),
             createMessageFragment(MESSAGE_NOTE, createFormattedString("note: rhs has type `%S`", rhs_type), right->location)
@@ -88,7 +88,7 @@ static ConstValue raiseTypeErrorNotInConst(CompilerContext* context, AstNode* no
         &context->msgs,
         createMessage(
             ERROR_INCOMPATIBLE_TYPE,
-            createFormattedString("in constant expession, incompatible type `%S` for %s expession", type, getAstPrintName(node->kind)), 1,
+            createFormattedString("type error, in constant expession, incompatible type `%S` for %s expession", type, getAstPrintName(node->kind)), 1,
             createMessageFragment(MESSAGE_ERROR, createFormattedString("`%S` type not allowed here", type), node->location)
         )
     );

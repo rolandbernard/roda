@@ -209,11 +209,20 @@ static bool diffuseTypeIntoAstNode(CompilerContext* context, AstNode* node, Type
         return true;
     } else if (!isErrorType(type) && !isErrorType(node->res_type) && !compareStructuralTypes(node->res_type, type)) {
         // TODO: better error message (type conflict for ... note: expected because {location of type hint})
+        String fst_type = buildTypeName(node->res_type);
+        String snd_type = buildTypeName(type);
         addMessageToContext(
-            &context->msgs, createMessage(ERROR_INCOMPATIBLE_TYPE, createFormattedString("type error"), 0)
+            &context->msgs, createMessage(ERROR_INCOMPATIBLE_TYPE, createFormattedString("type error, conflicting types `%S` and `%S`", fst_type, snd_type), 1,
+                createMessageFragment(MESSAGE_ERROR, createFormattedString("conflicting types `%S` and `%S` for this expression", fst_type, snd_type), node->location)
+            )
         );
+        freeString(fst_type);
+        freeString(snd_type);
+        node->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
+        return true;
+    } else {
+        return false;
     }
-    return false;
 }
 
 static void diffuseTypes(CompilerContext* context, AstNode* node) {
@@ -742,6 +751,8 @@ void runTypeChecking(CompilerContext* context) {
     FOR_ALL_MODULES({ diffuseTypesOnAllNodes(context, file->ast); });
     FOR_ALL_MODULES({ assumeAmbiguousTypes(context, file->ast); });
     FOR_ALL_MODULES({ diffuseTypesOnAllNodes(context, file->ast); });
-    FOR_ALL_MODULES({ checkTypes(context, file->ast); });
+    if (context->msgs.error_count == 0) {
+        FOR_ALL_MODULES({ checkTypes(context, file->ast); });
+    }
 }
 
