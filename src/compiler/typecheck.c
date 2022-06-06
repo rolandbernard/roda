@@ -592,14 +592,143 @@ static void diffuseTypesOnAllNodes(CompilerContext* context, AstNode* node) {
 }
 
 static void assumeAmbiguousTypes(CompilerContext* context, AstNode* node) {
-    // TODO
+    if (node != NULL) {
+        switch (node->kind) {
+            case AST_NEVER:
+            case AST_ARRAY:
+                UNREACHABLE(", should not evaluate");
+            case AST_ERROR:
+            case AST_VAR:
+            case AST_TYPEDEF:
+            case AST_ARGDEF:
+                break;
+            case AST_STR:
+                if (node->res_type == NULL) {
+                    node->res_type = (Type*)createPointerType(&context->types,
+                        (Type*)createSizedPrimitiveType(&context->types, TYPE_UINT, 8)
+                    );
+                }
+                break;
+            case AST_INT:
+                if (node->res_type == NULL) {
+                    node->res_type = (Type*)createSizedPrimitiveType(&context->types, TYPE_INT, 64);
+                }
+                break;
+            case AST_REAL:
+                if (node->res_type == NULL) {
+                    node->res_type = (Type*)createSizedPrimitiveType(&context->types, TYPE_REAL, 64);
+                }
+                break;
+            case AST_ADD_ASSIGN:
+            case AST_SUB_ASSIGN:
+            case AST_MUL_ASSIGN:
+            case AST_DIV_ASSIGN:
+            case AST_MOD_ASSIGN:
+            case AST_SHL_ASSIGN:
+            case AST_SHR_ASSIGN:
+            case AST_BAND_ASSIGN:
+            case AST_BOR_ASSIGN:
+            case AST_BXOR_ASSIGN:
+            case AST_ASSIGN: {
+                AstBinary* n = (AstBinary*)node;
+                assumeAmbiguousTypes(context, n->right);
+                assumeAmbiguousTypes(context, n->left);
+                break;
+            }
+            case AST_INDEX:
+            case AST_SUB:
+            case AST_MUL:
+            case AST_DIV:
+            case AST_MOD:
+            case AST_SHL:
+            case AST_SHR:
+            case AST_BAND:
+            case AST_BOR:
+            case AST_BXOR:
+            case AST_ADD:
+            case AST_OR:
+            case AST_AND:
+            case AST_EQ:
+            case AST_NE:
+            case AST_LE:
+            case AST_GE:
+            case AST_LT:
+            case AST_GT: {
+                AstBinary* n = (AstBinary*)node;
+                assumeAmbiguousTypes(context, n->left);
+                assumeAmbiguousTypes(context, n->right);
+                break;
+            }
+            case AST_POS:
+            case AST_NEG:
+            case AST_ADDR:
+            case AST_NOT:
+            case AST_DEREF: {
+                AstUnary* n = (AstUnary*)node;
+                assumeAmbiguousTypes(context, n->op);
+                break;
+            }
+            case AST_RETURN: {
+                AstUnary* n = (AstUnary*)node;
+                assumeAmbiguousTypes(context, n->op);
+                break;
+            }
+            case AST_LIST: {
+                AstList* n = (AstList*)node;
+                for (size_t i = 0; i < n->count; i++) {
+                    assumeAmbiguousTypes(context, n->nodes[i]);
+                }
+                break;
+            }
+            case AST_ROOT: {
+                AstRoot* n = (AstRoot*)node;
+                assumeAmbiguousTypes(context, (AstNode*)n->nodes);
+                break;
+            }
+            case AST_BLOCK: {
+                AstBlock* n = (AstBlock*)node;
+                assumeAmbiguousTypes(context, (AstNode*)n->nodes);
+                break;
+            }
+            case AST_VARDEF: {
+                AstVarDef* n = (AstVarDef*)node;
+                assumeAmbiguousTypes(context, n->val);
+                break;
+            }
+            case AST_IF_ELSE: {
+                AstIfElse* n = (AstIfElse*)node;
+                assumeAmbiguousTypes(context, n->condition);
+                assumeAmbiguousTypes(context, n->if_block);
+                assumeAmbiguousTypes(context, n->else_block);
+                break;
+            }
+            case AST_WHILE: {
+                AstWhile* n = (AstWhile*)node;
+                assumeAmbiguousTypes(context, n->condition);
+                assumeAmbiguousTypes(context, n->block);
+                break;
+            }
+            case AST_FN: {
+                AstFn* n = (AstFn*)node;
+                assumeAmbiguousTypes(context, (AstNode*)n->arguments);
+                assumeAmbiguousTypes(context, n->body);
+                break;
+            }
+            case AST_CALL: {
+                AstCall* n = (AstCall*)node;
+                assumeAmbiguousTypes(context, n->function);
+                assumeAmbiguousTypes(context, (AstNode*)n->arguments);
+                break;
+            }
+        }
+    }
 }
 
 static void checkTypes(CompilerContext* context, AstNode* node) {
     // TODO:
-    //  - Check constraints (e.g. int for bor/band/bxor, pointer for deref...)
     //  - Check not inferred variable types
     //  - Check not inferred node types
+    //  - Check constraints (e.g. int for bor/band/bxor, pointer for deref...)
 }
 
 #define FOR_ALL_MODULES(ACTION)                                 \
