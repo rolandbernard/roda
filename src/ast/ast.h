@@ -75,7 +75,8 @@ typedef enum {
     AstNodeKind kind;       \
     struct AstNode* parent; \
     Span location;          \
-    Type* res_type;
+    Type* res_type;         \
+    struct AstNode* res_type_reasoning;
 
 typedef struct AstNode {
     AST_NODE_BASE
@@ -224,5 +225,7 @@ AstTypeDef* createAstTypeDef(Span loc, AstVar* name, AstNode* value);
 AstArgDef* createAstArgDef(Span loc, AstVar* name, AstNode* type);
 
 void freeAstNode(AstNode* node);
+
+void initAstNode(AstNode* node, AstNodeKind kind, Span loc);
 
 #endif
