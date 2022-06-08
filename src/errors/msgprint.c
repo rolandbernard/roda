@@ -12,7 +12,7 @@
 #include "util/console.h"
 
 #define NUM_SURROUNDING_LINES 1
-#define MAX_INTERMEDIATE_LINES 2
+#define MAX_INTERMEDIATE_LINES 3
 #define MIN_NUMWIDTH 3
 #define FST_LAYER_CLEARANCE 3
 #define SND_LAYER_CLEARANCE 3

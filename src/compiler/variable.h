@@ -26,6 +26,7 @@ typedef struct {
 typedef struct {
     SYMBOL_ENTRY_BASE
     Type* type;
+    struct AstNode* type_reasoning;
 } SymbolVariable;
 
 typedef struct SymbolType {

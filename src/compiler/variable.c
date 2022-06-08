@@ -16,6 +16,7 @@ SymbolVariable* createVariableSymbol(Symbol name, struct AstVar* def) {
     SymbolVariable* sym = NEW(SymbolVariable);
     initSymbolEntry((SymbolEntry*)sym, SYMBOL_VARIABLE, name, def);
     sym->type = NULL;
+    sym->type_reasoning = NULL;
     return sym;
 }
 
