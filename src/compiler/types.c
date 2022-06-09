@@ -240,6 +240,7 @@ static void buildTypeNameInto(String* dst, const Type* type) {
     } else {
         switch (type->kind) {
             case TYPE_ERROR: {
+                *dst = pushToString(*dst, str("error"));
                 break;
             }
             case TYPE_NEVER: {
@@ -462,12 +463,12 @@ static bool compareStructuralTypesHelper(Type* a, Type* b, DoubleTypeReferenceSt
             case TYPE_POINTER: {
                 TypePointer* ta = (TypePointer*)a;
                 TypePointer* tb = (TypePointer*)b;
-                return compareStructuralTypesHelper((Type*)ta, (Type*)tb, stack);
+                return compareStructuralTypesHelper(ta->base, tb->base, stack);
             }
             case TYPE_ARRAY: {
                 TypeArray* ta = (TypeArray*)a;
                 TypeArray* tb = (TypeArray*)b;
-                return ta->size == tb->size && compareStructuralTypesHelper((Type*)ta, (Type*)tb, stack);
+                return ta->size == tb->size && compareStructuralTypesHelper(ta->base, tb->base, stack);
             }
             case TYPE_FUNCTION: {
                 TypeFunction* ta = (TypeFunction*)a;

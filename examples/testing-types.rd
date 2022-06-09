@@ -1,8 +1,10 @@
 
+type TypeA = [5]*TypeA;
+type TypeB = *[5]TypeB;
+
 fn main(test: i32): int {
-    let test: i32 = 10;
-    test = 10.10;
-    x = 5;
-    let test: f32 = 10.0;
+    let a: *TypeA;
+    let b: TypeB;
+    a = b;
 }
 
