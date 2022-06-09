@@ -18,17 +18,22 @@ void runCompilation(CompilerContext* context) {
 #endif
         printAndClearMessages(&context->msgs, stderr, true, true);
     }
-    runSymbolResolution(context);
-    runTypeChecking(context);
-#ifdef DEBUG
-    if (context->settings.debug & COMPILER_DEBUG_TYPED_AST) {
-        for (size_t i = 0; i < context->files.file_count; i++) {
-            File* file = context->files.files[i];
-            printAst(stderr, file->ast);
-        }
+    if (context->msgs.error_count == 0) {
+        runSymbolResolution(context);
+        printAndClearMessages(&context->msgs, stderr, true, true);
     }
+    if (context->msgs.error_count == 0) {
+        runTypeChecking(context);
+#ifdef DEBUG
+        if (context->settings.debug & COMPILER_DEBUG_TYPED_AST) {
+            for (size_t i = 0; i < context->files.file_count; i++) {
+                File* file = context->files.files[i];
+                printAst(stderr, file->ast);
+            }
+        }
 #endif
-    printAndClearMessages(&context->msgs, stderr, true, true);
+        printAndClearMessages(&context->msgs, stderr, true, true);
+    }
     if (context->msgs.error_count == 0) {
         // TODO: codegen
     }

@@ -1,5 +1,6 @@
 
 #include "ast/ast.h"
+#include "ast/astprinter.h"
 #include "compiler/typeeval.h"
 #include "errors/fatalerror.h"
 #include "files/file.h"
@@ -8,6 +9,13 @@
 
 #include "compiler/typecheck.h"
 
+/**
+ * @brief Evaluates a node of the AST and evaluates if it has type hints (e.g. let x: int) or has
+ * implicit types (e.g. x >= y has to be a boolean) 
+ * 
+ * @param context compiler context
+ * @param node node to be scanned
+ */
 static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
@@ -127,7 +135,7 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                         var->type = evaluateTypeExpr(context, n->type);
                         var->type_reasoning = n->type;
                         n->name->res_type = var->type;
-                        n->res_type_reasoning = n->type;
+                        n->name->res_type_reasoning = n->type;
                     }
                 }
                 evaluateTypeHints(context, n->val);
@@ -221,7 +229,6 @@ static bool diffuseTypeIntoAstNode(CompilerContext* context, AstNode* node, Type
         node->res_type_reasoning = reasoning;
         return true;
     } else if (!isErrorType(type) && !isErrorType(node->res_type) && !compareStructuralTypes(node->res_type, type)) {
-        // TODO: better error message (type conflict for ... note: expected because {location of type hint})
         String fst_type = buildTypeName(node->res_type);
         String snd_type = buildTypeName(type);
         String message = createFormattedString("type error, conflicting types `%S` and `%S`", fst_type, snd_type);
@@ -398,18 +405,26 @@ static void diffuseTypes(CompilerContext* context, AstNode* node) {
             case AST_INDEX: {
                 AstBinary* n = (AstBinary*)node;
                 if (n->left->res_type != NULL) {
-                    TypeArray* type = isArrayType(n->left->res_type);
-                    if (type != NULL) {
+                    TypeArray* arr_type = isArrayType(n->left->res_type);
+                    TypePointer* ptr_type = isPointerType(n->left->res_type);
+                    if (arr_type != NULL) {
                         AstNode* type_reason = n->left->res_type_reasoning;
                         if (type_reason != NULL && type_reason->kind == AST_ARRAY) {
                             AstBinary* arr_node = (AstBinary*)type_reason;
                             type_reason = arr_node->right;
                         }
-                        if (diffuseTypeIntoAstNode(context, node, type->base, type_reason)) {
+                        if (diffuseTypeIntoAstNode(context, node, arr_type->base, type_reason)) {
                             diffuseTypes(context, node->parent);
                         }
-                    } else {
-                        // TODO: error message
+                    } else if (ptr_type != NULL) {
+                        AstNode* type_reason = n->left->res_type_reasoning;
+                        if (type_reason != NULL && type_reason->kind == AST_ADDR) {
+                            AstUnary* addr_node = (AstUnary*)type_reason;
+                            type_reason = addr_node->op;
+                        }
+                        if (diffuseTypeIntoAstNode(context, node, ptr_type->base, type_reason)) {
+                            diffuseTypes(context, node->parent);
+                        }
                     }
                 }
                 break;
@@ -449,8 +464,6 @@ static void diffuseTypes(CompilerContext* context, AstNode* node) {
                         if (diffuseTypeIntoAstNode(context, n->op, type->base, type_reason)) {
                             diffuseTypes(context, n->op);
                         }
-                    } else {
-                        // TODO: error message
                     }
                 }
                 break;
@@ -468,8 +481,6 @@ static void diffuseTypes(CompilerContext* context, AstNode* node) {
                         if (diffuseTypeIntoAstNode(context, node, type->base, type_reason)) {
                             diffuseTypes(context, node->parent);
                         }
-                    } else {
-                        // TODO: error message
                     }
                 } else if (n->res_type != NULL) {
                     if (diffuseTypeIntoAstNode(context, n->op, (Type*)createPointerType(&context->types, n->res_type), node->res_type_reasoning)) {
@@ -482,11 +493,7 @@ static void diffuseTypes(CompilerContext* context, AstNode* node) {
                 AstCall* n = (AstCall*)node;
                 if (n->function->res_type != NULL) {
                     TypeFunction* type = isFunctionType(n->function->res_type);
-                    if (type == NULL) {
-                        // TODO: error message
-                    } else if (type->arg_count != n->arguments->count) {
-                        // TODO: error message
-                    } else {
+                    if (type != NULL && type->arg_count == n->arguments->count) {
                         AstNode* type_reason = n->function->res_type_reasoning;
                         if (type_reason != NULL && type_reason->kind == AST_FN) {
                             AstFn* fn_node = (AstFn*)type_reason;
@@ -807,7 +814,496 @@ static void assumeAmbiguousTypes(CompilerContext* context, AstNode* node) {
     }
 }
 
+static void checkForUntypedVariables(CompilerContext* context, AstNode* node) {
+    if (node != NULL) {
+        switch (node->kind) {
+            case AST_NEVER:
+            case AST_ARRAY:
+                UNREACHABLE(", should not evaluate");
+            case AST_ERROR:
+            case AST_TYPEDEF:
+            case AST_ARGDEF:
+            case AST_VAR:
+            case AST_STR:
+            case AST_INT:
+            case AST_REAL:
+                break;
+            case AST_ADD_ASSIGN:
+            case AST_SUB_ASSIGN:
+            case AST_MUL_ASSIGN:
+            case AST_DIV_ASSIGN:
+            case AST_MOD_ASSIGN:
+            case AST_SHL_ASSIGN:
+            case AST_SHR_ASSIGN:
+            case AST_BAND_ASSIGN:
+            case AST_BOR_ASSIGN:
+            case AST_BXOR_ASSIGN:
+            case AST_ASSIGN: {
+                AstBinary* n = (AstBinary*)node;
+                checkForUntypedVariables(context, n->right);
+                checkForUntypedVariables(context, n->left);
+                break;
+            }
+            case AST_INDEX:
+            case AST_SUB:
+            case AST_MUL:
+            case AST_DIV:
+            case AST_MOD:
+            case AST_SHL:
+            case AST_SHR:
+            case AST_BAND:
+            case AST_BOR:
+            case AST_BXOR:
+            case AST_ADD:
+            case AST_OR:
+            case AST_AND:
+            case AST_EQ:
+            case AST_NE:
+            case AST_LE:
+            case AST_GE:
+            case AST_LT:
+            case AST_GT: {
+                AstBinary* n = (AstBinary*)node;
+                checkForUntypedVariables(context, n->left);
+                checkForUntypedVariables(context, n->right);
+                break;
+            }
+            case AST_POS:
+            case AST_NEG:
+            case AST_ADDR:
+            case AST_NOT:
+            case AST_DEREF: {
+                AstUnary* n = (AstUnary*)node;
+                checkForUntypedVariables(context, n->op);
+                break;
+            }
+            case AST_RETURN: {
+                AstUnary* n = (AstUnary*)node;
+                checkForUntypedVariables(context, n->op);
+                break;
+            }
+            case AST_LIST: {
+                AstList* n = (AstList*)node;
+                for (size_t i = 0; i < n->count; i++) {
+                    checkForUntypedVariables(context, n->nodes[i]);
+                }
+                break;
+            }
+            case AST_ROOT: {
+                AstRoot* n = (AstRoot*)node;
+                checkForUntypedVariables(context, (AstNode*)n->nodes);
+                break;
+            }
+            case AST_BLOCK: {
+                AstBlock* n = (AstBlock*)node;
+                checkForUntypedVariables(context, (AstNode*)n->nodes);
+                break;
+            }
+            case AST_IF_ELSE: {
+                AstIfElse* n = (AstIfElse*)node;
+                checkForUntypedVariables(context, n->condition);
+                checkForUntypedVariables(context, n->if_block);
+                checkForUntypedVariables(context, n->else_block);
+                break;
+            }
+            case AST_WHILE: {
+                AstWhile* n = (AstWhile*)node;
+                checkForUntypedVariables(context, n->condition);
+                checkForUntypedVariables(context, n->block);
+                break;
+            }
+            case AST_CALL: {
+                AstCall* n = (AstCall*)node;
+                checkForUntypedVariables(context, n->function);
+                checkForUntypedVariables(context, (AstNode*)n->arguments);
+                break;
+            }
+            case AST_FN: {
+                AstFn* n = (AstFn*)node;
+                checkForUntypedVariables(context, (AstNode*)n->arguments);
+                checkForUntypedVariables(context, n->body);
+                if (n->name->res_type == NULL) {
+                    addMessageToContext(&context->msgs, createMessage(ERROR_UNINFERRED_TYPE,
+                        createFormattedString("type error, unable to infer the type of function `%s`", n->name->name), 1,
+                        createMessageFragment(MESSAGE_ERROR, createFormattedString("unable to infer the type of this function"), n->name->location)
+                    ));
+                }
+                break;
+            }
+            case AST_VARDEF: {
+                AstVarDef* n = (AstVarDef*)node;
+                checkForUntypedVariables(context, n->val);
+                if (n->name->res_type == NULL) {
+                    addMessageToContext(&context->msgs, createMessage(ERROR_UNINFERRED_TYPE,
+                        createFormattedString("type error, unable to infer the type of variable `%s`", n->name->name), 1,
+                        createMessageFragment(MESSAGE_ERROR, copyFromCString("unable to infer the type of this variable"), n->name->location)
+                    ));
+                }
+                break;
+            }
+        }
+    }
+}
+
+static void checkForUntypedNodes(CompilerContext* context, AstNode* node) {
+    if (node != NULL) {
+        if (node->res_type == NULL) {
+            addMessageToContext(&context->msgs, createMessage(ERROR_UNINFERRED_TYPE,
+                copyFromCString("type error, unable to infer the type of an expression"), 1,
+                createMessageFragment(MESSAGE_ERROR, copyFromCString("unable to infer the type of this expression"), node->location)
+            ));
+        } else {
+            switch (node->kind) {
+                case AST_NEVER:
+                case AST_ARRAY:
+                    UNREACHABLE(", should not evaluate");
+                case AST_ERROR:
+                case AST_TYPEDEF:
+                case AST_ARGDEF:
+                case AST_VAR:
+                case AST_STR:
+                case AST_INT:
+                case AST_REAL:
+                    break;
+                case AST_ADD_ASSIGN:
+                case AST_SUB_ASSIGN:
+                case AST_MUL_ASSIGN:
+                case AST_DIV_ASSIGN:
+                case AST_MOD_ASSIGN:
+                case AST_SHL_ASSIGN:
+                case AST_SHR_ASSIGN:
+                case AST_BAND_ASSIGN:
+                case AST_BOR_ASSIGN:
+                case AST_BXOR_ASSIGN:
+                case AST_ASSIGN: {
+                    AstBinary* n = (AstBinary*)node;
+                    checkForUntypedNodes(context, n->right);
+                    checkForUntypedNodes(context, n->left);
+                    break;
+                }
+                case AST_INDEX:
+                case AST_SUB:
+                case AST_MUL:
+                case AST_DIV:
+                case AST_MOD:
+                case AST_SHL:
+                case AST_SHR:
+                case AST_BAND:
+                case AST_BOR:
+                case AST_BXOR:
+                case AST_ADD:
+                case AST_OR:
+                case AST_AND:
+                case AST_EQ:
+                case AST_NE:
+                case AST_LE:
+                case AST_GE:
+                case AST_LT:
+                case AST_GT: {
+                    AstBinary* n = (AstBinary*)node;
+                    checkForUntypedNodes(context, n->left);
+                    checkForUntypedNodes(context, n->right);
+                    break;
+                }
+                case AST_POS:
+                case AST_NEG:
+                case AST_ADDR:
+                case AST_NOT:
+                case AST_DEREF: {
+                    AstUnary* n = (AstUnary*)node;
+                    checkForUntypedNodes(context, n->op);
+                    break;
+                }
+                case AST_RETURN: {
+                    AstUnary* n = (AstUnary*)node;
+                    checkForUntypedNodes(context, n->op);
+                    break;
+                }
+                case AST_LIST: {
+                    AstList* n = (AstList*)node;
+                    for (size_t i = 0; i < n->count; i++) {
+                        checkForUntypedNodes(context, n->nodes[i]);
+                    }
+                    break;
+                }
+                case AST_ROOT: {
+                    AstRoot* n = (AstRoot*)node;
+                    checkForUntypedNodes(context, (AstNode*)n->nodes);
+                    break;
+                }
+                case AST_BLOCK: {
+                    AstBlock* n = (AstBlock*)node;
+                    checkForUntypedNodes(context, (AstNode*)n->nodes);
+                    break;
+                }
+                case AST_IF_ELSE: {
+                    AstIfElse* n = (AstIfElse*)node;
+                    checkForUntypedNodes(context, n->condition);
+                    checkForUntypedNodes(context, n->if_block);
+                    checkForUntypedNodes(context, n->else_block);
+                    break;
+                }
+                case AST_WHILE: {
+                    AstWhile* n = (AstWhile*)node;
+                    checkForUntypedNodes(context, n->condition);
+                    checkForUntypedNodes(context, n->block);
+                    break;
+                }
+                case AST_CALL: {
+                    AstCall* n = (AstCall*)node;
+                    checkForUntypedNodes(context, n->function);
+                    checkForUntypedNodes(context, (AstNode*)n->arguments);
+                    break;
+                }
+                case AST_FN: {
+                    AstFn* n = (AstFn*)node;
+                    checkForUntypedNodes(context, (AstNode*)n->arguments);
+                    checkForUntypedNodes(context, n->body);
+                    break;
+                }
+                case AST_VARDEF: {
+                    AstVarDef* n = (AstVarDef*)node;
+                    checkForUntypedNodes(context, n->val);
+                    break;
+                }
+            }
+        }
+    }
+}
+
+static void raiseLiteralTypeError(CompilerContext* context, AstNode* node, const char* kind) {
+    String actual_type = buildTypeName(node->res_type);
+    String message = createFormattedString(
+        "type error, expecting expression of type `%S` but found %s literal", actual_type, kind
+    );
+    MessageFragment* error = createMessageFragment(
+        MESSAGE_ERROR, createFormattedString("%s literals are not of type `%S`", kind, actual_type),
+        node->location
+    );
+    if (node->res_type_reasoning != NULL) {
+        addMessageToContext(
+            &context->msgs,
+            createMessage(
+                ERROR_UNINFERRED_TYPE, message, 2, error,
+                createMessageFragment(
+                    MESSAGE_NOTE,
+                    createFormattedString("note: expecting `%S` because of this", actual_type),
+                    node->res_type_reasoning->location
+                )
+            )
+        );
+    } else {
+        addMessageToContext(
+            &context->msgs, createMessage(ERROR_UNINFERRED_TYPE, message, 1, error)
+        );
+    }
+    freeString(actual_type);
+}
+
+static void raiseOpTypeError(CompilerContext* context, AstNode* node, Type* t) {
+    String type = buildTypeName(t);
+    addMessageToContext(
+        &context->msgs,
+        createMessage(
+            ERROR_INCOMPATIBLE_TYPE,
+            createFormattedString("type error, incompatible type `%S` for %s expession", type, getAstPrintName(node->kind)), 1,
+            createMessageFragment(MESSAGE_ERROR, createFormattedString("`%S` type not allowed here", type), node->location)
+        )
+    );
+    freeString(type);
+}
+
+static bool isNodeLValue(AstNode* node) {
+    return node != NULL && (node->kind == AST_VAR || node->kind == AST_DEREF || node->kind == AST_INDEX);
+}
+
+static void checkNodeIsLValue(CompilerContext* context, AstNode* node) {
+    if (!isNodeLValue(node)) {
+        addMessageToContext(
+            &context->msgs,
+            createMessage(
+                ERROR_INCOMPATIBLE_TYPE,
+                copyFromCString("the left side of an assignment is not writable"), 1,
+                createMessageFragment(MESSAGE_ERROR, copyFromCString("expected this to be writable"), node->location)
+            )
+        );
+    }
+}
+
+static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
+    if (node != NULL) {
+        switch (node->kind) {
+            case AST_NEVER:
+            case AST_ARRAY:
+                UNREACHABLE(", should not evaluate");
+            case AST_ERROR:
+            case AST_TYPEDEF:
+            case AST_ARGDEF:
+            case AST_VAR:
+                break;
+            case AST_STR: {
+                TypePointer* ptr_type = isPointerType(node->res_type);
+                TypeSizedPrimitive* int_type = NULL;
+                if (ptr_type != NULL) {
+                    int_type = isUnsignedIntegerType(ptr_type->base);
+                }
+                if (int_type == NULL || int_type->size != 8) {
+                    raiseLiteralTypeError(context, node, "string");
+                }
+                break;
+            }
+            case AST_INT: {
+                TypeSizedPrimitive* int_type = isIntegerType(node->res_type);
+                if (int_type == NULL) {
+                    raiseLiteralTypeError(context, node, "integer");
+                }
+                break;
+            }
+            case AST_REAL: {
+                TypeSizedPrimitive* real_type = isRealType(node->res_type);
+                if (real_type == NULL) {
+                    raiseLiteralTypeError(context, node, "real");
+                }
+                break;
+            }
+            case AST_ADD_ASSIGN:
+            case AST_SUB_ASSIGN:
+            case AST_MUL_ASSIGN:
+            case AST_DIV_ASSIGN: {
+                AstBinary* n = (AstBinary*)node;
+                TypeSizedPrimitive* type = isNumericType(n->left->res_type);
+                if (type == NULL) {
+                    raiseOpTypeError(context, node, n->left->res_type);
+                } else {
+                    checkNodeIsLValue(context, n->left);
+                }
+                checkTypeConstraints(context, n->right);
+                checkTypeConstraints(context, n->left);
+                break;
+            }
+            case AST_MOD_ASSIGN:
+            case AST_SHL_ASSIGN:
+            case AST_SHR_ASSIGN:
+            case AST_BAND_ASSIGN:
+            case AST_BOR_ASSIGN:
+            case AST_BXOR_ASSIGN: {
+                AstBinary* n = (AstBinary*)node;
+                TypeSizedPrimitive* type = isIntegerType(n->left->res_type);
+                if (type == NULL) {
+                    raiseOpTypeError(context, node, n->left->res_type);
+                } else {
+                    checkNodeIsLValue(context, n->left);
+                }
+                checkTypeConstraints(context, n->right);
+                checkTypeConstraints(context, n->left);
+                break;
+            }
+            case AST_ASSIGN: {
+                AstBinary* n = (AstBinary*)node;
+                checkNodeIsLValue(context, n->left);
+                checkTypeConstraints(context, n->right);
+                checkTypeConstraints(context, n->left);
+                break;
+            }
+            case AST_INDEX:
+            case AST_SUB:
+            case AST_MUL:
+            case AST_DIV:
+            case AST_MOD:
+            case AST_SHL:
+            case AST_SHR:
+            case AST_BAND:
+            case AST_BOR:
+            case AST_BXOR:
+            case AST_ADD:
+            case AST_OR:
+            case AST_AND:
+            case AST_EQ:
+            case AST_NE:
+            case AST_LE:
+            case AST_GE:
+            case AST_LT:
+            case AST_GT: {
+                AstBinary* n = (AstBinary*)node;
+                checkTypeConstraints(context, n->left);
+                checkTypeConstraints(context, n->right);
+                break;
+            }
+            case AST_POS:
+            case AST_NEG:
+            case AST_ADDR:
+            case AST_NOT:
+            case AST_DEREF: {
+                AstUnary* n = (AstUnary*)node;
+                checkTypeConstraints(context, n->op);
+                break;
+            }
+            case AST_RETURN: {
+                AstUnary* n = (AstUnary*)node;
+                checkTypeConstraints(context, n->op);
+                break;
+            }
+            case AST_LIST: {
+                AstList* n = (AstList*)node;
+                for (size_t i = 0; i < n->count; i++) {
+                    checkTypeConstraints(context, n->nodes[i]);
+                }
+                break;
+            }
+            case AST_ROOT: {
+                AstRoot* n = (AstRoot*)node;
+                checkTypeConstraints(context, (AstNode*)n->nodes);
+                break;
+            }
+            case AST_BLOCK: {
+                AstBlock* n = (AstBlock*)node;
+                checkTypeConstraints(context, (AstNode*)n->nodes);
+                break;
+            }
+            case AST_IF_ELSE: {
+                AstIfElse* n = (AstIfElse*)node;
+                checkTypeConstraints(context, n->condition);
+                checkTypeConstraints(context, n->if_block);
+                checkTypeConstraints(context, n->else_block);
+                break;
+            }
+            case AST_WHILE: {
+                AstWhile* n = (AstWhile*)node;
+                checkTypeConstraints(context, n->condition);
+                checkTypeConstraints(context, n->block);
+                break;
+            }
+            case AST_CALL: {
+                AstCall* n = (AstCall*)node;
+                checkTypeConstraints(context, n->function);
+                checkTypeConstraints(context, (AstNode*)n->arguments);
+                break;
+            }
+            case AST_FN: {
+                AstFn* n = (AstFn*)node;
+                checkTypeConstraints(context, (AstNode*)n->arguments);
+                checkTypeConstraints(context, n->body);
+                break;
+            }
+            case AST_VARDEF: {
+                AstVarDef* n = (AstVarDef*)node;
+                checkTypeConstraints(context, n->val);
+                break;
+            }
+        }
+    }
+}
+
 static void checkTypes(CompilerContext* context, AstNode* node) {
+    if (context->msgs.error_count == 0) {
+        checkForUntypedVariables(context, node);
+    }
+    if (context->msgs.error_count == 0) {
+        checkForUntypedNodes(context, node);
+    }
+    if (context->msgs.error_count == 0) {
+        checkTypeConstraints(context, node);
+    }
     // TODO:
     //  - Check not inferred variable types
     //  - Check not inferred node types
@@ -825,8 +1321,6 @@ void runTypeChecking(CompilerContext* context) {
     FOR_ALL_MODULES({ diffuseTypesOnAllNodes(context, file->ast); });
     FOR_ALL_MODULES({ assumeAmbiguousTypes(context, file->ast); });
     FOR_ALL_MODULES({ diffuseTypesOnAllNodes(context, file->ast); });
-    if (context->msgs.error_count == 0) {
-        FOR_ALL_MODULES({ checkTypes(context, file->ast); });
-    }
+    FOR_ALL_MODULES({ checkTypes(context, file->ast); });
 }
 

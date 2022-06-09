@@ -92,6 +92,8 @@ TypeSizedPrimitive* isDoubleType(Type* type);
 
 TypeSizedPrimitive* isRealType(Type* type);
 
+TypeSizedPrimitive* isNumericType(Type* type);
+
 Type* isBooleanType(Type* type);
 
 TypePointer* isPointerType(Type* type);

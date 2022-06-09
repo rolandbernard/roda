@@ -15,6 +15,7 @@ static const char* message_kind_strings[] = {
     [ERROR_INCOMPATIBLE_TYPE] = "incompatible-type",
     [ERROR_NOT_CONSTEXPR] = "not-constexpr",
     [ERROR_INVALID_ARRAY_LENGTH] = "invalid-array-length",
+    [ERROR_UNINFERRED_TYPE] = "uninfered-type",
     [WARNING_UNKNOWN] = "unknown",
     [WARNING_CMD_ARGS] = "cmd-line-args",
     [NOTE_UNKNOWN] = "unknown",

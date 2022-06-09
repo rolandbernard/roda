@@ -15,7 +15,9 @@ void initMessageContext(MessageContext* message_context, const MessageFilter* fi
 
 void clearMessageContext(MessageContext* context) {
     deinitMessageContext(context);
-    initMessageContext(context, context->filter);
+    context->messages = NULL;
+    context->message_count = 0;
+    context->message_capacity = 0;
 }
 
 void deinitMessageContext(MessageContext* message_context) {

@@ -373,6 +373,12 @@ CYCLIC_CHECK(
 )
 
 CYCLIC_CHECK(
+    TypeSizedPrimitive, isNumericType,
+    if (type->kind == TYPE_REAL || type->kind == TYPE_INT || type->kind == TYPE_UINT) { return (TypeSizedPrimitive*)type; },
+    else { return NULL; }
+)
+
+CYCLIC_CHECK(
     Type, isBooleanType,
     if (type->kind == TYPE_BOOL) { return type; },
     else { return NULL; }
