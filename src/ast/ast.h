@@ -11,7 +11,6 @@
 
 typedef enum {
     AST_ERROR,
-    AST_NEVER,
 
     // AstBinary
     AST_ADD,

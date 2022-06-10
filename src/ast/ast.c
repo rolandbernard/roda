@@ -296,7 +296,6 @@ void freeAstNode(AstNode* node) {
             }
             case AST_VAR:
             case AST_ERROR:
-            case AST_NEVER:
             case AST_INT:
             case AST_REAL: break;
         }

@@ -8,7 +8,6 @@
 
 typedef enum {
     TYPE_ERROR,
-    TYPE_NEVER,
     TYPE_VOID,
     TYPE_BOOL,
     TYPE_INT,
@@ -101,6 +100,10 @@ TypePointer* isPointerType(Type* type);
 TypeArray* isArrayType(Type* type);
 
 TypeFunction* isFunctionType(Type* type);
+
+bool isValidType(Type* type);
+
+bool isSizedType(Type* type);
 
 bool isErrorType(Type* type);
 

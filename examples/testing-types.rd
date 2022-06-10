@@ -1,10 +1,7 @@
 
-type TypeA = [5]*TypeA;
-type TypeB = *[5]TypeB;
+type TypeC = *TypeC;
 
 fn main(test: i32): int {
-    let a: *TypeA;
-    let b: TypeB;
-    a = b;
+    let c: TypeC;
 }
 

@@ -122,10 +122,6 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
                 }
                 break;
             }
-            case AST_NEVER: {
-                node->res_type = createUnsizedPrimitiveType(&context->types, TYPE_NEVER);
-                break;
-            }
         }
         return node->res_type;
     }

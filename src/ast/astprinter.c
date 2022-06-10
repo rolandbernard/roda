@@ -10,7 +10,6 @@
 
 static const char* ast_type_names[] = {
     [AST_ERROR] = "error",
-    [AST_NEVER] = "never",
 
     // AstBinary
     [AST_ADD] = "add",
@@ -203,7 +202,6 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
     }
     if (node != NULL) {
         switch (node->kind) {
-            case AST_NEVER:
             case AST_ERROR: {
                 printAstNodeExtraInfo(file, node, colors);
                 fprintf(file, "\n");

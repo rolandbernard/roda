@@ -19,7 +19,6 @@
 static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
-            case AST_NEVER:
             case AST_ARRAY: {
                 UNREACHABLE(", should not evaluate");
             }
@@ -221,6 +220,178 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
     }
 }
 
+static void checkTypeValidity(CompilerContext* context, AstNode* node) {
+    if (node != NULL) {
+        switch (node->kind) {
+            case AST_ARRAY: {
+                UNREACHABLE(", should not evaluate");
+            }
+            case AST_ERROR: {
+                node->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
+                break;
+            }
+            case AST_VAR:
+            case AST_STR:
+            case AST_INT:
+            case AST_REAL:
+                break;
+            case AST_ADD_ASSIGN:
+            case AST_SUB_ASSIGN:
+            case AST_MUL_ASSIGN:
+            case AST_DIV_ASSIGN:
+            case AST_MOD_ASSIGN:
+            case AST_SHL_ASSIGN:
+            case AST_SHR_ASSIGN:
+            case AST_BAND_ASSIGN:
+            case AST_BOR_ASSIGN:
+            case AST_BXOR_ASSIGN:
+            case AST_ASSIGN: {
+                AstBinary* n = (AstBinary*)node;
+                checkTypeValidity(context, n->right);
+                checkTypeValidity(context, n->left);
+                break;
+            }
+            case AST_INDEX:
+            case AST_SUB:
+            case AST_MUL:
+            case AST_DIV:
+            case AST_MOD:
+            case AST_SHL:
+            case AST_SHR:
+            case AST_BAND:
+            case AST_BOR:
+            case AST_BXOR:
+            case AST_ADD: {
+                AstBinary* n = (AstBinary*)node;
+                checkTypeValidity(context, n->left);
+                checkTypeValidity(context, n->right);
+                break;
+            }
+            case AST_OR:
+            case AST_AND: {
+                AstBinary* n = (AstBinary*)node;
+                checkTypeValidity(context, n->left);
+                checkTypeValidity(context, n->right);
+                break;
+            }
+            case AST_EQ:
+            case AST_NE:
+            case AST_LE:
+            case AST_GE:
+            case AST_LT:
+            case AST_GT: {
+                AstBinary* n = (AstBinary*)node;
+                checkTypeValidity(context, n->left);
+                checkTypeValidity(context, n->right);
+                break;
+            }
+            case AST_POS:
+            case AST_NEG:
+            case AST_ADDR:
+            case AST_NOT:
+            case AST_DEREF: {
+                AstUnary* n = (AstUnary*)node;
+                checkTypeValidity(context, n->op);
+                break;
+            }
+            case AST_RETURN: {
+                AstUnary* n = (AstUnary*)node;
+                checkTypeValidity(context, n->op);
+                break;
+            }
+            case AST_LIST: {
+                AstList* n = (AstList*)node;
+                for (size_t i = 0; i < n->count; i++) {
+                    checkTypeValidity(context, n->nodes[i]);
+                }
+                break;
+            }
+            case AST_ROOT: {
+                AstRoot* n = (AstRoot*)node;
+                checkTypeValidity(context, (AstNode*)n->nodes);
+                break;
+            }
+            case AST_BLOCK: {
+                AstBlock* n = (AstBlock*)node;
+                checkTypeValidity(context, (AstNode*)n->nodes);
+                break;
+            }
+            case AST_VARDEF: {
+                AstVarDef* n = (AstVarDef*)node;
+                if (n->type != NULL) {
+                    SymbolVariable* var = (SymbolVariable*)n->name->binding;
+                    if (var != NULL) {
+                        var->type = evaluateTypeExpr(context, n->type);
+                        var->type_reasoning = n->type;
+                        n->name->res_type = var->type;
+                        n->name->res_type_reasoning = n->type;
+                    }
+                }
+                checkTypeValidity(context, n->val);
+                break;
+            }
+            case AST_IF_ELSE: {
+                AstIfElse* n = (AstIfElse*)node;
+                checkTypeValidity(context, n->condition);
+                checkTypeValidity(context, n->if_block);
+                checkTypeValidity(context, n->else_block);
+                break;
+            }
+            case AST_WHILE: {
+                AstWhile* n = (AstWhile*)node;
+                checkTypeValidity(context, n->condition);
+                checkTypeValidity(context, n->block);
+                break;
+            }
+            case AST_FN: {
+                AstFn* n = (AstFn*)node;
+                checkTypeValidity(context, (AstNode*)n->arguments);
+                TypeFunction* type = isFunctionType(n->name->res_type);
+                if (type != NULL && !isValidType(type->ret_type)) {
+                    String type_name = buildTypeName(type->ret_type);
+                    addMessageToContext(&context->msgs, createMessage(ERROR_INVALID_TYPE,
+                        createFormattedString("type error, invalid function return type `%S`", type_name), 1,
+                        createMessageFragment(MESSAGE_ERROR, createFormattedString("this type is invalid"), n->ret_type->location)
+                    ));
+                    freeString(type_name);
+                }
+                checkTypeValidity(context, n->body);
+                break;
+            }
+            case AST_CALL: {
+                AstCall* n = (AstCall*)node;
+                checkTypeValidity(context, n->function);
+                checkTypeValidity(context, (AstNode*)n->arguments);
+                break;
+            }
+            case AST_TYPEDEF: {
+                AstTypeDef* n = (AstTypeDef*)node;
+                if (n->name->res_type != NULL && !isValidType(n->name->res_type)) {
+                    String type_name = buildTypeName(n->name->res_type);
+                    addMessageToContext(&context->msgs, createMessage(ERROR_INVALID_TYPE,
+                        createFormattedString("type error, definition of invalid type `%S`", type_name), 1,
+                        createMessageFragment(MESSAGE_ERROR, createFormattedString("this type is invalid"), n->value->location)
+                    ));
+                    freeString(type_name);
+                }
+                break;
+            }
+            case AST_ARGDEF: {
+                AstArgDef* n = (AstArgDef*)node;
+                if (n->name->res_type != NULL && !isValidType(n->name->res_type)) {
+                    String type_name = buildTypeName(n->name->res_type);
+                    addMessageToContext(&context->msgs, createMessage(ERROR_INVALID_TYPE,
+                        createFormattedString("type error, variable has invalid type `%S`", type_name), 1,
+                        createMessageFragment(MESSAGE_ERROR, createFormattedString("this type is invalid"), n->type->location)
+                    ));
+                    freeString(type_name);
+                }
+                break;
+            }
+        }
+    }
+}
+
 static void diffuseTypes(CompilerContext* context, AstNode* node);
 
 static bool diffuseTypeIntoAstNode(CompilerContext* context, AstNode* node, Type* type, AstNode* reasoning) {
@@ -274,7 +445,6 @@ static bool diffuseTypeFromIntoAstNode(CompilerContext* context, AstNode* into, 
 static void diffuseTypes(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
-            case AST_NEVER:
             case AST_ARRAY: 
                 UNREACHABLE(", should not evaluate");
             case AST_ERROR:
@@ -555,7 +725,6 @@ static void diffuseTypesOnAllNodes(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         diffuseTypes(context, node);
         switch (node->kind) {
-            case AST_NEVER:
             case AST_ARRAY:
                 UNREACHABLE(", should not evaluate");
             case AST_ERROR:
@@ -684,7 +853,6 @@ static void diffuseTypesOnAllNodes(CompilerContext* context, AstNode* node) {
 static void assumeAmbiguousTypes(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
-            case AST_NEVER:
             case AST_ARRAY:
                 UNREACHABLE(", should not evaluate");
             case AST_ERROR:
@@ -817,12 +985,10 @@ static void assumeAmbiguousTypes(CompilerContext* context, AstNode* node) {
 static void checkForUntypedVariables(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
-            case AST_NEVER:
             case AST_ARRAY:
                 UNREACHABLE(", should not evaluate");
             case AST_ERROR:
             case AST_TYPEDEF:
-            case AST_ARGDEF:
             case AST_VAR:
             case AST_STR:
             case AST_INT:
@@ -920,25 +1086,49 @@ static void checkForUntypedVariables(CompilerContext* context, AstNode* node) {
             }
             case AST_FN: {
                 AstFn* n = (AstFn*)node;
-                checkForUntypedVariables(context, (AstNode*)n->arguments);
-                checkForUntypedVariables(context, n->body);
                 if (n->name->res_type == NULL) {
                     addMessageToContext(&context->msgs, createMessage(ERROR_UNINFERRED_TYPE,
                         createFormattedString("type error, unable to infer the type of function `%s`", n->name->name), 1,
                         createMessageFragment(MESSAGE_ERROR, createFormattedString("unable to infer the type of this function"), n->name->location)
                     ));
                 }
+                checkForUntypedVariables(context, (AstNode*)n->arguments);
+                checkForUntypedVariables(context, n->body);
                 break;
             }
-            case AST_VARDEF: {
-                AstVarDef* n = (AstVarDef*)node;
-                checkForUntypedVariables(context, n->val);
+            case AST_ARGDEF: {
+                AstArgDef* n = (AstArgDef*)node;
                 if (n->name->res_type == NULL) {
                     addMessageToContext(&context->msgs, createMessage(ERROR_UNINFERRED_TYPE,
                         createFormattedString("type error, unable to infer the type of variable `%s`", n->name->name), 1,
                         createMessageFragment(MESSAGE_ERROR, copyFromCString("unable to infer the type of this variable"), n->name->location)
                     ));
+                } else if (!isErrorType(n->name->res_type) && !isSizedType(n->name->res_type)) {
+                    String type_name = buildTypeName(n->res_type);
+                    addMessageToContext(&context->msgs, createMessage(ERROR_INVALID_TYPE,
+                        createFormattedString("type error, unsized type `%S` for variable `%s`", type_name, n->name->name), 1,
+                        createMessageFragment(MESSAGE_ERROR, copyFromCString("variable with unsized type"), n->name->location)
+                    ));
+                    freeString(type_name);
                 }
+                break;
+            }
+            case AST_VARDEF: {
+                AstVarDef* n = (AstVarDef*)node;
+                if (n->name->res_type == NULL) {
+                    addMessageToContext(&context->msgs, createMessage(ERROR_UNINFERRED_TYPE,
+                        createFormattedString("type error, unable to infer the type of variable `%s`", n->name->name), 1,
+                        createMessageFragment(MESSAGE_ERROR, copyFromCString("unable to infer the type of this variable"), n->name->location)
+                    ));
+                } else if (!isErrorType(n->name->res_type) && !isSizedType(n->name->res_type)) {
+                    String type_name = buildTypeName(n->res_type);
+                    addMessageToContext(&context->msgs, createMessage(ERROR_INVALID_TYPE,
+                        createFormattedString("type error, unsized type `%S` for variable `%s`", type_name, n->name->name), 1,
+                        createMessageFragment(MESSAGE_ERROR, copyFromCString("variable with unsized type"), n->name->location)
+                    ));
+                    freeString(type_name);
+                }
+                checkForUntypedVariables(context, n->val);
                 break;
             }
         }
@@ -954,7 +1144,6 @@ static void checkForUntypedNodes(CompilerContext* context, AstNode* node) {
             ));
         } else {
             switch (node->kind) {
-                case AST_NEVER:
                 case AST_ARRAY:
                     UNREACHABLE(", should not evaluate");
                 case AST_ERROR:
@@ -1133,7 +1322,6 @@ static void checkNodeIsLValue(CompilerContext* context, AstNode* node) {
 static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
-            case AST_NEVER:
             case AST_ARRAY:
                 UNREACHABLE(", should not evaluate");
             case AST_ERROR:
@@ -1318,6 +1506,7 @@ static void checkTypes(CompilerContext* context, AstNode* node) {
 
 void runTypeChecking(CompilerContext* context) {
     FOR_ALL_MODULES({ evaluateTypeHints(context, file->ast); });
+    FOR_ALL_MODULES({ checkTypeValidity(context, file->ast); });
     FOR_ALL_MODULES({ diffuseTypesOnAllNodes(context, file->ast); });
     FOR_ALL_MODULES({ assumeAmbiguousTypes(context, file->ast); });
     FOR_ALL_MODULES({ diffuseTypesOnAllNodes(context, file->ast); });

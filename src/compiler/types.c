@@ -26,7 +26,6 @@ static void freeType(Type* type) {
     if (type != NULL) {
         switch (type->kind) {
             case TYPE_ERROR:
-            case TYPE_NEVER:
             case TYPE_VOID:
             case TYPE_BOOL:
             case TYPE_INT:
@@ -63,7 +62,6 @@ static bool shallowCompareTypes(const Type* a, const Type* b) {
     } else {
         switch (a->kind) {
             case TYPE_ERROR:
-            case TYPE_NEVER:
             case TYPE_VOID:
             case TYPE_BOOL:
                 return true;
@@ -112,7 +110,6 @@ static size_t shallowHashType(const Type* type) {
     ASSERT(type != NULL);
     switch (type->kind) {
         case TYPE_ERROR:
-        case TYPE_NEVER:
         case TYPE_VOID:
         case TYPE_BOOL:
             return hashInt(type->kind);
@@ -241,10 +238,6 @@ static void buildTypeNameInto(String* dst, const Type* type) {
         switch (type->kind) {
             case TYPE_ERROR: {
                 *dst = pushToString(*dst, str("error"));
-                break;
-            }
-            case TYPE_NEVER: {
-                *dst = pushToString(*dst, str("!"));
                 break;
             }
             case TYPE_VOID: {
@@ -412,6 +405,31 @@ TypeFunction* isFunctionType(Type* type) {
     return (TypeFunction*)isTypeOfKind(type, TYPE_FUNCTION);
 }
 
+bool isErrorType(Type* type) {
+    return type->kind == TYPE_ERROR;
+}
+
+STRUCTURAL_TYPE_CHECK(
+    bool, isValidType,
+    if (
+        type->kind == TYPE_ERROR || type->kind == TYPE_VOID || type->kind == TYPE_BOOL || type->kind == TYPE_INT
+        || type->kind == TYPE_UINT || type->kind == TYPE_REAL || type->kind == TYPE_POINTER || type->kind == TYPE_FUNCTION
+    ) {
+        String type_str = buildTypeName(type);
+        fprintf(stderr, "%s\n", cstr(type_str));
+        freeString(type_str);
+        return true;
+    } else if (type->kind == TYPE_ARRAY) {
+        TypeArray* array = (TypeArray*)type;
+        return isValidTypeHelper(array->base, stack);
+    },
+    else { return false; }
+)
+
+bool isSizedType(Type* type) {
+    return !isErrorType(type) && isValidType(type);
+}
+
 typedef struct DoubleTypeReferenceStack {
     struct DoubleTypeReferenceStack* last;
     Type* types[2];
@@ -465,7 +483,6 @@ static bool compareStructuralTypesHelper(Type* a, Type* b, DoubleTypeReferenceSt
     } else {
         switch (a->kind) {
             case TYPE_ERROR:
-            case TYPE_NEVER:
             case TYPE_VOID:
             case TYPE_BOOL:
                 return true;
@@ -523,10 +540,6 @@ static bool compareStructuralTypesHelper(Type* a, Type* b, DoubleTypeReferenceSt
         }
         UNREACHABLE(", unhandled type kind");
     }
-}
-
-bool isErrorType(Type* type) {
-    return type->kind == TYPE_ERROR;
 }
 
 bool compareStructuralTypes(Type* a, Type* b) {

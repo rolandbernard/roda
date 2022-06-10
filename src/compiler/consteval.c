@@ -231,7 +231,6 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
             case AST_ASSIGN:
             case AST_RETURN:
             case AST_ARRAY:
-            case AST_NEVER:
             case AST_ROOT:
             case AST_LIST:
             case AST_BLOCK:
