@@ -416,7 +416,6 @@ STRUCTURAL_TYPE_CHECK(
         || type->kind == TYPE_UINT || type->kind == TYPE_REAL || type->kind == TYPE_POINTER || type->kind == TYPE_FUNCTION
     ) {
         String type_str = buildTypeName(type);
-        fprintf(stderr, "%s\n", cstr(type_str));
         freeString(type_str);
         return true;
     } else if (type->kind == TYPE_ARRAY) {
