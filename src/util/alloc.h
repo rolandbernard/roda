@@ -11,11 +11,11 @@ void* checkedCalloc(size_t n, size_t size);
 
 #define NEW(TYPE) ALLOC(TYPE, 1)
 
-#define ALLOC(TYPE, COUNT) ((TYPE*)checkedAlloc(sizeof(TYPE) * (COUNT)))
+#define ALLOC(TYPE, COUNT) (checkedAlloc(sizeof(TYPE) * (COUNT)))
 
-#define REALLOC(TYPE, OLD, COUNT) ((TYPE*)checkedRealloc(OLD, sizeof(TYPE) * (COUNT)))
+#define REALLOC(TYPE, OLD, COUNT) (checkedRealloc(OLD, sizeof(TYPE) * (COUNT)))
 
-#define ZALLOC(TYPE, COUNT) ((TYPE*)checkedCalloc(COUNT, sizeof(TYPE)))
+#define ZALLOC(TYPE, COUNT) (checkedCalloc(COUNT, sizeof(TYPE)))
 
 #define FREE(PTR) free(PTR)
 

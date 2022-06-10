@@ -71,7 +71,7 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
                     n->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
                 } else {
                     SymbolVariable* var = (SymbolVariable*)n->binding;
-                    n->res_type = (Type*)createTypeReference(&context->types, (SymbolType*)var);;
+                    n->res_type = createTypeReference(&context->types, (SymbolType*)var);;
                 }
                 break;
             }
@@ -81,7 +81,7 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
                 if (base->kind == TYPE_ERROR) {
                     n->res_type = base;
                 } else {
-                    n->res_type = (Type*)createPointerType(&context->types, base);
+                    n->res_type = createPointerType(&context->types, base);
                 }
                 break;
             }
@@ -118,7 +118,7 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
                     n->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
                 } else {
                     size_t len = size_type->kind == TYPE_INT ? (size_t)size.sint : (size_t)size.uint;
-                    n->res_type = (Type*)createArrayType(&context->types, base, len);
+                    n->res_type = createArrayType(&context->types, base, len);
                 }
                 break;
             }

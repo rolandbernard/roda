@@ -67,15 +67,15 @@ void deinitTypeContext(TypeContext* cxt);
 
 Type* createUnsizedPrimitiveType(TypeContext* cxt, TypeKind kind);
 
-TypeSizedPrimitive* createSizedPrimitiveType(TypeContext* cxt, TypeKind kind, size_t size);
+Type* createSizedPrimitiveType(TypeContext* cxt, TypeKind kind, size_t size);
 
-TypePointer* createPointerType(TypeContext* cxt, Type* base);
+Type* createPointerType(TypeContext* cxt, Type* base);
 
-TypeArray* createArrayType(TypeContext* cxt, Type* base, size_t size);
+Type* createArrayType(TypeContext* cxt, Type* base, size_t size);
 
-TypeFunction* createFunctionType(TypeContext* cxt, Type* ret_type, size_t arg_count, Type** arguments);
+Type* createFunctionType(TypeContext* cxt, Type* ret_type, size_t arg_count, Type** arguments);
 
-TypeReference* createTypeReference(TypeContext* cxt, struct SymbolType* binding);
+Type* createTypeReference(TypeContext* cxt, struct SymbolType* binding);
 
 String buildTypeName(const Type* type);
 

@@ -201,34 +201,54 @@ Type* createUnsizedPrimitiveType(TypeContext* cxt, TypeKind kind) {
     return createTypeIfAbsent(cxt, &type, sizeof(Type), NULL);
 }
 
-TypeSizedPrimitive* createSizedPrimitiveType(TypeContext* cxt, TypeKind kind, size_t size) {
+Type* createSizedPrimitiveType(TypeContext* cxt, TypeKind kind, size_t size) {
     TypeSizedPrimitive type = { .kind = kind, .size = size };
-    return (TypeSizedPrimitive*)createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeSizedPrimitive), NULL);
+    return createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeSizedPrimitive), NULL);
 }
 
-TypePointer* createPointerType(TypeContext* cxt, Type* base) {
-    TypePointer type = { .kind = TYPE_POINTER, .base = base };
-    return (TypePointer*)createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypePointer), NULL);
-}
-
-TypeArray* createArrayType(TypeContext* cxt, Type* base, size_t size) {
-    TypeArray type = { .kind = TYPE_ARRAY, .base = base, .size = size };
-    return (TypeArray*)createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeArray), NULL);
-}
-
-TypeFunction* createFunctionType(TypeContext* cxt, Type* ret_type, size_t arg_count, Type** arguments) {
-    TypeFunction type = { .kind = TYPE_FUNCTION, .ret_type = ret_type, .arguments = arguments, .arg_count = arg_count };
-    bool new;
-    TypeFunction* ret = (TypeFunction*)createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeFunction), &new);
-    if (!new) {
-        FREE(arguments);
+Type* createPointerType(TypeContext* cxt, Type* base) {
+    if (isErrorType(base)) {
+        return base;
+    } else {
+        TypePointer type = { .kind = TYPE_POINTER, .base = base };
+        return createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypePointer), NULL);
     }
-    return ret;
 }
 
-TypeReference* createTypeReference(TypeContext* cxt, struct SymbolType* binding) {
+Type* createArrayType(TypeContext* cxt, Type* base, size_t size) {
+    if (isErrorType(base)) {
+        return base;
+    } else {
+        TypeArray type = { .kind = TYPE_ARRAY, .base = base, .size = size };
+        return createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeArray), NULL);
+    }
+}
+
+Type* createFunctionType(TypeContext* cxt, Type* ret_type, size_t arg_count, Type** arguments) {
+    if (isErrorType(ret_type)) {
+        FREE(arguments);
+        return ret_type;
+    } else {
+        for (size_t i = 0; i < arg_count; i++) {
+            if (isErrorType(arguments[i])) {
+                Type* ret = arguments[i];
+                FREE(arguments);
+                return ret;
+            }
+        }
+        TypeFunction type = { .kind = TYPE_FUNCTION, .ret_type = ret_type, .arguments = arguments, .arg_count = arg_count };
+        bool new;
+        Type* ret = createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeFunction), &new);
+        if (!new) {
+            FREE(arguments);
+        }
+        return ret;
+    }
+}
+
+Type* createTypeReference(TypeContext* cxt, struct SymbolType* binding) {
     TypeReference type = { .kind = TYPE_REFERENCE, .binding = binding };
-    return (TypeReference*)createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeReference), NULL);
+    return createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeReference), NULL);
 }
 
 static void buildTypeNameInto(String* dst, const Type* type) {
@@ -406,7 +426,7 @@ TypeFunction* isFunctionType(Type* type) {
 }
 
 bool isErrorType(Type* type) {
-    return type->kind == TYPE_ERROR;
+    return type != NULL && type->kind == TYPE_ERROR;
 }
 
 STRUCTURAL_TYPE_CHECK(
