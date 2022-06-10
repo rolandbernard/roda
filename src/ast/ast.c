@@ -173,6 +173,15 @@ AstNode* createAstSimple(Span loc, AstNodeKind kind) {
     return node;
 }
 
+AstReturn* createAstReturn(Span loc, AstNode* value) {
+    AstReturn* node = NEW(AstReturn);
+    initAstNode((AstNode*)node, AST_RETURN, loc);
+    node->value = value;
+    SET_PARENT(value);
+    node->function = NULL;
+    return node;
+}
+
 void freeAstNode(AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
@@ -215,7 +224,6 @@ void freeAstNode(AstNode* node) {
             case AST_POS:
             case AST_NEG:
             case AST_ADDR:
-            case AST_RETURN:
             case AST_NOT:
             case AST_DEREF: {
                 AstUnary* n = (AstUnary*)node;
@@ -292,6 +300,11 @@ void freeAstNode(AstNode* node) {
                 AstArgDef* n = (AstArgDef*)node;
                 freeAstNode((AstNode*)n->name);
                 freeAstNode(n->type);
+                break;
+            }
+            case AST_RETURN: {
+                AstReturn* n = (AstReturn*)node;
+                freeAstNode(n->value);
                 break;
             }
             case AST_VAR:

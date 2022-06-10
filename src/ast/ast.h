@@ -51,7 +51,6 @@ typedef enum {
     AST_ADDR,
     AST_DEREF,
     AST_NOT,
-    AST_RETURN,
 
     // Other
     AST_VAR,
@@ -68,6 +67,7 @@ typedef enum {
     AST_LIST,
     AST_ROOT,
     AST_BLOCK,
+    AST_RETURN,
 } AstNodeKind;
 
 #define AST_NODE_BASE \
@@ -189,6 +189,12 @@ typedef struct {
     AstList* nodes;
 } AstBlock;
 
+typedef struct {
+    AST_NODE_BASE
+    AstNode* value;
+    AstFn* function;
+} AstReturn;
+
 AstNode* createAstSimple(Span loc, AstNodeKind kind);
 
 AstBinary* createAstBinary(Span loc, AstNodeKind kind, AstNode* left, AstNode* right);
@@ -222,6 +228,8 @@ AstStr* createAstStr(Span loc, String string);
 AstTypeDef* createAstTypeDef(Span loc, AstVar* name, AstNode* value);
 
 AstArgDef* createAstArgDef(Span loc, AstVar* name, AstNode* type);
+
+AstReturn* createAstReturn(Span loc, AstNode* value);
 
 void freeAstNode(AstNode* node);
 

@@ -19,6 +19,7 @@ void runCompilation(CompilerContext* context) {
         printAndClearMessages(&context->msgs, stderr, true, true);
     }
     if (context->msgs.error_count == 0) {
+        runControlFlowReferenceResolution(context);
         runSymbolResolution(context);
         printAndClearMessages(&context->msgs, stderr, true, true);
     }

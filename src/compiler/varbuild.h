@@ -5,4 +5,6 @@
 
 void runSymbolResolution(CompilerContext* context);
 
+void runControlFlowReferenceResolution(CompilerContext* context);
+
 #endif

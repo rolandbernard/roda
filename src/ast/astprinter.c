@@ -50,7 +50,6 @@ static const char* ast_type_names[] = {
     [AST_NEG] = "negative",
     [AST_ADDR] = "address of",
     [AST_DEREF] = "dereference",
-    [AST_RETURN] = "return",
     [AST_NOT] = "not",
 
     // AstList
@@ -69,6 +68,7 @@ static const char* ast_type_names[] = {
     [AST_REAL] = "real",
     [AST_STR] = "string",
     [AST_TYPEDEF] = "type definition",
+    [AST_RETURN] = "return",
 };
 
 
@@ -248,7 +248,6 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
             case AST_POS:
             case AST_NEG:
             case AST_ADDR:
-            case AST_RETURN:
             case AST_NOT:
             case AST_DEREF: {
                 AstUnary* n = (AstUnary*)node;
@@ -379,6 +378,13 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
                 fprintf(file, "\n");
                 printAstChildNode(file, (AstNode*)n->name, colors, indent, "name", false);
                 printAstChildNode(file, n->type, colors, indent, "type", true);
+                break;
+            }
+            case AST_RETURN: {
+                AstReturn* n = (AstReturn*)node;
+                printAstNodeExtraInfo(file, node, colors);
+                fprintf(file, "\n");
+                printAstChildNode(file, n->value, colors, indent, "value", true);
                 break;
             }
         }

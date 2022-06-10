@@ -85,11 +85,15 @@ static void recursivelyBuildLocalSymbolTables(CompilerContext* context, AstNode*
             case AST_POS:
             case AST_NEG:
             case AST_ADDR:
-            case AST_RETURN:
             case AST_NOT:
             case AST_DEREF: {
                 AstUnary* n = (AstUnary*)node;
                 recursivelyBuildLocalSymbolTables(context, n->op, scope, type, root);
+                break;
+            }
+            case AST_RETURN: {
+                AstReturn* n = (AstReturn*)node;
+                recursivelyBuildLocalSymbolTables(context, n->value, scope, type, root);
                 break;
             }
             case AST_LIST: {
@@ -299,6 +303,147 @@ void runSymbolResolution(CompilerContext* context) {
         File* file = context->files.files[i];
         if (file->ast != NULL) {
             buildLocalSymbolTables(context, file->ast);
+        }
+    }
+}
+
+static void recursivelyBuildControlFlowReferences(CompilerContext* context, AstNode* node, AstFn* function) {
+    if (node != NULL) {
+        switch (node->kind) {
+            case AST_ADD_ASSIGN:
+            case AST_SUB_ASSIGN:
+            case AST_MUL_ASSIGN:
+            case AST_DIV_ASSIGN:
+            case AST_MOD_ASSIGN:
+            case AST_SHL_ASSIGN:
+            case AST_SHR_ASSIGN:
+            case AST_BAND_ASSIGN:
+            case AST_BOR_ASSIGN:
+            case AST_BXOR_ASSIGN:
+            case AST_ASSIGN: { // Executed right to left
+                AstBinary* n = (AstBinary*)node;
+                recursivelyBuildControlFlowReferences(context, n->right, function);
+                recursivelyBuildControlFlowReferences(context, n->left, function);
+                break;
+            }
+            case AST_INDEX:
+            case AST_SUB:
+            case AST_MUL:
+            case AST_DIV:
+            case AST_MOD:
+            case AST_OR:
+            case AST_AND:
+            case AST_SHL:
+            case AST_SHR:
+            case AST_BAND:
+            case AST_BOR:
+            case AST_BXOR:
+            case AST_EQ:
+            case AST_NE:
+            case AST_LE:
+            case AST_GE:
+            case AST_LT:
+            case AST_GT:
+            case AST_ADD: { // Executed left to right
+                AstBinary* n = (AstBinary*)node;
+                recursivelyBuildControlFlowReferences(context, n->left, function);
+                recursivelyBuildControlFlowReferences(context, n->right, function);
+                break;
+            }
+            case AST_ARRAY: { // Part of a type
+                AstBinary* n = (AstBinary*)node;
+                recursivelyBuildControlFlowReferences(context, n->right, function);
+                recursivelyBuildControlFlowReferences(context, n->left, function);
+                break;
+            }
+            case AST_POS:
+            case AST_NEG:
+            case AST_ADDR:
+            case AST_NOT:
+            case AST_DEREF: {
+                AstUnary* n = (AstUnary*)node;
+                recursivelyBuildControlFlowReferences(context, n->op, function);
+                break;
+            }
+            case AST_RETURN: {
+                AstReturn* n = (AstReturn*)node;
+                n->function = function;
+                recursivelyBuildControlFlowReferences(context, n->value, function);
+                break;
+            }
+            case AST_LIST: {
+                AstList* n = (AstList*)node;
+                for (size_t i = 0; i < n->count; i++) {
+                    recursivelyBuildControlFlowReferences(context, n->nodes[i], function);
+                }
+                break;
+            }
+            case AST_ROOT: {
+                AstRoot* n = (AstRoot*)node;
+                recursivelyBuildControlFlowReferences(context, (AstNode*)n->nodes, function);
+                break;
+            }
+            case AST_BLOCK: {
+                AstBlock* n = (AstBlock*)node;
+                recursivelyBuildControlFlowReferences(context, (AstNode*)n->nodes, function);
+                break;
+            }
+            case AST_VARDEF: {
+                AstVarDef* n = (AstVarDef*)node;
+                recursivelyBuildControlFlowReferences(context, n->type, function);
+                recursivelyBuildControlFlowReferences(context, n->val, function);
+                break;
+            }
+            case AST_IF_ELSE: {
+                AstIfElse* n = (AstIfElse*)node;
+                recursivelyBuildControlFlowReferences(context, n->condition, function);
+                recursivelyBuildControlFlowReferences(context, n->if_block, function);
+                recursivelyBuildControlFlowReferences(context, n->else_block, function);
+                break;
+            }
+            case AST_WHILE: {
+                AstWhile* n = (AstWhile*)node;
+                recursivelyBuildControlFlowReferences(context, n->condition, function);
+                recursivelyBuildControlFlowReferences(context, n->block, function);
+                break;
+            }
+            case AST_FN: {
+                AstFn* n = (AstFn*)node;
+                recursivelyBuildControlFlowReferences(context, n->ret_type, n);
+                recursivelyBuildControlFlowReferences(context, (AstNode*)n->arguments, n);
+                recursivelyBuildControlFlowReferences(context, n->body, n);
+                break;
+            }
+            case AST_CALL: {
+                AstCall* n = (AstCall*)node;
+                recursivelyBuildControlFlowReferences(context, n->function, function);
+                recursivelyBuildControlFlowReferences(context, (AstNode*)n->arguments, function);
+                break;
+            }
+            case AST_TYPEDEF: {
+                AstTypeDef* n = (AstTypeDef*)node;
+                recursivelyBuildControlFlowReferences(context, n->value, function);
+                break;
+            }
+            case AST_ARGDEF: {
+                AstArgDef* n = (AstArgDef*)node;
+                recursivelyBuildControlFlowReferences(context, n->type, function);
+                break;
+            }
+            case AST_VAR:
+            case AST_ERROR:
+            case AST_STR:
+            case AST_INT:
+            case AST_REAL: break;
+        }
+    }
+}
+
+void runControlFlowReferenceResolution(CompilerContext* context) {
+    for (size_t i = 0; i < context->files.file_count; i++) {
+        File* file = context->files.files[i];
+        if (file->ast != NULL) {
+            recursivelyBuildControlFlowReferences(context, file->ast, NULL);
         }
     }
 }

@@ -162,8 +162,8 @@ block_stmt  : error                             { $$ = createAstSimple(@$, AST_E
 
 stmt    : expr                           { $$ = $1; }
         | assign                         { $$ = $1; }
-        | "return"                       { $$ = (AstNode*)createAstUnary(@$, AST_RETURN, NULL); }
-        | "return" expr                  { $$ = (AstNode*)createAstUnary(@$, AST_RETURN, $2); }
+        | "return"                       { $$ = (AstNode*)createAstReturn(@$, NULL); }
+        | "return" expr                  { $$ = (AstNode*)createAstReturn(@$, $2); }
         | "let" ident opt_type '=' expr  { $$ = (AstNode*)createAstVarDef(@$, $2, $3, $5); }
         | "let" ident opt_type           { $$ = (AstNode*)createAstVarDef(@$, $2, $3, NULL); }
         ;

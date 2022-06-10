@@ -100,9 +100,9 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                 break;
             }
             case AST_RETURN: {
-                AstUnary* n = (AstUnary*)node;
+                AstReturn* n = (AstReturn*)node;
                 n->res_type = createUnsizedPrimitiveType(&context->types, TYPE_VOID);
-                evaluateTypeHints(context, n->op);
+                evaluateTypeHints(context, n->value);
                 break;
             }
             case AST_LIST: {
@@ -295,8 +295,8 @@ static void checkTypeValidity(CompilerContext* context, AstNode* node) {
                 break;
             }
             case AST_RETURN: {
-                AstUnary* n = (AstUnary*)node;
-                checkTypeValidity(context, n->op);
+                AstReturn* n = (AstReturn*)node;
+                checkTypeValidity(context, n->value);
                 break;
             }
             case AST_LIST: {
@@ -459,6 +459,33 @@ static bool diffuseTypeIntoAstNode(CompilerContext* context, AstNode* node, Type
 
 static bool diffuseTypeFromIntoAstNode(CompilerContext* context, AstNode* into, AstNode* from) {
     return diffuseTypeIntoAstNode(context, into, from->res_type, from->res_type_reasoning);
+}
+
+static void raiseVoidReturnError(CompilerContext* context, AstReturn* node, Type* type, AstNode* reasoning) {
+    String type_name = buildTypeName(type);
+    String message = createFormattedString("type error, expected a return value of type `%S`", type_name);
+    MessageFragment* error = createMessageFragment(
+        MESSAGE_ERROR, createFormattedString("should return value of type `%S`", type_name),
+        node->location
+    );
+    if (reasoning != NULL) {
+        addMessageToContext(
+            &context->msgs,
+            createMessage(
+                ERROR_INCOMPATIBLE_TYPE, message, 2, error,
+                createMessageFragment(
+                    MESSAGE_NOTE,
+                    createFormattedString("note: expecting `%S` because of this", type_name),
+                    reasoning->location
+                )
+            )
+        );
+    } else {
+        addMessageToContext(
+            &context->msgs, createMessage(ERROR_INCOMPATIBLE_TYPE, message, 1, error)
+        );
+    }
+    freeString(type_name);
 }
 
 static void diffuseTypes(CompilerContext* context, AstNode* node) {
@@ -743,7 +770,32 @@ static void diffuseTypes(CompilerContext* context, AstNode* node) {
                 break;
             }
             case AST_RETURN: {
-                // TODO: add some reference to function
+                AstReturn* n = (AstReturn*)node;
+                if (n->function->name->res_type != NULL) {
+                    TypeFunction* func = isFunctionType(n->function->name->res_type);
+                    if (func != NULL) {
+                        AstNode* type_reason = n->function->name->res_type_reasoning;
+                        if (type_reason != NULL && type_reason->kind == AST_FN) {
+                            AstFn* fn_node = (AstFn*)type_reason;
+                            if (fn_node->ret_type == NULL) {
+                                type_reason = (AstNode*)fn_node->name;
+                            } else {
+                                type_reason = fn_node->ret_type;
+                            }
+                        }
+                        if (n->value != NULL) {
+                            if (diffuseTypeIntoAstNode(context, n->value, func->ret_type, type_reason)) {
+                                diffuseTypes(context, n->value);
+                            }
+                        } else if (isVoidType(func->ret_type) == NULL) {
+                            raiseVoidReturnError(context, n, func->ret_type, type_reason);
+                        }
+                    }
+                } else if (n->value == NULL) {
+                    // TODO
+                } else if (n->value->res_type != NULL) {
+                    // TODO
+                }
                 break;
             }
         }
@@ -824,8 +876,8 @@ static void diffuseTypesOnAllNodes(CompilerContext* context, AstNode* node) {
                 break;
             }
             case AST_RETURN: {
-                AstUnary* n = (AstUnary*)node;
-                diffuseTypesOnAllNodes(context, n->op);
+                AstReturn* n = (AstReturn*)node;
+                diffuseTypesOnAllNodes(context, n->value);
                 break;
             }
             case AST_LIST: {
@@ -956,8 +1008,8 @@ static void assumeAmbiguousTypes(CompilerContext* context, AstNode* node) {
                 break;
             }
             case AST_RETURN: {
-                AstUnary* n = (AstUnary*)node;
-                assumeAmbiguousTypes(context, n->op);
+                AstReturn* n = (AstReturn*)node;
+                assumeAmbiguousTypes(context, n->value);
                 break;
             }
             case AST_LIST: {
@@ -1073,8 +1125,8 @@ static void checkForUntypedVariables(CompilerContext* context, AstNode* node) {
                 break;
             }
             case AST_RETURN: {
-                AstUnary* n = (AstUnary*)node;
-                checkForUntypedVariables(context, n->op);
+                AstReturn* n = (AstReturn*)node;
+                checkForUntypedVariables(context, n->value);
                 break;
             }
             case AST_LIST: {
@@ -1233,8 +1285,8 @@ static void checkForUntypedNodes(CompilerContext* context, AstNode* node) {
                     break;
                 }
                 case AST_RETURN: {
-                    AstUnary* n = (AstUnary*)node;
-                    checkForUntypedNodes(context, n->op);
+                    AstReturn* n = (AstReturn*)node;
+                    checkForUntypedNodes(context, n->value);
                     break;
                 }
                 case AST_LIST: {
@@ -1534,10 +1586,14 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                 break;
             }
             case AST_ADDR:
-            case AST_DEREF:
-            case AST_RETURN: {
+            case AST_DEREF: {
                 AstUnary* n = (AstUnary*)node;
                 checkTypeConstraints(context, n->op);
+                break;
+            }
+            case AST_RETURN: {
+                AstReturn* n = (AstReturn*)node;
+                checkTypeConstraints(context, n->value);
                 break;
             }
             case AST_LIST: {

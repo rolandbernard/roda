@@ -95,6 +95,8 @@ TypeSizedPrimitive* isNumericType(Type* type);
 
 Type* isBooleanType(Type* type);
 
+Type* isVoidType(Type* type);
+
 TypePointer* isPointerType(Type* type);
 
 TypeArray* isArrayType(Type* type);

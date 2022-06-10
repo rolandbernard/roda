@@ -413,6 +413,10 @@ Type* isBooleanType(Type* type) {
     return isTypeOfKind(type, TYPE_BOOL);
 }
 
+Type* isVoidType(Type* type) {
+    return isTypeOfKind(type, TYPE_VOID);
+}
+
 TypePointer* isPointerType(Type* type) {
     return (TypePointer*)isTypeOfKind(type, TYPE_POINTER);
 }
