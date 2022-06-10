@@ -315,8 +315,8 @@ typedef struct TypeReferenceStack {
     const SymbolType* binding;
 } TypeReferenceStack;
 
-#define CYCLIC_CHECK(TYPE, NAME, TRUE, DEFAULT)                                         \
-    static TYPE* NAME ## Helper (Type* type, TypeReferenceStack* stack) {               \
+#define STRUCTURAL_TYPE_CHECK(TYPE, NAME, TRUE, DEFAULT)                                \
+    static TYPE NAME ## Helper (Type* type, TypeReferenceStack* stack) {                \
         TRUE else if (type->kind == TYPE_REFERENCE) {                                   \
             TypeReference* t = (TypeReference*)type;                                    \
             TypeReferenceStack elem = {                                                 \
@@ -332,75 +332,85 @@ typedef struct TypeReferenceStack {
             return NAME ## Helper (t->binding->type, &elem);                            \
         } DEFAULT                                                                       \
     }                                                                                   \
-    TYPE* NAME (Type* type) {                                                           \
+    TYPE NAME (Type* type) {                                                            \
         return NAME ## Helper (type, NULL);                                             \
     }
 
-CYCLIC_CHECK(
-    TypeSizedPrimitive, isSignedIntegerType,
-    if (type->kind == TYPE_INT) { return (TypeSizedPrimitive*)type; },
-    else { return NULL; }
-)
+static Type* isTypeOfKindHelper(Type* type, TypeKind kind, TypeReferenceStack* stack) {
+    if (type->kind == kind) {
+        return type;
+    } else if (type->kind == TYPE_REFERENCE) {
+        TypeReference* t = (TypeReference*)type;
+        TypeReferenceStack elem = { .last = stack, .binding = t->binding };
+        TypeReferenceStack* cur = stack;
+        while (cur != NULL) {
+            if (cur->binding != elem.binding) {
+                cur = cur->last;
+            } else {
+                return NULL;
+            }
+        }
+        return isTypeOfKindHelper(t->binding->type, kind, &elem);
+    } else {
+        return NULL;
+    }
+}
 
-CYCLIC_CHECK(
-    TypeSizedPrimitive, isUnsignedIntegerType,
-    if (type->kind == TYPE_UINT) { return (TypeSizedPrimitive*)type; },
-    else { return NULL; }
-)
+static Type* isTypeOfKind(Type* type, TypeKind kind) {
+    return isTypeOfKindHelper(type, kind, NULL);
+}
 
-CYCLIC_CHECK(
-    TypeSizedPrimitive, isIntegerType,
+TypeSizedPrimitive* isSignedIntegerType(Type* type) {
+    return (TypeSizedPrimitive*)isTypeOfKind(type, TYPE_INT);
+}
+
+TypeSizedPrimitive* isUnsignedIntegerType(Type* type) {
+    return (TypeSizedPrimitive*)isTypeOfKind(type, TYPE_UINT);
+}
+
+STRUCTURAL_TYPE_CHECK(
+    TypeSizedPrimitive*, isIntegerType,
     if (type->kind == TYPE_INT || type->kind == TYPE_UINT) { return (TypeSizedPrimitive*)type; },
     else { return NULL; }
 )
 
-CYCLIC_CHECK(
-    TypeSizedPrimitive, isFloatType,
+STRUCTURAL_TYPE_CHECK(
+    TypeSizedPrimitive*, isFloatType,
     if (type->kind == TYPE_REAL && ((TypeSizedPrimitive*)type)->size == 32) { return (TypeSizedPrimitive*)type; },
     else { return NULL; }
 )
 
-CYCLIC_CHECK(
-    TypeSizedPrimitive, isDoubleType,
+STRUCTURAL_TYPE_CHECK(
+    TypeSizedPrimitive*, isDoubleType,
     if (type->kind == TYPE_REAL && ((TypeSizedPrimitive*)type)->size == 64) { return (TypeSizedPrimitive*)type; },
     else { return NULL; }
 )
 
-CYCLIC_CHECK(
-    TypeSizedPrimitive, isRealType,
-    if (type->kind == TYPE_REAL) { return (TypeSizedPrimitive*)type; },
-    else { return NULL; }
-)
+TypeSizedPrimitive* isRealType(Type* type) {
+    return (TypeSizedPrimitive*)isTypeOfKind(type, TYPE_REAL);
+}
 
-CYCLIC_CHECK(
-    TypeSizedPrimitive, isNumericType,
+STRUCTURAL_TYPE_CHECK(
+    TypeSizedPrimitive*, isNumericType,
     if (type->kind == TYPE_REAL || type->kind == TYPE_INT || type->kind == TYPE_UINT) { return (TypeSizedPrimitive*)type; },
     else { return NULL; }
 )
 
-CYCLIC_CHECK(
-    Type, isBooleanType,
-    if (type->kind == TYPE_BOOL) { return type; },
-    else { return NULL; }
-)
+Type* isBooleanType(Type* type) {
+    return isTypeOfKind(type, TYPE_BOOL);
+}
 
-CYCLIC_CHECK(
-    TypePointer, isPointerType,
-    if (type->kind == TYPE_POINTER) { return (TypePointer*)type; },
-    else { return NULL; }
-)
+TypePointer* isPointerType(Type* type) {
+    return (TypePointer*)isTypeOfKind(type, TYPE_POINTER);
+}
 
-CYCLIC_CHECK(
-    TypeArray, isArrayType,
-    if (type->kind == TYPE_ARRAY) { return (TypeArray*)type; },
-    else { return NULL; }
-)
+TypeArray* isArrayType(Type* type) {
+    return (TypeArray*)isTypeOfKind(type, TYPE_ARRAY);
+}
 
-CYCLIC_CHECK(
-    TypeFunction, isFunctionType,
-    if (type->kind == TYPE_FUNCTION) { return (TypeFunction*)type; },
-    else { return NULL; }
-)
+TypeFunction* isFunctionType(Type* type) {
+    return (TypeFunction*)isTypeOfKind(type, TYPE_FUNCTION);
+}
 
 typedef struct DoubleTypeReferenceStack {
     struct DoubleTypeReferenceStack* last;
