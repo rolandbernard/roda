@@ -205,57 +205,6 @@ static void buildLocalSymbolTables(CompilerContext* context, AstNode* root) {
 static void recursivelyBuildRootSymbolTables(CompilerContext* context, AstNode* node, SymbolTable* scope) {
     if (node != NULL) {
         switch (node->kind) {
-            case AST_ADD_ASSIGN:
-            case AST_SUB_ASSIGN:
-            case AST_MUL_ASSIGN:
-            case AST_DIV_ASSIGN:
-            case AST_MOD_ASSIGN:
-            case AST_SHL_ASSIGN:
-            case AST_SHR_ASSIGN:
-            case AST_BAND_ASSIGN:
-            case AST_BOR_ASSIGN:
-            case AST_BXOR_ASSIGN:
-            case AST_ASSIGN:
-            case AST_INDEX:
-            case AST_SUB:
-            case AST_MUL:
-            case AST_DIV:
-            case AST_MOD:
-            case AST_OR:
-            case AST_AND:
-            case AST_SHL:
-            case AST_SHR:
-            case AST_BAND:
-            case AST_BOR:
-            case AST_BXOR:
-            case AST_EQ:
-            case AST_NE:
-            case AST_LE:
-            case AST_GE:
-            case AST_LT:
-            case AST_GT:
-            case AST_ADD:
-            case AST_ARRAY:
-            case AST_POS:
-            case AST_NEG:
-            case AST_ADDR:
-            case AST_RETURN:
-            case AST_NOT:
-            case AST_DEREF:
-            case AST_VARDEF:
-            case AST_IF_ELSE:
-            case AST_WHILE:
-            case AST_CALL:
-            case AST_ARGDEF:
-            case AST_VAR:
-            case AST_ERROR:
-            case AST_VOID:
-            case AST_STR:
-            case AST_INT:
-            case AST_REAL:
-            case AST_BLOCK: {
-                break;
-            }
             case AST_LIST: {
                 AstList* n = (AstList*)node;
                 for (size_t i = 0; i < n->count; i++) {
@@ -285,6 +234,9 @@ static void recursivelyBuildRootSymbolTables(CompilerContext* context, AstNode* 
                 }
                 break;
             }
+            default:
+                // We only want to consider the global scope
+                break;
         }
     }
 }

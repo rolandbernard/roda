@@ -9,7 +9,7 @@
      */
  */
 
-import fn exit(status: int): !;
+import fn exit(status: int);
 
 import fn print(text: *u8);
 

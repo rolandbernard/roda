@@ -9,6 +9,6 @@ fn main(test: bool) {
     // let add: int;
     // let c: int = add(a, b);
     // add(a, b);
-    return;
+    return 5;
 }
 
