@@ -71,6 +71,7 @@ void deinitCompilerContext(CompilerContext* context) {
     deinitFileSet(&context->files);
     deinitMessageContext(&context->msgs);
     deinitSymbolContext(&context->syms);
+    deinitTypeContext(&context->types);
     deinitSymbolTable(&context->buildins);
 }
 

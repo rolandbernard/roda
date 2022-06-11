@@ -15,7 +15,7 @@ static const char* message_kind_strings[] = {
     [ERROR_INCOMPATIBLE_TYPE] = "incompatible-type",
     [ERROR_NOT_CONSTEXPR] = "not-constexpr",
     [ERROR_INVALID_ARRAY_LENGTH] = "invalid-array-length",
-    [ERROR_UNINFERRED_TYPE] = "uninfered-type",
+    [ERROR_UNINFERRED_TYPE] = "uninferred-type",
     [ERROR_INVALID_TYPE] = "invalid-type",
     [WARNING_UNKNOWN] = "unknown",
     [WARNING_CMD_ARGS] = "cmd-line-args",
@@ -71,39 +71,3 @@ MessageCategory getMessageCategory(MessageKind kind) {
     }
 }
 
-void initMessageFilter(MessageFilter* filter) {
-    // Setup default filter
-    filter->message_category_filter[MESSAGE_UNKNOWN] = true;
-    filter->message_category_filter[MESSAGE_ERROR] = true;
-    filter->message_category_filter[MESSAGE_WARNING] = true;
-    filter->message_category_filter[MESSAGE_NOTE] = true;
-    filter->message_category_filter[MESSAGE_HELP] = true;
-    for (int i = 0; i < NUM_MESSAGE_KIND; i++) {
-        filter->message_kind_filter[i] = true;
-    }
-}
-
-bool applyFilterForKind(const MessageFilter* filter, MessageKind kind) {
-    if (filter == NULL) {
-        return true;
-    } else {
-        MessageCategory category = getMessageCategory(kind);
-        if (category == MESSAGE_UNKNOWN) {
-            return applyFilterForCategory(filter, MESSAGE_UNKNOWN);
-        } else {
-            return applyFilterForCategory(filter, category) && filter->message_kind_filter[kind];
-        }
-    }
-}
-
-bool applyFilterForCategory(const MessageFilter* filter, MessageCategory category) {
-    if (filter == NULL) {
-        return true;
-    } else {
-        if (category >= MESSAGE_UNKNOWN && category <= MESSAGE_HELP) {
-            return filter->message_category_filter[category];
-        } else {
-            return filter->message_category_filter[MESSAGE_UNKNOWN];
-        }
-    }
-}

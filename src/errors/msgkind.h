@@ -59,15 +59,4 @@ MessageCategory getMessageCategoryFromName(ConstString category);
 
 MessageCategory getMessageCategory(MessageKind kind);
 
-typedef struct {
-    bool message_category_filter[NUM_MESSAGE_CATEGORY];
-    bool message_kind_filter[NUM_MESSAGE_KIND];
-} MessageFilter;
-
-void initMessageFilter(MessageFilter* filter);
-
-bool applyFilterForKind(const MessageFilter* filter, MessageKind kind);
-
-bool applyFilterForCategory(const MessageFilter* filter, MessageCategory category);
-
 #endif

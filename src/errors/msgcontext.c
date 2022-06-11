@@ -1,4 +1,6 @@
 
+#include <stdint.h>
+
 #include "errors/msgcontext.h"
 
 #include "util/alloc.h"
@@ -37,7 +39,7 @@ static void extendMessageContextCapacity(MessageContext* message_context) {
 }
 
 void addMessageToContext(MessageContext* message_context, Message* message) {
-    if (applyFilterForKind(message_context->filter, message->kind)) {
+    if (applyFilterForKind(message_context->filter, message->kind) && applyFilterForContext(message_context->filter, message_context)) {
         if (message_context->message_count == message_context->message_capacity) {
             extendMessageContextCapacity(message_context);
         }
@@ -47,6 +49,9 @@ void addMessageToContext(MessageContext* message_context, Message* message) {
             message_context->error_count++;
         }
     } else {
+        if (getMessageCategory(message->kind) == MESSAGE_ERROR) {
+            message_context->error_count++;
+        }
         freeMessage(message);
     }
 }
@@ -55,5 +60,47 @@ void addAllMessagesFromContext(MessageContext* dest_context, MessageContext* src
     for (size_t i = 0; i < src_context->message_count; i++) {
         addMessageToContext(dest_context, src_context->messages[i]);
     }
+}
+
+void initMessageFilter(MessageFilter* filter) {
+    // Setup default filter
+    filter->max_errors = SIZE_MAX;
+    filter->message_category_filter[MESSAGE_UNKNOWN] = true;
+    filter->message_category_filter[MESSAGE_ERROR] = true;
+    filter->message_category_filter[MESSAGE_WARNING] = true;
+    filter->message_category_filter[MESSAGE_NOTE] = true;
+    filter->message_category_filter[MESSAGE_HELP] = true;
+    for (int i = 0; i < NUM_MESSAGE_KIND; i++) {
+        filter->message_kind_filter[i] = true;
+    }
+}
+
+bool applyFilterForKind(const MessageFilter* filter, MessageKind kind) {
+    if (filter == NULL) {
+        return true;
+    } else {
+        MessageCategory category = getMessageCategory(kind);
+        if (category == MESSAGE_UNKNOWN) {
+            return applyFilterForCategory(filter, MESSAGE_UNKNOWN);
+        } else {
+            return applyFilterForCategory(filter, category) && filter->message_kind_filter[kind];
+        }
+    }
+}
+
+bool applyFilterForCategory(const MessageFilter* filter, MessageCategory category) {
+    if (filter == NULL) {
+        return true;
+    } else {
+        if (category >= MESSAGE_UNKNOWN && category <= MESSAGE_HELP) {
+            return filter->message_category_filter[category];
+        } else {
+            return filter->message_category_filter[MESSAGE_UNKNOWN];
+        }
+    }
+}
+
+bool applyFilterForContext(const MessageFilter* filter, const MessageContext* context) {
+    return context->error_count < filter->max_errors;
 }
 

@@ -111,46 +111,100 @@
         }                                                                       \
     }
 
-#define PARAM_VALUED(LETTER, NAME, ACTION, VALUE_DESC, DESC)                    \
-    if (_help) {                                                                \
-        printOptionHelpLine(LETTER, NAME, VALUE_DESC, DESC);                    \
-    } else if (_letters) {                                                      \
-        if (LETTER != NULL && argv[_i][_j] == ((const char*)LETTER)[0]) {       \
-            if (argv[_i][_j + 1] == '=') {                                      \
-                const char* value = argv[_i] + _j + 2;                          \
-                ACTION; continue;                                               \
-            } else {                                                            \
-                const char* value = NULL;                                       \
-                if (_j == 1) {                                                  \
-                    if (argv[_i][_j + 1] != 0) {                                \
-                        value = argv[_i] + _j + 1;                              \
-                        _j = strlen(argv[_i]) - 1;                              \
-                    } else if (_i + 1 < argc && argv[_i + 1][0] != '-') {       \
-                        value = argv[_i + 1];                                   \
-                        _i++;                                                   \
-                        _j = strlen(argv[_i]) - 1;                              \
-                    }                                                           \
-                }                                                               \
-                ACTION; continue;                                               \
-            }                                                                   \
-        }                                                                       \
-    } else if (_names) {                                                        \
-        if (NAME != NULL) {                                                     \
-            if(strcmp(option + 2, ((const char*)NAME)) == 0) {                  \
-                if (argv[_i][_len + 2] == '=') {                                \
-                    const char* value = argv[_i] + _len + 3;                    \
-                    ACTION; continue;                                           \
-                } else {                                                        \
-                    const char* value = NULL;                                   \
-                    if (_i + 1 < argc && argv[_i + 1][0] != '-') {              \
-                        value = argv[_i + 1];                                   \
-                        _i++;                                                   \
-                    }                                                           \
-                    ACTION; continue;                                           \
-                }                                                               \
-            }                                                                   \
-        }                                                                       \
+#define PARAM_VALUED_BASE(LETTER, NAME, ACTION, TAGGED, FOLLOWED, VALUE_DESC, DESC)         \
+    if (_help) {                                                                            \
+        printOptionHelpLine(LETTER, NAME, VALUE_DESC, DESC);                                \
+    } else if (_letters) {                                                                  \
+        if (LETTER != NULL && argv[_i][_j] == ((const char*)LETTER)[0]) {                   \
+            if (argv[_i][_j + 1] == '=') {                                                  \
+                const char* value = argv[_i] + _j + 2;                                      \
+                ACTION; continue;                                                           \
+            } else {                                                                        \
+                const char* value = NULL;                                                   \
+                if (_j == 1) {                                                              \
+                    if (argv[_i][_j + 1] != 0) {                                            \
+                        value = argv[_i] + _j + 1;                                          \
+                        _j = strlen(argv[_i]) - 1;                                          \
+                    } else if (_i + 1 < argc && argv[_i + 1][0] != '-') {                   \
+                        value = argv[_i + 1];                                               \
+                        _i++;                                                               \
+                        _j = strlen(argv[_i]) - 1;                                          \
+                    }                                                                       \
+                }                                                                           \
+                ACTION; continue;                                                           \
+            }                                                                               \
+        }                                                                                   \
+    } else if (_names) {                                                                    \
+        if (NAME != NULL) {                                                                 \
+            if(strcmp(option + 2, ((const char*)NAME)) == 0) {                              \
+                if (argv[_i][_len + 2] == '=') {                                            \
+                    const char* value = argv[_i] + _len + 3;                                \
+                    ACTION; continue;                                                       \
+                } else {                                                                    \
+                    const char* value = NULL;                                               \
+                    if (FOLLOWED && _i + 1 < argc && argv[_i + 1][0] != '-') {              \
+                        value = argv[_i + 1];                                               \
+                        _i++;                                                               \
+                    }                                                                       \
+                    ACTION; continue;                                                       \
+                }                                                                           \
+            }                                                                               \
+        }                                                                                   \
     }
+
+#define PARAM_VALUED(LETTER, NAME, ACTION, OPTIONAL, VALUE_DESC, DESC)                      \
+    PARAM_VALUED_BASE(LETTER, NAME, {                                                       \
+        if (!OPTIONAL && value == NULL) {                                                   \
+            PARAM_WARN("expected a value, ignoring this option");                           \
+        } else {                                                                            \
+            ACTION                                                                          \
+        }                                                                                   \
+    }, true, !OPTIONAL, VALUE_DESC, DESC)
+
+#define PARAM_STRING_LIST(LETTER, NAME, ACTION, VALUE_DESC, DESC)                           \
+    PARAM_VALUED(LETTER, NAME, {                                                            \
+        if (value != NULL) {                                                                \
+            while (value[0] != 0) {                                                         \
+                int len = 0;                                                                \
+                while (value[len] != 0 && value[len] != ',') {                              \
+                    len++;                                                                  \
+                }                                                                           \
+                {                                                                           \
+                    char next_value[len + 1];                                               \
+                    memcpy(next_value, value, len);                                         \
+                    next_value[len] = 0;                                                    \
+                    char* value = next_value;                                               \
+                    ACTION                                                                  \
+                }                                                                           \
+                if (value[len] == ',') {                                                    \
+                    value += len + 1;                                                       \
+                } else {                                                                    \
+                    value += len;                                                           \
+                }                                                                           \
+            }                                                                               \
+        }                                                                                   \
+    }, false, VALUE_DESC, DESC);
+
+#define PARAM_INTEGER(LETTER, NAME, ACTION, VALUE_DESC, DESC)                               \
+    PARAM_VALUED(LETTER, NAME, {                                                            \
+        bool is_integer = true;                                                             \
+        int int_value = 0;                                                                  \
+        for (int i = 0; value[i] != 0; i++) {                                               \
+            if (value[i] >= '0' && value[i] <= '9') {                                       \
+                int_value *= 10;                                                            \
+                int_value += value[i] - '0';                                                \
+            } else {                                                                        \
+                is_integer = false;                                                         \
+                break;                                                                      \
+            }                                                                               \
+        }                                                                                   \
+        if (!is_integer) {                                                                  \
+            PARAM_WARN("expected an integer value, ignoring this option");                  \
+        } else {                                                                            \
+            int value = int_value;                                                          \
+            ACTION                                                                          \
+        }                                                                                   \
+    }, false, VALUE_DESC, DESC)
 
 #define PARAM_DEFAULT(ACTION)           \
     if (_def) {                         \
