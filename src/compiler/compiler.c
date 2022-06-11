@@ -13,7 +13,7 @@ void runCompilation(CompilerContext* context) {
         File* file = context->files.files[i];
         file->ast = parseFile(file, context);
 #ifdef DEBUG
-        if (context->settings.debug & COMPILER_DEBUG_PARSE_AST) {
+        if (context->settings.compiler_debug & COMPILER_DEBUG_PARSE_AST) {
             printAst(stderr, file->ast);
         }
 #endif
@@ -27,7 +27,7 @@ void runCompilation(CompilerContext* context) {
     if (context->msgs.error_count == 0) {
         runTypeChecking(context);
 #ifdef DEBUG
-        if (context->settings.debug & COMPILER_DEBUG_TYPED_AST) {
+        if (context->settings.compiler_debug & COMPILER_DEBUG_TYPED_AST) {
             for (size_t i = 0; i < context->files.file_count; i++) {
                 File* file = context->files.files[i];
                 printAst(stderr, file->ast);

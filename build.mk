@@ -1,6 +1,7 @@
 
 # == Progress
 ifndef ECHO
+ifneq ($(PROGRESS),no)
 TOTAL   := \
 	$(shell $(MAKE) $(MAKECMDGOALS) --no-print-directory -nrRf $(firstword $(MAKEFILE_LIST)) \
 		ECHO="__HIT_MARKER__" BUILD=$(BUILD) | grep -c "__HIT_MARKER__")
@@ -9,6 +10,9 @@ COUNTER  = $(words $(HIDDEN_COUNT))
 COUNTINC = $(eval HIDDEN_COUNT := x $(HIDDEN_COUNT))
 PERCENT  = $(shell expr $(COUNTER) '*' 100 / $(TOTAL))
 ECHO     = $(COUNTINC)printf "[%*i/%i](%3i%%) %s\n" $(TLENGTH) $(COUNTER) $(TOTAL) $(PERCENT)
+else
+ECHO    := echo
+endif
 endif
 # ==
 

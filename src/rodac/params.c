@@ -52,11 +52,11 @@ static PARAM_SPEC_FUNCTION(parameterSpecFunction, CompilerContext*, {
 #ifdef DEBUG
     PARAM_STRING_LIST(NULL, "compiler-debug", {
         if (strcmp("all", value) == 0) {
-            context->settings.debug = ~0;
+            context->settings.compiler_debug = ~0;
         } else if (strcmp("parse-ast", value) == 0) {
-            context->settings.debug |= COMPILER_DEBUG_PARSE_AST;
+            context->settings.compiler_debug |= COMPILER_DEBUG_PARSE_AST;
         } else if (strcmp("typed-ast", value) == 0) {
-            context->settings.debug |= COMPILER_DEBUG_TYPED_AST;
+            context->settings.compiler_debug |= COMPILER_DEBUG_TYPED_AST;
         } else {
             PARAM_WARN_UNKNOWN_VALUE()
         }

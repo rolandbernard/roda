@@ -25,7 +25,7 @@ typedef enum {
 } CompilerEmit;
 
 typedef struct {
-    CompilerDebugFlags debug;
+    CompilerDebugFlags compiler_debug;
     bool help;
     bool version;
     CompilerEmit emit;

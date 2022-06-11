@@ -3,6 +3,10 @@
 
 #include "compiler/context.h"
 
+void initLlvmBackend(CompilerContext* context);
+
+void deinitLlvmBackend();
+
 void runCodeGenerationForLlvmIr(CompilerContext* context, ConstPath path);
 
 void runCodeGenerationForLlvmBc(CompilerContext* context, ConstPath path);

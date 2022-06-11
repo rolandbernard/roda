@@ -19,9 +19,13 @@ static const char* message_kind_strings[] = {
     [ERROR_INVALID_TYPE] = "invalid-type",
     [ERROR_NO_OUTPUT_FILE] = "no-output-file",
     [ERROR_NO_COMPILER_BACKEND] = "no-compiler-backed",
+    [ERROR_LLVM_BACKEND_ERROR] = "llvm-backend-error",
     [WARNING_UNKNOWN] = "unknown",
     [WARNING_CMD_ARGS] = "cmd-line-args",
+    [WARNING_LLVM_BACKEND_WARNING] = "llvm-backend-warning",
     [NOTE_UNKNOWN] = "unknown",
+    [NOTE_LLVM_BACKEND_REMARK] = "llvm-backend-remark",
+    [NOTE_LLVM_BACKEND_NOTE] = "llvm-backend-note",
     [HELP_UNKNOWN] = "unknown",
 };
 

@@ -30,7 +30,7 @@ AstNode* parseFile(const File* file, CompilerContext* context) {
     FILE* in = openFileStream(file, "r+");
     if (in == NULL) {
         addMessageToContext(&context->msgs, createMessage(ERROR_CANT_OPEN_FILE,
-            createFormattedString("failed to open file '%s': %s", cstr(file->original_path), strerror(errno)
+            createFormattedString("failed to open file '%S': %s", file->original_path, strerror(errno)
         ), 0));
         return NULL;
     } else {

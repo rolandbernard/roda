@@ -22,7 +22,7 @@ void raiseNoBackendError(CompilerContext* context, const char* kind) {
     addMessageToContext(
         &context->msgs,
         createMessage(
-            ERROR_NO_OUTPUT_FILE, createFormattedString(
+            ERROR_NO_COMPILER_BACKEND, createFormattedString(
                 "cannot compile to %s, program compiled without appropriate backend", kind
             ), 0
         )
@@ -77,8 +77,8 @@ void runCodeGeneration(CompilerContext* context) {
                     createMessage(
                         ERROR_CANT_OPEN_FILE,
                         createFormattedString(
-                            "failed to open file '%s': %s",
-                            cstr(context->settings.output_file), strerror(errno)
+                            "failed to open file '%S': %s",
+                            context->settings.output_file, strerror(errno)
                         ), 0
                     )
                 );
@@ -95,7 +95,9 @@ void runCodeGeneration(CompilerContext* context) {
                         fclose(output_file);
                         remove(cstr(context->settings.output_file));
 #ifdef LLVM
+                        initLlvmBackend(context);
                         runCodeGenerationForLlvmIr(context, toConstPath(context->settings.output_file));
+                        deinitLlvmBackend();
 #else
                         raiseNoBackendError(context, "LLVM IR");
 #endif
@@ -105,7 +107,9 @@ void runCodeGeneration(CompilerContext* context) {
                         fclose(output_file);
                         remove(cstr(context->settings.output_file));
 #ifdef LLVM
+                        initLlvmBackend(context);
                         runCodeGenerationForLlvmBc(context, toConstPath(context->settings.output_file));
+                        deinitLlvmBackend();
 #else
                         raiseNoBackendError(context, "LLVM Bitcode");
 #endif
@@ -115,7 +119,9 @@ void runCodeGeneration(CompilerContext* context) {
                         fclose(output_file);
                         remove(cstr(context->settings.output_file));
 #ifdef LLVM
+                        initLlvmBackend(context);
                         runCodeGenerationForAsm(context, toConstPath(context->settings.output_file));
+                        deinitLlvmBackend();
 #else
                         raiseNoBackendError(context, "assembly");
 #endif
@@ -125,7 +131,9 @@ void runCodeGeneration(CompilerContext* context) {
                         fclose(output_file);
                         remove(cstr(context->settings.output_file));
 #ifdef LLVM
+                        initLlvmBackend(context);
                         runCodeGenerationForObj(context, toConstPath(context->settings.output_file));
+                        deinitLlvmBackend();
 #else
                         raiseNoBackendError(context, "object file");
 #endif

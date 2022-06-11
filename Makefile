@@ -1,16 +1,29 @@
 
 include config.mk
 
-# == Config
+# == General
 TARGETS := rodac
-
 ALL_SWITCHES := llvm
+# ==
+
+# == Feature detection
+LLVM ?= yes
+# ==
+
+# == Enable features
+ifeq ($(LLVM),yes)
 SWITCHES += llvm
+endif
 # ==
 
 # == Tools
 CC ?= gcc
 LD := $(CC)
+# ==
+
+# == Flags
+CCFLAGS.llvm += $(shell llvm-config --cflags || true)
+LDFLAGS.llvm += $(shell llvm-config --libs --ldflags --system-libs || true)
 # ==
 
 # == Parser generator files

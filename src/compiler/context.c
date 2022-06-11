@@ -51,7 +51,7 @@ static void addPrimitiveTypes(CompilerContext* context) {
 }
 
 static void initCompilerSettings(CompilerSettings* settings) {
-    settings->debug = COMPILER_DEBUG_NONE;
+    settings->compiler_debug = COMPILER_DEBUG_NONE;
     settings->help = false;
     settings->version = false;
     settings->emit = COMPILER_EMIT_AUTO;

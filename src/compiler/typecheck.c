@@ -1618,6 +1618,7 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                         raiseOpTypeError(context, node, node, node->res_type, node->res_type_reasoning, ", always returns a pointer");
                     }
                 }
+                // TODO: check that operand is addressable!
                 checkTypeConstraints(context, n->op);
                 break;
             }
