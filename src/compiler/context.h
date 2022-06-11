@@ -13,10 +13,23 @@ typedef enum {
     COMPILER_DEBUG_TYPED_AST = (1 << 1),
 } CompilerDebugFlags;
 
+typedef enum {
+    COMPILER_EMIT_AUTO,
+    COMPILER_EMIT_NONE,
+    COMPILER_EMIT_AST,
+    COMPILER_EMIT_LLVM_IR,
+    COMPILER_EMIT_LLVM_BC,
+    COMPILER_EMIT_ASM,
+    COMPILER_EMIT_OBJ,
+    COMPILER_EMIT_BIN,
+} CompilerEmit;
+
 typedef struct {
     CompilerDebugFlags debug;
     bool help;
     bool version;
+    CompilerEmit emit;
+    Path output_file;
 } CompilerSettings;
 
 typedef struct {

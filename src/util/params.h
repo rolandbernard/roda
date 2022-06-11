@@ -4,6 +4,17 @@
 #include <stdbool.h>
 #include <string.h>
 
+#define PARAM_WARN_UNKNOWN_VALUE() {                                \
+    const char* msg_base = "unknown value, ignoring this value";    \
+    int msg_len = strlen(msg_base);                                 \
+    int val_len = strlen(value);                                    \
+    char msg[val_len + msg_len + 3];                                \
+    memcpy(msg, value, val_len);                                    \
+    memcpy(msg + val_len, ": ", 2);                                 \
+    memcpy(msg + val_len + 2, msg_base, msg_len + 1);               \
+    PARAM_WARN(msg);                                                \
+}
+
 #define PARAM_WARN(ABOUT)                               \
     _raiseWarning(option, ABOUT, argc, argv, context);
 

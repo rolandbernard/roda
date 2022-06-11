@@ -189,7 +189,7 @@ static Type* createTypeIfAbsent(TypeContext* context, Type* type, size_t size, b
         if (new != NULL) {
             *new = true;
         }
-        context->types[idx]->equivalent = context->types[idx];
+        context->types[idx]->codegen = NULL;
     } else if (new != NULL) {
         *new = false;
     }

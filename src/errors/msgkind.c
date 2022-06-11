@@ -17,6 +17,7 @@ static const char* message_kind_strings[] = {
     [ERROR_INVALID_ARRAY_LENGTH] = "invalid-array-length",
     [ERROR_UNINFERRED_TYPE] = "uninferred-type",
     [ERROR_INVALID_TYPE] = "invalid-type",
+    [ERROR_NO_OUTPUT_FILE] = "no-output-file",
     [WARNING_UNKNOWN] = "unknown",
     [WARNING_CMD_ARGS] = "cmd-line-args",
     [NOTE_UNKNOWN] = "unknown",

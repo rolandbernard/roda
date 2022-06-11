@@ -13,6 +13,7 @@ void initAstNode(AstNode* node, AstNodeKind kind, Span loc) {
     node->location = loc;
     node->res_type = NULL;
     node->res_type_reasoning = NULL;
+    node->codegen = NULL;
 }
 
 AstBinary* createAstBinary(Span loc, AstNodeKind kind, AstNode* left, AstNode* right) {

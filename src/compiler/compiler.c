@@ -4,6 +4,7 @@
 #include "compiler/varbuild.h"
 #include "errors/msgprint.h"
 #include "parser/wrapper.h"
+#include "codegen/codegen.h"
 
 #include "compiler/compiler.h"
 
@@ -36,7 +37,7 @@ void runCompilation(CompilerContext* context) {
         printAndClearMessages(&context->msgs, stderr, true, true);
     }
     if (context->msgs.error_count == 0) {
-        // TODO: codegen
+        runCodeGeneration(context);
     }
 }
 

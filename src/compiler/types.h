@@ -21,7 +21,7 @@ typedef enum {
 
 #define TYPE_BASE       \
     TypeKind kind;      \
-    struct Type* equivalent;
+    void* codegen;
 
 typedef struct Type {
     TYPE_BASE

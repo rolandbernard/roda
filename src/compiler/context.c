@@ -54,6 +54,12 @@ static void initCompilerSettings(CompilerSettings* settings) {
     settings->debug = COMPILER_DEBUG_NONE;
     settings->help = false;
     settings->version = false;
+    settings->emit = COMPILER_EMIT_AUTO;
+    settings->output_file.data = NULL;
+}
+
+static void deinitCompilerSettings(CompilerSettings* settings) {
+    freePath(settings->output_file);
 }
 
 void initCompilerContext(CompilerContext* context) {
@@ -68,6 +74,7 @@ void initCompilerContext(CompilerContext* context) {
 }
 
 void deinitCompilerContext(CompilerContext* context) {
+    deinitCompilerSettings(&context->settings);
     deinitFileSet(&context->files);
     deinitMessageContext(&context->msgs);
     deinitSymbolContext(&context->syms);

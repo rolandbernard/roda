@@ -3,6 +3,9 @@ include config.mk
 
 # == Config
 TARGETS := rodac
+
+ALL_SWITCHES := llvm
+SWITCHES += llvm
 # ==
 
 # == Tools

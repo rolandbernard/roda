@@ -68,6 +68,10 @@ Path inlineReducePath(Path path) {
     if (insert_pos > 1 && path.data[insert_pos - 1] == '/') {
         insert_pos--;
     }
+    if (insert_pos == 0) {
+        path.data[insert_pos] = '.';
+        insert_pos++;
+    }
     path.length = insert_pos;
     path.data[insert_pos] = 0;
     return path;

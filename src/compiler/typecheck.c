@@ -1711,7 +1711,7 @@ static void checkTypes(CompilerContext* context, AstNode* node) {
     for (size_t i = 0; i < context->files.file_count; i++) {    \
         File* file = context->files.files[i];                   \
         if (file->ast != NULL) ACTION                           \
-    }                                                           \
+    }
 
 void runTypeChecking(CompilerContext* context) {
     FOR_ALL_MODULES({ evaluateTypeHints(context, file->ast); });

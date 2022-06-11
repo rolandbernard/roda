@@ -71,12 +71,13 @@ typedef enum {
     AST_RETURN,
 } AstNodeKind;
 
-#define AST_NODE_BASE \
-    AstNodeKind kind;       \
-    struct AstNode* parent; \
-    Span location;          \
-    Type* res_type;         \
-    struct AstNode* res_type_reasoning;
+#define AST_NODE_BASE                   \
+    AstNodeKind kind;                   \
+    struct AstNode* parent;             \
+    Span location;                      \
+    Type* res_type;                     \
+    struct AstNode* res_type_reasoning; \
+    void* codegen;
 
 typedef struct AstNode {
     AST_NODE_BASE
