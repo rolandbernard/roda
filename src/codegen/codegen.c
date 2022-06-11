@@ -6,6 +6,10 @@
 #include "errors/fatalerror.h"
 #include "ast/astprinter.h"
 
+#ifdef LLVM
+#include "codegen/llvm/codegen.h"
+#endif
+
 #include "codegen/codegen.h"
 
 #define FOR_ALL_MODULES(ACTION)                                 \
@@ -13,6 +17,17 @@
         File* file = context->files.files[i];                   \
         if (file->ast != NULL) ACTION                           \
     }
+
+void raiseNoBackendError(CompilerContext* context, const char* kind) {
+    addMessageToContext(
+        &context->msgs,
+        createMessage(
+            ERROR_NO_OUTPUT_FILE, createFormattedString(
+                "cannot compile to %s, program compiled without appropriate backend", kind
+            ), 0
+        )
+    );
+}
 
 void runCodeGeneration(CompilerContext* context) {
     if (context->settings.emit == COMPILER_EMIT_AUTO) {
@@ -73,21 +88,52 @@ void runCodeGeneration(CompilerContext* context) {
                     case COMPILER_EMIT_NONE: UNREACHABLE()
                     case COMPILER_EMIT_AST: {
                         FOR_ALL_MODULES({ printAst(output_file, file->ast); });
+                        fclose(output_file);
                         break;
                     }
                     case COMPILER_EMIT_LLVM_IR: {
+                        fclose(output_file);
+                        remove(cstr(context->settings.output_file));
+#ifdef LLVM
+                        runCodeGenerationForLlvmIr(context, toConstPath(context->settings.output_file));
+#else
+                        raiseNoBackendError(context, "LLVM IR");
+#endif
                         break;
                     }
                     case COMPILER_EMIT_LLVM_BC: {
+                        fclose(output_file);
+                        remove(cstr(context->settings.output_file));
+#ifdef LLVM
+                        runCodeGenerationForLlvmBc(context, toConstPath(context->settings.output_file));
+#else
+                        raiseNoBackendError(context, "LLVM Bitcode");
+#endif
                         break;
                     }
                     case COMPILER_EMIT_ASM: {
+                        fclose(output_file);
+                        remove(cstr(context->settings.output_file));
+#ifdef LLVM
+                        runCodeGenerationForAsm(context, toConstPath(context->settings.output_file));
+#else
+                        raiseNoBackendError(context, "assembly");
+#endif
                         break;
                     }
                     case COMPILER_EMIT_OBJ: {
+                        fclose(output_file);
+                        remove(cstr(context->settings.output_file));
+#ifdef LLVM
+                        runCodeGenerationForObj(context, toConstPath(context->settings.output_file));
+#else
+                        raiseNoBackendError(context, "object file");
+#endif
                         break;
                     }
                     case COMPILER_EMIT_BIN: {
+                        fclose(output_file);
+                        // TODO: generate obj + linking
                         break;
                     }
                 }

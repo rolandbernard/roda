@@ -11,6 +11,11 @@
 
 static void printVersionInfo() {
     fprintf(stderr, PROGRAM_LONG " v" VERSION_STRING "\n");
+#ifdef LLVM
+    fprintf(stderr, "- LLVM backend: yes\n");
+#else
+    fprintf(stderr, "- LLVM backend: no\n");
+#endif
 }
 
 int main(int argc, const char* const* argv) {

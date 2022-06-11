@@ -18,6 +18,7 @@ static const char* message_kind_strings[] = {
     [ERROR_UNINFERRED_TYPE] = "uninferred-type",
     [ERROR_INVALID_TYPE] = "invalid-type",
     [ERROR_NO_OUTPUT_FILE] = "no-output-file",
+    [ERROR_NO_COMPILER_BACKEND] = "no-compiler-backed",
     [WARNING_UNKNOWN] = "unknown",
     [WARNING_CMD_ARGS] = "cmd-line-args",
     [NOTE_UNKNOWN] = "unknown",

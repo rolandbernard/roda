@@ -38,6 +38,7 @@ void runCompilation(CompilerContext* context) {
     }
     if (context->msgs.error_count == 0) {
         runCodeGeneration(context);
+        printAndClearMessages(&context->msgs, stderr, true, true);
     }
 }
 
