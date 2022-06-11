@@ -213,7 +213,7 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
                 res = createConstError(context);
                 break;
             }
-            case AST_IF_ELSE: // TODO <- if-else expessions
+            case AST_IF_ELSE: // TODO: if-else expessions?
             case AST_FN:
             case AST_TYPEDEF:
             case AST_ARGDEF:
@@ -231,16 +231,17 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
             case AST_ASSIGN:
             case AST_RETURN:
             case AST_ARRAY:
+            case AST_VOID:
             case AST_ROOT:
             case AST_LIST:
             case AST_BLOCK:
             case AST_VARDEF: {
                 UNREACHABLE(", should not evaluate");
             }
-            case AST_VAR: // TODO <- constant variables? (We need a scope!)
-            case AST_INDEX: // TODO <- constant arrays?
-            case AST_CALL: // TODO <- constant calls?
-            case AST_STR: // TODO <- constant strings?
+            case AST_VAR: // TODO: constant variables? (We need a scope!)
+            case AST_INDEX: // TODO: constant arrays?
+            case AST_CALL: // TODO: constant calls?
+            case AST_STR: // TODO: constant strings?
             case AST_ADDR:
             case AST_DEREF: {
                 // None of these are allowed in constant expressions.

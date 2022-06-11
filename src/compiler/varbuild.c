@@ -189,6 +189,7 @@ static void recursivelyBuildLocalSymbolTables(CompilerContext* context, AstNode*
                 break;
             }
             case AST_ERROR:
+            case AST_VOID:
             case AST_STR:
             case AST_INT:
             case AST_REAL: break;
@@ -248,6 +249,7 @@ static void recursivelyBuildRootSymbolTables(CompilerContext* context, AstNode* 
             case AST_ARGDEF:
             case AST_VAR:
             case AST_ERROR:
+            case AST_VOID:
             case AST_STR:
             case AST_INT:
             case AST_REAL:
@@ -432,6 +434,7 @@ static void recursivelyBuildControlFlowReferences(CompilerContext* context, AstN
             }
             case AST_VAR:
             case AST_ERROR:
+            case AST_VOID:
             case AST_STR:
             case AST_INT:
             case AST_REAL: break;

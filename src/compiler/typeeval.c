@@ -11,6 +11,10 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
         UNREACHABLE(", should not evaluate");
     } else {
         switch (node->kind) {
+            case AST_VOID: {
+                node->res_type = createUnsizedPrimitiveType(&context->types, TYPE_VOID);
+                break;
+            }
             case AST_ERROR: {
                 node->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
                 break;

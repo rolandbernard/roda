@@ -19,6 +19,7 @@
 static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
+            case AST_VOID:
             case AST_ARRAY: {
                 UNREACHABLE(", should not evaluate");
             }
@@ -223,6 +224,7 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
 static void checkTypeValidity(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
+            case AST_VOID:
             case AST_ARRAY: {
                 UNREACHABLE(", should not evaluate");
             }
@@ -491,7 +493,8 @@ static void raiseVoidReturnError(CompilerContext* context, AstReturn* node, Type
 static void diffuseTypes(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
-            case AST_ARRAY: 
+            case AST_ARRAY:
+            case AST_VOID:
                 UNREACHABLE(", should not evaluate");
             case AST_ERROR:
             case AST_TYPEDEF:
@@ -791,11 +794,7 @@ static void diffuseTypes(CompilerContext* context, AstNode* node) {
                             raiseVoidReturnError(context, n, func->ret_type, type_reason);
                         }
                     }
-                } else if (n->value == NULL) {
-                    // TODO
-                } else if (n->value->res_type != NULL) {
-                    // TODO
-                }
+                } // TODO: infer types of function?
                 break;
             }
         }
@@ -807,6 +806,7 @@ static void diffuseTypesOnAllNodes(CompilerContext* context, AstNode* node) {
         diffuseTypes(context, node);
         switch (node->kind) {
             case AST_ARRAY:
+            case AST_VOID:
                 UNREACHABLE(", should not evaluate");
             case AST_ERROR:
             case AST_VAR:
@@ -935,6 +935,7 @@ static void assumeAmbiguousTypes(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
             case AST_ARRAY:
+            case AST_VOID:
                 UNREACHABLE(", should not evaluate");
             case AST_ERROR:
             case AST_VAR:
@@ -1067,6 +1068,7 @@ static void checkForUntypedVariables(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
             case AST_ARRAY:
+            case AST_VOID:
                 UNREACHABLE(", should not evaluate");
             case AST_ERROR:
             case AST_TYPEDEF:
@@ -1226,6 +1228,7 @@ static void checkForUntypedNodes(CompilerContext* context, AstNode* node) {
         } else {
             switch (node->kind) {
                 case AST_ARRAY:
+                case AST_VOID:
                     UNREACHABLE(", should not evaluate");
                 case AST_ERROR:
                 case AST_TYPEDEF:
@@ -1447,6 +1450,7 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
             case AST_ARRAY:
+            case AST_VOID:
                 UNREACHABLE(", should not evaluate");
             case AST_ERROR:
             case AST_TYPEDEF:

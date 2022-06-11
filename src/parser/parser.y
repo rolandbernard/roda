@@ -182,6 +182,7 @@ assign : expr '=' expr      { $$ = (AstNode*)createAstBinary(@$, AST_ASSIGN, $1,
        ; 
 
 type    : ident                              { $$ = (AstNode*)$1; }
+        | '(' ')'                            { $$ = createAstSimple(@$, AST_VOID); }
         | '*' type          %prec UNARY_PRE  { $$ = (AstNode*)createAstUnary(@$, AST_ADDR, $2); }
         | '[' expr ']' type %prec UNARY_PRE  { $$ = (AstNode*)createAstBinary(@$, AST_ARRAY, $2, $4); }
         ;

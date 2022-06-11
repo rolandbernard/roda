@@ -11,6 +11,7 @@
 
 typedef enum {
     AST_ERROR,
+    AST_VOID,
 
     // AstBinary
     AST_ADD,
