@@ -17,9 +17,13 @@ static void printVersionInfo() {
     fprintf(stderr, "  git: " GIT_URL "\n");
 #endif
 #ifdef LLVM
-    fprintf(stderr, "  LLVM backend: yes\n");
+#ifdef LLVM_VERSION
+    fprintf(stderr, "  LLVM backend: " LLVM_VERSION "\n");
 #else
-    fprintf(stderr, "  LLVM backend: no\n");
+    fprintf(stderr, "  LLVM backend: yes\n");
+#endif
+#else
+    fprintf(stderr, "  LLVM backend: no \n");
 #endif
 }
 

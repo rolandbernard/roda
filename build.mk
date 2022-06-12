@@ -55,7 +55,7 @@ $(foreach TARGET, $(TARGETS), \
 	$(eval TARGET_SOURCES.$(TARGET) \
 		+= $(foreach PATTERN, $(PATTERNS), $(shell find $(SOURCE_DIR) -type f -path '$(SOURCE_DIR)*/$(TARGET)/*' -name '$(PATTERN)'))) \
 	$(eval TARGET_SOURCES.$(SWITCH) := $(sort $(TARGET_SOURCES.$(SWITCH)))))
-ALL_SOURCES      += $(foreach PATTERN, $(PATTERNS), $(shell find $(SOURCE_DIR) -type f -name '$(PATTERN)'))
+ALL_SOURCES      += $(foreach PATTERN, $(PATTERNS), $(shell find $(SOURCE_DIR) -type f -name '$(PATTERN)')) $(GEN_SOURCES)
 ALL_SOURCES      := $(sort $(ALL_SOURCES))
 SWITCH_SOURCES   := $(foreach SWITCH, $(ALL_SWITCHES), $(SWITCH_SOURCES.$(SWITCH)))
 ENABLED_SOURCES  := $(filter-out $(SWITCH_SOURCES), $(ALL_SOURCES)) $(foreach SWITCH, $(SWITCHES), $(SWITCH_SOURCES.$(SWITCH)))
@@ -91,7 +91,7 @@ $(BINARYS): $(BINARY_DIR)/%: $(OBJECTS) $$(TARGET_OBJECTS.$$*) $(LINK_SCRIPT) | 
 		$(if $(LINK_SCRIPT.$*), -T$(LINK_SCRIPT.$*), $(if $(LINK_SCRIPT), -T$(LINK_SCRIPT)))
 	@$(CHANGED)
 
-$(OBJECT_DIR)/%.o: $(SOURCE_DIR)/% $(MAKEFILE_LIST) | $$(dir $$@)
+$(OBJECT_DIR)/%.o: $(SOURCE_DIR)/% $(MAKEFILE_LIST) $(GEN_SOURCES) | $$(dir $$@)
 	@$(ECHO) "Building $@"
 	$(CC) $(CFLAGS) $(CFLAGS.$*) -c -o $@ $<
 
