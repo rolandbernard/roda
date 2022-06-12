@@ -17,13 +17,19 @@ endif
 # ==
 
 # == Tools
-CC ?= gcc
-LD := $(CC)
+CC   ?= gcc
+CXX  ?= g++
+LD   := $(CXX)
+LEX  ?= flex
+YACC := bison
 # ==
 
 # == Flags
-CCFLAGS.llvm += $(shell llvm-config --cflags || true)
-LDFLAGS.llvm += $(shell llvm-config --libs --ldflags --system-libs || true)
+YFLAGS += -Wall
+
+CFLAGS.llvm  += $(shell llvm-config --cflags || true)
+LDFLAGS.llvm += $(shell llvm-config --ldflags || true)
+LDLIBS.llvm  += $(shell llvm-config --libs --system-libs || true)
 # ==
 
 # == Parser generator files
@@ -42,9 +48,9 @@ include build.mk
 
 # == Parser generator rules
 $(LEX_C): $(LEX_SRC) $(YACC_C)
-	flex --outfile=$(LEX_C) --header-file=$(LEX_H) $<
+	$(LEX) $(LFLAGS) --outfile=$(LEX_C) --header-file=$(LEX_H) $<
 
 $(YACC_C): $(YACC_SRC)
-	bison -Wall --output=$(YACC_C) --defines=$(YACC_H) $<
+	$(YACC) $(YFLAGS) --output=$(YACC_C) --defines=$(YACC_H) $<
 # ==
 

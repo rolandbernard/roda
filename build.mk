@@ -26,21 +26,23 @@ SANITIZE := address,leak,undefined
 # SANITIZE ?= thread,undefined
 WARNINGS := -Wall -Wextra -Wno-unused-parameter
 
-CCFLAGS.debug   += -O0 -g -fsanitize=$(SANITIZE) -DDEBUG
+CFLAGS.debug    += -O0 -g -fsanitize=$(SANITIZE) -DDEBUG
 LDFLAGS.debug   += -O0 -g -fsanitize=$(SANITIZE)
-CCFLAGS.gdb     += -O0 -g -DDEBUG
+CFLAGS.gdb      += -O0 -g -DDEBUG
 LDFLAGS.gdb     += -O0 -g
-CCFLAGS.profile += -O3 -g
+CFLAGS.profile  += -O3 -g
 LDFLAGS.profile += -O3 -g
-CCFLAGS.release += -O3
+CFLAGS.release  += -O3
 LDFLAGS.release += -O3
 
-CCFLAGS += $(CCFLAGS.$(BUILD)) $(WARNINGS) -MMD -MP -I$(SOURCE_DIR)
-CCFLAGS += $(foreach SWITCH, $(SWITCHES), -D$(shell echo $(SWITCH) | tr '[:lower:]' '[:upper:]'))
-CCFLAGS += $(foreach SWITCH, $(filter-out $(SWITCHES), $(ALL_SWITCHES)), -DNO$(shell echo $(SWITCH) | tr '[:lower:]' '[:upper:]'))
-CCFLAGS += $(foreach SWITCH, $(SWITCHES), $(CCFLAGS.$(SWITCH)))
+CFLAGS  += $(CFLAGS.$(BUILD)) $(WARNINGS) -MMD -MP -I$(SOURCE_DIR)
+CFLAGS  += $(foreach SWITCH, $(SWITCHES), -D$(shell echo $(SWITCH) | tr '[:lower:]' '[:upper:]'))
+CFLAGS  += $(foreach SWITCH, $(filter-out $(SWITCHES), $(ALL_SWITCHES)), -DNO$(shell echo $(SWITCH) | tr '[:lower:]' '[:upper:]'))
+CFLAGS  += $(foreach SWITCH, $(SWITCHES), $(CFLAGS.$(SWITCH)))
 LDFLAGS += $(LDFLAGS.$(BUILD))
 LDFLAGS += $(foreach SWITCH, $(SWITCHES), $(LDFLAGS.$(SWITCH)))
+LDLIBS  += $(LDLIBS.$(BUILD))
+LDLIBS  += $(foreach SWITCH, $(SWITCHES), $(LDLIBS.$(SWITCH)))
 # ==
 
 # == Files
@@ -84,16 +86,17 @@ $(TARGETS): $(BINARY_DIR)/$$@
 
 $(BINARYS): $(BINARY_DIR)/%: $(OBJECTS) $$(TARGET_OBJECTS.$$*) $(LINK_SCRIPT) | $$(dir $$@)
 	@$(ECHO) "Building $@"
-	$(if $(LD.$*), $(LD.$*), $(LD)) $(LDFLAGS) $(LDFLAGS.$*) -o $@ $(OBJECTS) $(TARGET_OBJECTS.$*) \
+	$(if $(LD.$*), $(LD.$*), $(LD)) $(LDFLAGS) $(LDFLAGS.$*) $(OBJECTS) $(TARGET_OBJECTS.$*) \
+		$(LDLIBS) $(LDLIBS.$*) -o $@ \
 		$(if $(LINK_SCRIPT.$*), -T$(LINK_SCRIPT.$*), $(if $(LINK_SCRIPT), -T$(LINK_SCRIPT)))
 	@$(CHANGED)
 
 $(OBJECT_DIR)/%.o: $(SOURCE_DIR)/% $(MAKEFILE_LIST) | $$(dir $$@)
 	@$(ECHO) "Building $@"
-	$(CC) $(CCFLAGS) $(CCFLAGS.$*) -c -o $@ $<
+	$(CC) $(CFLAGS) $(CFLAGS.$*) -c -o $@ $<
 
 clean:
-	$(RM) -rf $(TO_CLEAN)
+	$(RM) -r $(TO_CLEAN)
 	@$(ECHO) "Cleaned generated files."
 
 -include $(DEPENDENCIES)
