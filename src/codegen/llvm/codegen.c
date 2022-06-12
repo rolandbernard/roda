@@ -105,7 +105,19 @@ static LLVMModuleRef generateLinkedModule(CompilerContext* context) {
 }
 
 void runCodeGenerationForLlvmIr(CompilerContext* context, ConstPath path) {
-    
+    char* error_msg = NULL;
+    LLVMModuleRef module = generateLinkedModule(context);
+    if (LLVMPrintModuleToFile(module, toCString(path), &error_msg)) {
+        addMessageToContext(
+            &context->msgs,
+            createMessage(
+                ERROR_LLVM_BACKEND_ERROR,
+                createFormattedString("failed to write output file '%S': %s", path, error_msg), 0
+            )
+        );
+        LLVMDisposeMessage(error_msg);
+    }
+    LLVMDisposeModule(module);
 }
 
 void runCodeGenerationForLlvmBc(CompilerContext* context, ConstPath path) {

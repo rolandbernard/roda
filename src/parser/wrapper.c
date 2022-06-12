@@ -65,16 +65,19 @@ static const char* surroundWith(char* dst, const char* src, char start, char end
 
 static const char* tokenName(char* dst, const char* src) {
     if (src[0] == '\'') {
-        return src;
-    } else if (strcmp(src, "end of file") == 0) {
-        return src;
+        size_t len = strlen(src);
+        dst[0] = '`';
+        memcpy(dst + 1, src + 1, len - 2);
+        dst[len - 1] = '`';
+        dst[len] = 0;
+        return dst;
     } else if (
-        strcmp(src, "invalid token") == 0 || strcmp(src, "identifier") == 0
+        strcmp(src, "end of file") == 0 || strcmp(src, "invalid token") == 0 || strcmp(src, "identifier") == 0
         || strcmp(src, "string") == 0 || strcmp(src, "integer") == 0 || strcmp(src, "real") == 0
     ) {
-        return surroundWith(dst, src, '{', '}');
+        return src;
     } else {
-        return surroundWith(dst, src, '\'', '\'');
+        return surroundWith(dst, src, '`', '`');
     }
 }
 

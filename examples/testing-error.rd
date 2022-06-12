@@ -7,6 +7,7 @@ export fn main() {
     test += 5.5
     test -= 0.25;
     test -= 0 25;
+    let true = 5;
     test -= 0 +=;
     test -= 0 $;
     test -= 25;

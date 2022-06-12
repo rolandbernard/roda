@@ -5,7 +5,8 @@
 
 #include "ast/ast.h"
 #include "compiler/context.h"
+#include "codegen/llvm/context.h"
 
-LLVMModuleRef generateSingleModule(CompilerContext* context, File* file);
+LLVMModuleRef generateSingleModule(LlvmCodegenContext* context, File* file);
 
 #endif

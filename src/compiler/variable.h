@@ -17,7 +17,8 @@ typedef enum {
     struct AstVar* def;         \
     struct AstVar** refs;       \
     size_t ref_count;           \
-    size_t ref_capacity;
+    size_t ref_capacity;        \
+    void* codegen;
 
 typedef struct {
     SYMBOL_ENTRY_BASE
