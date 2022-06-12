@@ -236,12 +236,6 @@ static void buildRootSymbolTables(CompilerContext* context, AstNode* node, Symbo
     }
 }
 
-#define FOR_ALL_MODULES(ACTION)                                 \
-    for (size_t i = 0; i < context->files.file_count; i++) {    \
-        File* file = context->files.files[i];                   \
-        if (file->ast != NULL) ACTION                           \
-    }
-
 void runSymbolResolution(CompilerContext* context) {
     FOR_ALL_MODULES({ buildRootSymbolTables(context, file->ast, &context->buildins); });
     FOR_ALL_MODULES({ buildLocalSymbolTables(context, file->ast, &context->buildins, false, true); });
@@ -382,6 +376,5 @@ static void buildControlFlowReferences(CompilerContext* context, AstNode* node, 
 
 void runControlFlowReferenceResolution(CompilerContext* context) {
     FOR_ALL_MODULES({ buildControlFlowReferences(context, file->ast, NULL); });
-    // TODO: check that there us always a return if function is not implicitly void!
 }
 

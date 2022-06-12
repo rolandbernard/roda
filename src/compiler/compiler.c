@@ -1,6 +1,7 @@
 
 #include "ast/astprinter.h"
 #include "compiler/typecheck.h"
+#include "compiler/controlflow.h"
 #include "compiler/varbuild.h"
 #include "errors/msgprint.h"
 #include "parser/wrapper.h"
@@ -34,6 +35,10 @@ void runCompilation(CompilerContext* context) {
             }
         }
 #endif
+        printAndClearMessages(&context->msgs, stderr, true, true);
+    }
+    if (context->msgs.error_count == 0) {
+        runControlFlowChecking(context);
         printAndClearMessages(&context->msgs, stderr, true, true);
     }
     if (context->msgs.error_count == 0) {

@@ -42,6 +42,12 @@ typedef struct {
     SymbolTable buildins;
 } CompilerContext;
 
+#define FOR_ALL_MODULES(ACTION)                                 \
+    for (size_t i = 0; i < context->files.file_count; i++) {    \
+        File* file = context->files.files[i];                   \
+        if (file->ast != NULL) ACTION                           \
+    }
+
 void initCompilerContext(CompilerContext* context);
 
 void deinitCompilerContext(CompilerContext* context);

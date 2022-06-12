@@ -1650,12 +1650,6 @@ static void checkTypes(CompilerContext* context, AstNode* node) {
     }
 }
 
-#define FOR_ALL_MODULES(ACTION)                                 \
-    for (size_t i = 0; i < context->files.file_count; i++) {    \
-        File* file = context->files.files[i];                   \
-        if (file->ast != NULL) ACTION                           \
-    }
-
 void runTypeChecking(CompilerContext* context) {
     FOR_ALL_MODULES({ evaluateTypeDefinitions(context, file->ast); });
     FOR_ALL_MODULES({ checkTypeDefinitions(context, file->ast); });

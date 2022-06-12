@@ -102,13 +102,6 @@ extern void yyerror(YYLTYPE* yyllocp, yyscan_t scanner, ParserContext* context, 
 
 %%
 
-//todo:
-// chars
-// for loop
-// match
-// top level definitions
-// 
-
 program : root  { context->result = $1; }
         ;
 

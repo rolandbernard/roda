@@ -1,14 +1,14 @@
 
-fn foo() {
+fn foo(test: bool): int {
     let a = 5;
-    let b;
     let c;
-    let d;
-    let e;
-    let f;
-    let g = e;
-    if (a == g && f == e && f == c) {
-        b = d + c;
+    let b = c;
+    if (a == b) {
+        return 12 + a;
+    } else {
+        a += b;
+        return 5;
     }
+    return 5;
 }
 

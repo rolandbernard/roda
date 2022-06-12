@@ -12,12 +12,6 @@
 
 #include "codegen/codegen.h"
 
-#define FOR_ALL_MODULES(ACTION)                                 \
-    for (size_t i = 0; i < context->files.file_count; i++) {    \
-        File* file = context->files.files[i];                   \
-        if (file->ast != NULL) ACTION                           \
-    }
-
 void raiseNoBackendError(CompilerContext* context, const char* kind) {
     addMessageToContext(
         &context->msgs,
