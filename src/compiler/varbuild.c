@@ -6,7 +6,7 @@
 
 #include "compiler/varbuild.h"
 
-static void variableExistsError(CompilerContext* context, AstVar* name, SymbolEntry* existing) {
+static void raiseVariableExistsError(CompilerContext* context, AstVar* name, SymbolEntry* existing) {
     const char* kind_name = existing->kind == SYMBOL_VARIABLE ? "variable" : "type";
     String message = createFormattedString("the %s `%s` is already defined", kind_name, name->name);
     MessageFragment* error = createMessageFragment(MESSAGE_ERROR, createFormattedString("already defined %s", kind_name), name->location);
@@ -26,14 +26,14 @@ static void variableExistsError(CompilerContext* context, AstVar* name, SymbolEn
 static bool checkNotExisting(CompilerContext* context, SymbolTable* scope, AstVar* name, SymbolEntryKind kind) {
     SymbolEntry* existing = findImmediateEntryInTable(scope, name->name, kind);
     if (existing != NULL) {
-        variableExistsError(context, name, existing);
+        raiseVariableExistsError(context, name, existing);
         return false;
     } else {
         return true;
     }
 }
 
-static void recursivelyBuildLocalSymbolTables(CompilerContext* context, AstNode* node, SymbolTable* scope, bool type, bool root) {
+static void buildLocalSymbolTables(CompilerContext* context, AstNode* node, SymbolTable* scope, bool type, bool root) {
     if (node != NULL) {
         switch (node->kind) {
             case AST_ADD_ASSIGN:
@@ -48,8 +48,8 @@ static void recursivelyBuildLocalSymbolTables(CompilerContext* context, AstNode*
             case AST_BXOR_ASSIGN:
             case AST_ASSIGN: { // Executed right to left
                 AstBinary* n = (AstBinary*)node;
-                recursivelyBuildLocalSymbolTables(context, n->right, scope, type, root);
-                recursivelyBuildLocalSymbolTables(context, n->left, scope, type, root);
+                buildLocalSymbolTables(context, n->right, scope, type, root);
+                buildLocalSymbolTables(context, n->left, scope, type, root);
                 break;
             }
             case AST_INDEX:
@@ -72,14 +72,14 @@ static void recursivelyBuildLocalSymbolTables(CompilerContext* context, AstNode*
             case AST_GT:
             case AST_ADD: { // Executed left to right
                 AstBinary* n = (AstBinary*)node;
-                recursivelyBuildLocalSymbolTables(context, n->left, scope, type, root);
-                recursivelyBuildLocalSymbolTables(context, n->right, scope, type, root);
+                buildLocalSymbolTables(context, n->left, scope, type, root);
+                buildLocalSymbolTables(context, n->right, scope, type, root);
                 break;
             }
             case AST_ARRAY: { // Part of a type
                 AstBinary* n = (AstBinary*)node;
-                recursivelyBuildLocalSymbolTables(context, n->right, scope, true, root);
-                recursivelyBuildLocalSymbolTables(context, n->left, scope, false, root);
+                buildLocalSymbolTables(context, n->right, scope, true, root);
+                buildLocalSymbolTables(context, n->left, scope, false, root);
                 break;
             }
             case AST_POS:
@@ -88,37 +88,37 @@ static void recursivelyBuildLocalSymbolTables(CompilerContext* context, AstNode*
             case AST_NOT:
             case AST_DEREF: {
                 AstUnary* n = (AstUnary*)node;
-                recursivelyBuildLocalSymbolTables(context, n->op, scope, type, root);
+                buildLocalSymbolTables(context, n->op, scope, type, root);
                 break;
             }
             case AST_RETURN: {
                 AstReturn* n = (AstReturn*)node;
-                recursivelyBuildLocalSymbolTables(context, n->value, scope, type, root);
+                buildLocalSymbolTables(context, n->value, scope, type, root);
                 break;
             }
             case AST_LIST: {
                 AstList* n = (AstList*)node;
                 for (size_t i = 0; i < n->count; i++) {
-                    recursivelyBuildLocalSymbolTables(context, n->nodes[i], scope, type, root);
+                    buildLocalSymbolTables(context, n->nodes[i], scope, type, root);
                 }
                 break;
             }
             case AST_ROOT: {
                 AstRoot* n = (AstRoot*)node;
                 n->vars.parent = scope;
-                recursivelyBuildLocalSymbolTables(context, (AstNode*)n->nodes, &n->vars, type, root);
+                buildLocalSymbolTables(context, (AstNode*)n->nodes, &n->vars, type, root);
                 break;
             }
             case AST_BLOCK: {
                 AstBlock* n = (AstBlock*)node;
                 n->vars.parent = scope;
-                recursivelyBuildLocalSymbolTables(context, (AstNode*)n->nodes, &n->vars, type, root);
+                buildLocalSymbolTables(context, (AstNode*)n->nodes, &n->vars, type, root);
                 break;
             }
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
-                recursivelyBuildLocalSymbolTables(context, n->type, scope, true, root);
-                recursivelyBuildLocalSymbolTables(context, n->val, scope, type, root);
+                buildLocalSymbolTables(context, n->type, scope, true, root);
+                buildLocalSymbolTables(context, n->val, scope, type, root);
                 if (checkNotExisting(context, scope, n->name, SYMBOL_VARIABLE)) {
                     n->name->binding = (SymbolEntry*)createVariableSymbol(n->name->name, n->name);
                     addSymbolToTable(scope, n->name->binding);
@@ -127,39 +127,39 @@ static void recursivelyBuildLocalSymbolTables(CompilerContext* context, AstNode*
             }
             case AST_IF_ELSE: {
                 AstIfElse* n = (AstIfElse*)node;
-                recursivelyBuildLocalSymbolTables(context, n->condition, scope, type, root);
-                recursivelyBuildLocalSymbolTables(context, n->if_block, scope, type, root);
-                recursivelyBuildLocalSymbolTables(context, n->else_block, scope, type, root);
+                buildLocalSymbolTables(context, n->condition, scope, type, root);
+                buildLocalSymbolTables(context, n->if_block, scope, type, root);
+                buildLocalSymbolTables(context, n->else_block, scope, type, root);
                 break;
             }
             case AST_WHILE: {
                 AstWhile* n = (AstWhile*)node;
-                recursivelyBuildLocalSymbolTables(context, n->condition, scope, type, root);
-                recursivelyBuildLocalSymbolTables(context, n->block, scope, type, root);
+                buildLocalSymbolTables(context, n->condition, scope, type, root);
+                buildLocalSymbolTables(context, n->block, scope, type, root);
                 break;
             }
             case AST_FN: {
                 AstFn* n = (AstFn*)node;
-                recursivelyBuildLocalSymbolTables(context, n->ret_type, scope, true, false);
+                buildLocalSymbolTables(context, n->ret_type, scope, true, false);
                 n->vars.parent = scope;
-                recursivelyBuildLocalSymbolTables(context, (AstNode*)n->arguments, &n->vars, type, false);
-                recursivelyBuildLocalSymbolTables(context, n->body, &n->vars, type, false);
+                buildLocalSymbolTables(context, (AstNode*)n->arguments, &n->vars, type, false);
+                buildLocalSymbolTables(context, n->body, &n->vars, type, false);
                 break;
             }
             case AST_CALL: {
                 AstCall* n = (AstCall*)node;
-                recursivelyBuildLocalSymbolTables(context, n->function, scope, type, root);
-                recursivelyBuildLocalSymbolTables(context, (AstNode*)n->arguments, scope, type, root);
+                buildLocalSymbolTables(context, n->function, scope, type, root);
+                buildLocalSymbolTables(context, (AstNode*)n->arguments, scope, type, root);
                 break;
             }
             case AST_TYPEDEF: {
                 AstTypeDef* n = (AstTypeDef*)node;
-                recursivelyBuildLocalSymbolTables(context, n->value, scope, true, false);
+                buildLocalSymbolTables(context, n->value, scope, true, false);
                 break;
             }
             case AST_ARGDEF: {
                 AstArgDef* n = (AstArgDef*)node;
-                recursivelyBuildLocalSymbolTables(context, n->type, scope, true, root);
+                buildLocalSymbolTables(context, n->type, scope, true, root);
                 if (checkNotExisting(context, scope, n->name, SYMBOL_VARIABLE)) {
                     n->name->binding = (SymbolEntry*)createVariableSymbol(n->name->name, n->name);
                     addSymbolToTable(scope, n->name->binding);
@@ -197,25 +197,20 @@ static void recursivelyBuildLocalSymbolTables(CompilerContext* context, AstNode*
     }
 }
 
-static void buildLocalSymbolTables(CompilerContext* context, AstNode* root) {
-    ASSERT(root->kind == AST_ROOT);
-    recursivelyBuildLocalSymbolTables(context, root, &context->buildins, false, true);
-}
-
-static void recursivelyBuildRootSymbolTables(CompilerContext* context, AstNode* node, SymbolTable* scope) {
+static void buildRootSymbolTables(CompilerContext* context, AstNode* node, SymbolTable* scope) {
     if (node != NULL) {
         switch (node->kind) {
             case AST_LIST: {
                 AstList* n = (AstList*)node;
                 for (size_t i = 0; i < n->count; i++) {
-                    recursivelyBuildRootSymbolTables(context, n->nodes[i], scope);
+                    buildRootSymbolTables(context, n->nodes[i], scope);
                 }
                 break;
             }
             case AST_ROOT: {
                 AstRoot* n = (AstRoot*)node;
                 n->vars.parent = scope;
-                recursivelyBuildRootSymbolTables(context, (AstNode*)n->nodes, &n->vars);
+                buildRootSymbolTables(context, (AstNode*)n->nodes, &n->vars);
                 break;
             }
             case AST_FN: {
@@ -241,27 +236,18 @@ static void recursivelyBuildRootSymbolTables(CompilerContext* context, AstNode* 
     }
 }
 
-static void buildRootSymbolTable(CompilerContext* context, AstNode* root) {
-    ASSERT(root->kind == AST_ROOT);
-    recursivelyBuildRootSymbolTables(context, root, &context->buildins);
-}
+#define FOR_ALL_MODULES(ACTION)                                 \
+    for (size_t i = 0; i < context->files.file_count; i++) {    \
+        File* file = context->files.files[i];                   \
+        if (file->ast != NULL) ACTION                           \
+    }
 
 void runSymbolResolution(CompilerContext* context) {
-    for (size_t i = 0; i < context->files.file_count; i++) {
-        File* file = context->files.files[i];
-        if (file->ast != NULL) {
-            buildRootSymbolTable(context, file->ast);
-        }
-    }
-    for (size_t i = 0; i < context->files.file_count; i++) {
-        File* file = context->files.files[i];
-        if (file->ast != NULL) {
-            buildLocalSymbolTables(context, file->ast);
-        }
-    }
+    FOR_ALL_MODULES({ buildRootSymbolTables(context, file->ast, &context->buildins); });
+    FOR_ALL_MODULES({ buildLocalSymbolTables(context, file->ast, &context->buildins, false, true); });
 }
 
-static void recursivelyBuildControlFlowReferences(CompilerContext* context, AstNode* node, AstFn* function) {
+static void buildControlFlowReferences(CompilerContext* context, AstNode* node, AstFn* function) {
     if (node != NULL) {
         switch (node->kind) {
             case AST_ADD_ASSIGN:
@@ -276,8 +262,8 @@ static void recursivelyBuildControlFlowReferences(CompilerContext* context, AstN
             case AST_BXOR_ASSIGN:
             case AST_ASSIGN: { // Executed right to left
                 AstBinary* n = (AstBinary*)node;
-                recursivelyBuildControlFlowReferences(context, n->right, function);
-                recursivelyBuildControlFlowReferences(context, n->left, function);
+                buildControlFlowReferences(context, n->right, function);
+                buildControlFlowReferences(context, n->left, function);
                 break;
             }
             case AST_INDEX:
@@ -300,14 +286,14 @@ static void recursivelyBuildControlFlowReferences(CompilerContext* context, AstN
             case AST_GT:
             case AST_ADD: { // Executed left to right
                 AstBinary* n = (AstBinary*)node;
-                recursivelyBuildControlFlowReferences(context, n->left, function);
-                recursivelyBuildControlFlowReferences(context, n->right, function);
+                buildControlFlowReferences(context, n->left, function);
+                buildControlFlowReferences(context, n->right, function);
                 break;
             }
             case AST_ARRAY: { // Part of a type
                 AstBinary* n = (AstBinary*)node;
-                recursivelyBuildControlFlowReferences(context, n->right, function);
-                recursivelyBuildControlFlowReferences(context, n->left, function);
+                buildControlFlowReferences(context, n->right, function);
+                buildControlFlowReferences(context, n->left, function);
                 break;
             }
             case AST_POS:
@@ -316,72 +302,72 @@ static void recursivelyBuildControlFlowReferences(CompilerContext* context, AstN
             case AST_NOT:
             case AST_DEREF: {
                 AstUnary* n = (AstUnary*)node;
-                recursivelyBuildControlFlowReferences(context, n->op, function);
+                buildControlFlowReferences(context, n->op, function);
                 break;
             }
             case AST_RETURN: {
                 AstReturn* n = (AstReturn*)node;
                 n->function = function;
-                recursivelyBuildControlFlowReferences(context, n->value, function);
+                buildControlFlowReferences(context, n->value, function);
                 break;
             }
             case AST_LIST: {
                 AstList* n = (AstList*)node;
                 for (size_t i = 0; i < n->count; i++) {
-                    recursivelyBuildControlFlowReferences(context, n->nodes[i], function);
+                    buildControlFlowReferences(context, n->nodes[i], function);
                 }
                 break;
             }
             case AST_ROOT: {
                 AstRoot* n = (AstRoot*)node;
-                recursivelyBuildControlFlowReferences(context, (AstNode*)n->nodes, function);
+                buildControlFlowReferences(context, (AstNode*)n->nodes, function);
                 break;
             }
             case AST_BLOCK: {
                 AstBlock* n = (AstBlock*)node;
-                recursivelyBuildControlFlowReferences(context, (AstNode*)n->nodes, function);
+                buildControlFlowReferences(context, (AstNode*)n->nodes, function);
                 break;
             }
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
-                recursivelyBuildControlFlowReferences(context, n->type, function);
-                recursivelyBuildControlFlowReferences(context, n->val, function);
+                buildControlFlowReferences(context, n->type, function);
+                buildControlFlowReferences(context, n->val, function);
                 break;
             }
             case AST_IF_ELSE: {
                 AstIfElse* n = (AstIfElse*)node;
-                recursivelyBuildControlFlowReferences(context, n->condition, function);
-                recursivelyBuildControlFlowReferences(context, n->if_block, function);
-                recursivelyBuildControlFlowReferences(context, n->else_block, function);
+                buildControlFlowReferences(context, n->condition, function);
+                buildControlFlowReferences(context, n->if_block, function);
+                buildControlFlowReferences(context, n->else_block, function);
                 break;
             }
             case AST_WHILE: {
                 AstWhile* n = (AstWhile*)node;
-                recursivelyBuildControlFlowReferences(context, n->condition, function);
-                recursivelyBuildControlFlowReferences(context, n->block, function);
+                buildControlFlowReferences(context, n->condition, function);
+                buildControlFlowReferences(context, n->block, function);
                 break;
             }
             case AST_FN: {
                 AstFn* n = (AstFn*)node;
-                recursivelyBuildControlFlowReferences(context, n->ret_type, n);
-                recursivelyBuildControlFlowReferences(context, (AstNode*)n->arguments, n);
-                recursivelyBuildControlFlowReferences(context, n->body, n);
+                buildControlFlowReferences(context, n->ret_type, n);
+                buildControlFlowReferences(context, (AstNode*)n->arguments, n);
+                buildControlFlowReferences(context, n->body, n);
                 break;
             }
             case AST_CALL: {
                 AstCall* n = (AstCall*)node;
-                recursivelyBuildControlFlowReferences(context, n->function, function);
-                recursivelyBuildControlFlowReferences(context, (AstNode*)n->arguments, function);
+                buildControlFlowReferences(context, n->function, function);
+                buildControlFlowReferences(context, (AstNode*)n->arguments, function);
                 break;
             }
             case AST_TYPEDEF: {
                 AstTypeDef* n = (AstTypeDef*)node;
-                recursivelyBuildControlFlowReferences(context, n->value, function);
+                buildControlFlowReferences(context, n->value, function);
                 break;
             }
             case AST_ARGDEF: {
                 AstArgDef* n = (AstArgDef*)node;
-                recursivelyBuildControlFlowReferences(context, n->type, function);
+                buildControlFlowReferences(context, n->type, function);
                 break;
             }
             case AST_VAR:
@@ -395,11 +381,7 @@ static void recursivelyBuildControlFlowReferences(CompilerContext* context, AstN
 }
 
 void runControlFlowReferenceResolution(CompilerContext* context) {
-    for (size_t i = 0; i < context->files.file_count; i++) {
-        File* file = context->files.files[i];
-        if (file->ast != NULL) {
-            recursivelyBuildControlFlowReferences(context, file->ast, NULL);
-        }
-    }
+    FOR_ALL_MODULES({ buildControlFlowReferences(context, file->ast, NULL); });
+    // TODO: check that there us always a return if function is not implicitly void!
 }
 
