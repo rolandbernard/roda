@@ -1370,6 +1370,19 @@ static void checkNodeIsLValue(CompilerContext* context, AstNode* node) {
     }
 }
 
+static void checkNodeIsAddressable(CompilerContext* context, AstNode* node) {
+    if (!isNodeLValue(node)) {
+        addMessageToContext(
+            &context->msgs,
+            createMessage(
+                ERROR_INCOMPATIBLE_TYPE,
+                copyFromCString("attempting to take pointer to expression that is not addressable"), 1,
+                createMessageFragment(MESSAGE_ERROR, copyFromCString("expected this to be addressable"), node->location)
+            )
+        );
+    }
+}
+
 static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
@@ -1530,7 +1543,7 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                         raiseOpTypeError(context, node, node, node->res_type, node->res_type_reasoning, ", always returns a pointer");
                     }
                 }
-                // TODO: check that operand is addressable!
+                checkNodeIsAddressable(context, n->op);
                 checkTypeConstraints(context, n->op);
                 break;
             }
