@@ -460,11 +460,11 @@ static void propagateToVariableReferences(CompilerContext* context, AstVar* node
         var->type = node->res_type;
         var->type_reasoning = node->res_type_reasoning;
         for (size_t i = 0; i < var->ref_count; i++) {
-            var->refs[i]->res_type = var->type;
-            var->refs[i]->res_type_reasoning = var->type_reasoning;
+            var->refs[i]->res_type = node->res_type;
+            var->refs[i]->res_type_reasoning = node->res_type_reasoning;
         }
-        var->def->res_type = var->type;
-        var->def->res_type_reasoning = var->type_reasoning;
+        var->def->res_type = node->res_type;
+        var->def->res_type_reasoning = node->res_type_reasoning;
     }
 }
 
@@ -641,12 +641,7 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                 Type** arg_types = ALLOC(Type*, n->arguments->count);
                 for (size_t i = 0; i < n->arguments->count; i++) {
                     AstArgDef* def = (AstArgDef*)n->arguments->nodes[i];
-                    SymbolVariable* var = (SymbolVariable*)def->name->binding;
-                    if (var != NULL) {
-                        arg_types[i] = var->type;
-                    } else {
-                        arg_types[i] = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
-                    }
+                    arg_types[i] = def->name->res_type;
                 }
                 n->name->res_type = createFunctionType(&context->types, ret_type, n->arguments->count, arg_types);
                 n->name->res_type_reasoning = node;
@@ -685,6 +680,16 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                 break;
             }
         }
+    }
+}
+
+static void propagateVariableReferences(CompilerContext* context, AstVar* node) {
+    SymbolVariable* var = (SymbolVariable*)node->binding;
+    if (var != NULL) {
+        for (size_t i = 0; i < var->ref_count; i++) {
+            propagateTypes(context, (AstNode*)var->refs[i]->parent);
+        }
+        propagateTypes(context, (AstNode*)var->def->parent);
     }
 }
 
@@ -794,14 +799,22 @@ static void propagateAllTypes(CompilerContext* context, AstNode* node) {
             }
             case AST_FN: {
                 AstFn* n = (AstFn*)node;
+                propagateAllTypes(context, (AstNode*)n->name);
+                propagateVariableReferences(context, n->name);
                 propagateAllTypes(context, (AstNode*)n->arguments);
                 propagateAllTypes(context, n->body);
                 break;
             }
-            case AST_ARGDEF:
+            case AST_ARGDEF: {
+                AstArgDef* n = (AstArgDef*)node;
+                propagateAllTypes(context, (AstNode*)n->name);
+                propagateVariableReferences(context, n->name);
                 break;
+            }
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
+                propagateAllTypes(context, (AstNode*)n->name);
+                propagateVariableReferences(context, n->name);
                 propagateAllTypes(context, n->val);
                 break;
             }
