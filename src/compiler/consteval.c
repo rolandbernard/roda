@@ -309,6 +309,24 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
                 }
                 break;
             }
+            case AST_BOOL: {
+                AstBool* n = (AstBool*)node;
+                if (n->res_type == NULL || n->res_type->kind != TYPE_ERROR) {
+                    if (n->res_type == NULL) {
+                        n->res_type = createUnsizedPrimitiveType(&context->types, TYPE_BOOL);
+                    }
+                    Type* t = isBooleanType(n->res_type);
+                    ASSERT(t != NULL);
+                    if (t->kind == TYPE_INT) {
+                        res = createConstBool(context, n->value);
+                    } else {
+                        UNREACHABLE(", integer type expected");
+                    }
+                } else {
+                    res = createConstError(context);
+                }
+                break;
+            }
         }
         node->res_type = res.type;
         return res;

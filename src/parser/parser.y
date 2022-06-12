@@ -45,7 +45,8 @@ extern void yyerror(YYLTYPE* yyllocp, yyscan_t scanner, ParserContext* context, 
 %destructor { freeAstNode((AstNode*)$$); } <list>
 %destructor { freeDynamicAstList($$); } <dynlist>
 
-%type <ast> root block stmt block_stmt type expr root_stmt arg_def opt_type assign integer real string
+%type <ast> root block stmt block_stmt type expr root_stmt 
+%type <ast> arg_def opt_type assign integer real string bool
 %type <ident> ident
 %type <list> args args_defs
 %type <dynlist> args_list args_def_list stmts root_stmts
@@ -54,6 +55,9 @@ extern void yyerror(YYLTYPE* yyllocp, yyscan_t scanner, ParserContext* context, 
 %token <lexeme> STR     "string"
 %token <lexeme> INT     "integer"
 %token <lexeme> REAL    "real"
+%token TRUE             "true"
+%token FALSE            "false"
+
 %token IF               "if"
 %token ELSE             "else"
 %token FOR              "for"
@@ -184,6 +188,7 @@ expr    : ident                         { $$ = (AstNode*)$1; }
         | integer                       { $$ = $1; }
         | real                          { $$ = $1; }
         | string                        { $$ = $1; }
+        | bool                          { $$ = $1; }
         | '(' expr ')'                  { $$ = $2; }
         | '(' error ')'                 { $$ = createAstSimple(@$, AST_ERROR); }
         | '-' expr %prec UNARY_PRE      { $$ = (AstNode*)createAstUnary(@$, AST_NEG, $2); }
@@ -220,6 +225,10 @@ real    : REAL  { $$ = parseRealLiteralIn(context, @1, $1); }
         ;
 
 string  : STR   { $$ = parseStringLiteralIn(context, @1, $1); }
+        ;
+
+bool    : "true"    { $$ = (AstNode*)createAstBool(@$, true); }
+        | "false"   { $$ = (AstNode*)createAstBool(@$, false); }
         ;
 
 ident   : ID    { $$ = createAstVar(@$, getSymbol(&context->context->syms, str($1))); }

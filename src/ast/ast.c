@@ -134,6 +134,13 @@ AstStr* createAstStr(Span loc, String string) {
     return node;
 }
 
+AstBool* createAstBool(Span loc, bool value) {
+    AstBool* node = NEW(AstBool);
+    initAstNode((AstNode*)node, AST_BOOL, loc);
+    node->value = value;
+    return node;
+}
+
 AstTypeDef* createAstTypeDef(Span loc, AstVar* name, AstNode* value) {
     AstTypeDef* node = NEW(AstTypeDef);
     initAstNode((AstNode*)node, AST_TYPEDEF, loc);
@@ -315,6 +322,7 @@ void freeAstNode(AstNode* node) {
             case AST_VAR:
             case AST_ERROR:
             case AST_VOID:
+            case AST_BOOL:
             case AST_INT:
             case AST_REAL: break;
         }

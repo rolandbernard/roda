@@ -54,6 +54,8 @@ POINT .|[\300-\337]{UB}|[\340-\357]{UB}{2}|[\360-\367]{UB}{3}|[\370-\373]{UB}{4}
 "return"        { return RETURN; }
 "match"         { return MATCH; }
 "const"         { return CONST; }
+"true"          { return TRUE; }
+"false"         { return FALSE; }
 
 "=="            { return EQ; }
 "!="            { return NE; }

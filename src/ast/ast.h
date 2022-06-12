@@ -60,15 +60,17 @@ typedef enum {
     AST_WHILE,
     AST_FN,
     AST_CALL,
-    AST_INT,
-    AST_REAL,
-    AST_STR,
     AST_TYPEDEF,
     AST_ARGDEF,
     AST_LIST,
     AST_ROOT,
     AST_BLOCK,
     AST_RETURN,
+
+    AST_INT,
+    AST_REAL,
+    AST_STR,
+    AST_BOOL,
 } AstNodeKind;
 
 #define AST_NODE_BASE                   \
@@ -169,6 +171,11 @@ typedef struct {
 
 typedef struct {
     AST_NODE_BASE
+    bool value;
+} AstBool;
+
+typedef struct {
+    AST_NODE_BASE
     AstVar* name;
     AstNode* value;
 } AstTypeDef;
@@ -226,6 +233,8 @@ AstInt* createAstInt(Span loc, AstIntType num);
 AstReal* createAstReal(Span loc, AstRealType num);
 
 AstStr* createAstStr(Span loc, String string);
+
+AstBool* createAstBool(Span loc, bool value);
 
 AstTypeDef* createAstTypeDef(Span loc, AstVar* name, AstNode* value);
 

@@ -41,6 +41,7 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
             case AST_STR:
             case AST_DEREF:
             case AST_INT:
+            case AST_BOOL:
             case AST_REAL:
             case AST_ADD:
             case AST_SUB:

@@ -70,6 +70,7 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
             case AST_STR:
             case AST_INT:
             case AST_REAL:
+            case AST_BOOL:
             case AST_LIST:
             case AST_ROOT:
             case AST_BLOCK:
@@ -482,6 +483,7 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
             case AST_VAR:
             case AST_STR:
             case AST_INT:
+            case AST_BOOL:
             case AST_REAL:
                 break;
             case AST_ADD_ASSIGN:
@@ -705,6 +707,7 @@ static void propagateAllTypes(CompilerContext* context, AstNode* node) {
             case AST_VAR:
             case AST_STR:
             case AST_INT:
+            case AST_BOOL:
             case AST_REAL:
                 break;
             case AST_ADD_ASSIGN:
@@ -848,6 +851,14 @@ static void assumeAmbiguousTypes(CompilerContext* context, AstNode* node) {
                     }
                 }
                 break;
+            case AST_BOOL:
+                if (node->res_type == NULL) {
+                    Type* type = createUnsizedPrimitiveType(&context->types, TYPE_BOOL);
+                    if (propagateTypeIntoAstNode(context, node, type, node)) {
+                        propagateTypes(context, node->parent);
+                    }
+                }
+                break;
             case AST_REAL:
                 if (node->res_type == NULL) {
                     Type* type = createSizedPrimitiveType(&context->types, TYPE_REAL, 64);
@@ -972,6 +983,7 @@ static void checkForUntypedVariables(CompilerContext* context, AstNode* node) {
             case AST_VAR:
             case AST_STR:
             case AST_INT:
+            case AST_BOOL:
             case AST_REAL:
                 break;
             case AST_ADD_ASSIGN:
@@ -1133,6 +1145,7 @@ static void checkForUntypedNodes(CompilerContext* context, AstNode* node) {
                 case AST_VAR:
                 case AST_STR:
                 case AST_INT:
+                case AST_BOOL:
                 case AST_REAL:
                     break;
                 case AST_ADD_ASSIGN:
@@ -1412,6 +1425,14 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                     TypeSizedPrimitive* int_type = isIntegerType(node->res_type);
                     if (int_type == NULL) {
                         raiseLiteralTypeError(context, node, "integer literal");
+                    }
+                }
+                break;
+            }
+            case AST_BOOL: {
+                if (node->res_type != NULL) {
+                    if (isBooleanType(node->res_type) == NULL) {
+                        raiseLiteralTypeError(context, node, "boolean literal");
                     }
                 }
                 break;

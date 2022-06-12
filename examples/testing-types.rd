@@ -1,13 +1,12 @@
 
 fn foo(test: bool): int {
-    let a = 5;
-    let c;
-    let b = c;
-    if (a == b) {
-        return 12 + a;
+    let a = true;
+    let b = false;
+    let c = a;
+    if (test) {
+        return 1;
     } else {
-        a += b;
-        return a;
+        return 0;
     }
 }
 
