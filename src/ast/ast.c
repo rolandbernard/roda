@@ -71,6 +71,7 @@ AstVarDef* createAstVarDef(Span loc, AstVar* name, AstNode* type, AstNode* val) 
     node->name = name;
     node->type = type;
     node->val = val;
+    SET_PARENT(name);
     SET_PARENT(type);
     SET_PARENT(val);
     return node;
@@ -95,6 +96,7 @@ AstFn* createAstFn(Span loc, AstVar* name, AstList* arguments, AstNode* ret_type
     node->body = body;
     node->flags = flags;
     initSymbolTable(&node->vars, NULL);
+    SET_PARENT(name);
     SET_PARENT(arguments);
     SET_PARENT(ret_type);
     SET_PARENT(body);
@@ -137,6 +139,7 @@ AstTypeDef* createAstTypeDef(Span loc, AstVar* name, AstNode* value) {
     initAstNode((AstNode*)node, AST_TYPEDEF, loc);
     node->name = name;
     node->value = value;
+    SET_PARENT(name);
     SET_PARENT(value);
     return node;
 }
@@ -146,6 +149,7 @@ AstArgDef* createAstArgDef(Span loc, AstVar* name, AstNode* type) {
     initAstNode((AstNode*)node, AST_ARGDEF, loc);
     node->name = name;
     node->type = type;
+    SET_PARENT(name);
     SET_PARENT(type);
     return node;
 }

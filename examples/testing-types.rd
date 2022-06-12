@@ -4,13 +4,17 @@ fn add(a: int, b: int, c: int): int {
 }
 
 fn main(test: bool): int {
-    let a: int = 5;
-    let b = 6;
-    // let add: int;
-    // let c: int = add(a, b);
-    // add(a, b);
+    let a: u32 = 5;
+    let b: f64;
+    b = a;
+}
+
+fn foo(test: bool): int {
+    let a: u32 = 5;
+    let c;
+    let b = c;
     if (a == b) {
-        return 12;
+        return 12 + a;
     } else {
         a += b;
     }

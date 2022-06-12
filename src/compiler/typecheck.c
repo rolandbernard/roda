@@ -687,9 +687,9 @@ static void propagateVariableReferences(CompilerContext* context, AstVar* node) 
     SymbolVariable* var = (SymbolVariable*)node->binding;
     if (var != NULL) {
         for (size_t i = 0; i < var->ref_count; i++) {
-            propagateTypes(context, (AstNode*)var->refs[i]->parent);
+            propagateTypes(context, var->refs[i]->parent);
         }
-        propagateTypes(context, (AstNode*)var->def->parent);
+        propagateTypes(context, var->def->parent);
     }
 }
 
@@ -799,7 +799,6 @@ static void propagateAllTypes(CompilerContext* context, AstNode* node) {
             }
             case AST_FN: {
                 AstFn* n = (AstFn*)node;
-                propagateAllTypes(context, (AstNode*)n->name);
                 propagateVariableReferences(context, n->name);
                 propagateAllTypes(context, (AstNode*)n->arguments);
                 propagateAllTypes(context, n->body);
@@ -807,13 +806,11 @@ static void propagateAllTypes(CompilerContext* context, AstNode* node) {
             }
             case AST_ARGDEF: {
                 AstArgDef* n = (AstArgDef*)node;
-                propagateAllTypes(context, (AstNode*)n->name);
                 propagateVariableReferences(context, n->name);
                 break;
             }
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
-                propagateAllTypes(context, (AstNode*)n->name);
                 propagateVariableReferences(context, n->name);
                 propagateAllTypes(context, n->val);
                 break;
