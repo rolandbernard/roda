@@ -5,6 +5,7 @@
 
 #include "errors/fatalerror.h"
 #include "ast/astprinter.h"
+#include "util/debug.h"
 
 #ifdef LLVM
 #include "codegen/llvm/codegen.h"
@@ -54,6 +55,7 @@ void runCodeGeneration(CompilerContext* context) {
                 )
             );
         }
+        DEBUG_LOG(context, "skipped code generation");
     } else {
         if (context->settings.output_file.data == NULL) {
             addMessageToContext(
@@ -91,7 +93,7 @@ void runCodeGeneration(CompilerContext* context) {
 #ifdef LLVM
                         initLlvmBackend(context);
                         runCodeGenerationForLlvmIr(context, toConstPath(context->settings.output_file));
-                        deinitLlvmBackend();
+                        deinitLlvmBackend(context);
 #else
                         raiseNoBackendError(context, "LLVM IR");
 #endif
@@ -103,7 +105,7 @@ void runCodeGeneration(CompilerContext* context) {
 #ifdef LLVM
                         initLlvmBackend(context);
                         runCodeGenerationForLlvmBc(context, toConstPath(context->settings.output_file));
-                        deinitLlvmBackend();
+                        deinitLlvmBackend(context);
 #else
                         raiseNoBackendError(context, "LLVM Bitcode");
 #endif
@@ -115,7 +117,7 @@ void runCodeGeneration(CompilerContext* context) {
 #ifdef LLVM
                         initLlvmBackend(context);
                         runCodeGenerationForAsm(context, toConstPath(context->settings.output_file));
-                        deinitLlvmBackend();
+                        deinitLlvmBackend(context);
 #else
                         raiseNoBackendError(context, "assembly");
 #endif
@@ -127,7 +129,7 @@ void runCodeGeneration(CompilerContext* context) {
 #ifdef LLVM
                         initLlvmBackend(context);
                         runCodeGenerationForObj(context, toConstPath(context->settings.output_file));
-                        deinitLlvmBackend();
+                        deinitLlvmBackend(context);
 #else
                         raiseNoBackendError(context, "object file");
 #endif
@@ -141,6 +143,7 @@ void runCodeGeneration(CompilerContext* context) {
                 }
             }
         }
+        DEBUG_LOG(context, "finished code generation");
     }
 }
 

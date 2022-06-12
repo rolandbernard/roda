@@ -11,6 +11,7 @@ typedef enum {
     COMPILER_DEBUG_NONE = 0,
     COMPILER_DEBUG_PARSE_AST = (1 << 0),
     COMPILER_DEBUG_TYPED_AST = (1 << 1),
+    COMPILER_DEBUG_LOG = (1 << 2),
 } CompilerDebugFlags;
 
 typedef enum {

@@ -8,13 +8,18 @@
 #include "rodac/params.h"
 #include "rodac/version.h"
 #include "text/string.h"
+#include "util/debug.h"
 
 static void printVersionInfo() {
     fprintf(stderr, PROGRAM_LONG " v" VERSION_STRING "\n");
+    fprintf(stderr, "  version: " VERSION_STRING_BUILD "\n");
+#ifdef GIT_URL
+    fprintf(stderr, "  git: " GIT_URL "\n");
+#endif
 #ifdef LLVM
-    fprintf(stderr, "- LLVM backend: yes\n");
+    fprintf(stderr, "  LLVM backend: yes\n");
 #else
-    fprintf(stderr, "- LLVM backend: no\n");
+    fprintf(stderr, "  LLVM backend: no\n");
 #endif
 }
 
@@ -23,6 +28,7 @@ int main(int argc, const char* const* argv) {
     initCompilerContext(&context);
     int arg_count = parseProgramParams(argc, argv, &context);
     printAndClearMessages(&context.msgs, stderr, false, false);
+    DEBUG_LOG(&context, "finished parsing command line arguments");
     if (context.settings.version || context.settings.help) {
         if (arg_count > 1) {
             addMessageToContext(&context.msgs,
@@ -47,8 +53,10 @@ int main(int argc, const char* const* argv) {
     printAndClearMessages(&context.msgs, stderr, false, false);
     deinitCompilerContext(&context);
     if (context.msgs.error_count == 0) {
+        DEBUG_LOG(&context, "compilation finished without errors");
         return EXIT_SUCCESS;
     } else {
+        DEBUG_LOG(&context, "compilation finished with errors");
         return EXIT_FAILURE;
     }
 }

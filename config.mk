@@ -12,6 +12,11 @@ BUILD_DIR  ?= $(BASE_DIR)/build
 SOURCE_DIR ?= $(BASE_DIR)/src
 # ==
 
+# == Some info
+GIT_URL  ?= $(shell git remote get-url origin || true)
+GIT_HEAD ?= $(shell git rev-parse HEAD || true)
+# ==
+
 # == Common config
 ifneq ($(VERBOSE),yes)
 .SILENT:

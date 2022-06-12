@@ -4,6 +4,7 @@
 #include <llvm-c/Linker.h>
 
 #include "text/format.h"
+#include "util/debug.h"
 #include "codegen/llvm/genmodule.h"
 
 #include "codegen/llvm/codegen.h"
@@ -62,10 +63,12 @@ void initLlvmBackend(CompilerContext* context) {
     LLVMInitializeAllTargetMCs();
     LLVMContextRef llvm_context = LLVMGetGlobalContext();
     LLVMContextSetDiagnosticHandler(llvm_context, handleLlvmDiagnosticMessage, context);
+    DEBUG_LOG(context, "initialized LLVM backend");
 }
 
-void deinitLlvmBackend() {
+void deinitLlvmBackend(CompilerContext* context) {
     LLVMShutdown();
+    DEBUG_LOG(context, "shutdown LLVM backend");
 }
 
 static LLVMModuleRef generateLinkedModule(CompilerContext* context) {

@@ -7,7 +7,9 @@ ALL_SWITCHES := llvm
 # ==
 
 # == Feature detection
+ifneq ($(shell llvm-config --version || true),)
 LLVM ?= yes
+endif
 # ==
 
 # == Enable features
@@ -25,6 +27,9 @@ YACC := bison
 # ==
 
 # == Flags
+ifneq ($(GIT_HEAD),)
+CFLAGS += -DGIT_HEAD="\"$(GIT_HEAD)\"" -DGIT_URL="\"$(GIT_URL)\""
+endif
 YFLAGS += -Wall
 
 CFLAGS.llvm  += $(shell llvm-config --cflags || true)

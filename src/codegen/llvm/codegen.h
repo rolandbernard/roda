@@ -5,7 +5,7 @@
 
 void initLlvmBackend(CompilerContext* context);
 
-void deinitLlvmBackend();
+void deinitLlvmBackend(CompilerContext* context);
 
 void runCodeGenerationForLlvmIr(CompilerContext* context, ConstPath path);
 

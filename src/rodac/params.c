@@ -53,6 +53,8 @@ static PARAM_SPEC_FUNCTION(parameterSpecFunction, CompilerContext*, {
     PARAM_STRING_LIST(NULL, "compiler-debug", {
         if (strcmp("all", value) == 0) {
             context->settings.compiler_debug = ~0;
+        } else if (strcmp("log", value) == 0) {
+            context->settings.compiler_debug |= COMPILER_DEBUG_LOG;
         } else if (strcmp("parse-ast", value) == 0) {
             context->settings.compiler_debug |= COMPILER_DEBUG_PARSE_AST;
         } else if (strcmp("typed-ast", value) == 0) {
@@ -60,7 +62,7 @@ static PARAM_SPEC_FUNCTION(parameterSpecFunction, CompilerContext*, {
         } else {
             PARAM_WARN_UNKNOWN_VALUE()
         }
-    }, "={all|parse-ast|typed-ast}[,...]", "print debug information while compiling");
+    }, "={all|log|parse-ast|typed-ast}[,...]", "print debug information while compiling");
 #endif
     PARAM_DEFAULT({
         Path path = createPathFromCString(value);
