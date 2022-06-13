@@ -438,7 +438,7 @@ static void printFragmentsInSameFile(FILE* output, MessageFragment** start_order
                     start_count++;
                 }
                 size_t end_count = 0;
-                while (end_pos + end_count < frag_count && start_order[end_pos + end_count]->position.end.line == current_loc.line) {
+                while (end_pos + end_count < frag_count && end_order[end_pos + end_count]->position.end.line == current_loc.line) {
                     end_count++;
                 }
                 printFragmentLine(output, start_order + start_pos, end_order + end_pos, start_count, end_count, numwidth, color);

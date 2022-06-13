@@ -450,7 +450,7 @@ STRUCTURAL_TYPE_CHECK(
 )
 
 bool isSizedType(Type* type) {
-    return !isErrorType(type) && isValidType(type);
+    return !isErrorType(type) && isValidType(type) && isFunctionType(type) == NULL;
 }
 
 typedef struct DoubleTypeReferenceStack {

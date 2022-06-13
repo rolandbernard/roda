@@ -1096,7 +1096,7 @@ static void checkForUntypedVariables(CompilerContext* context, AstNode* node) {
                         createMessageFragment(MESSAGE_ERROR, copyFromCString("unable to infer the type of this variable"), n->name->location)
                     ));
                 } else if (!isErrorType(n->name->res_type) && !isSizedType(n->name->res_type)) {
-                    String type_name = buildTypeName(n->res_type);
+                    String type_name = buildTypeName(n->name->res_type);
                     addMessageToContext(&context->msgs, createMessage(ERROR_INVALID_TYPE,
                         createFormattedString("type error, unsized type `%S` for variable `%s`", type_name, n->name->name), 1,
                         createMessageFragment(MESSAGE_ERROR, copyFromCString("variable with unsized type"), n->name->location)
@@ -1113,7 +1113,7 @@ static void checkForUntypedVariables(CompilerContext* context, AstNode* node) {
                         createMessageFragment(MESSAGE_ERROR, copyFromCString("unable to infer the type of this variable"), n->name->location)
                     ));
                 } else if (!isErrorType(n->name->res_type) && !isSizedType(n->name->res_type)) {
-                    String type_name = buildTypeName(n->res_type);
+                    String type_name = buildTypeName(n->name->res_type);
                     addMessageToContext(&context->msgs, createMessage(ERROR_INVALID_TYPE,
                         createFormattedString("type error, unsized type `%S` for variable `%s`", type_name, n->name->name), 1,
                         createMessageFragment(MESSAGE_ERROR, copyFromCString("variable with unsized type"), n->name->location)
@@ -1367,7 +1367,9 @@ static void raiseVoidReturnError(CompilerContext* context, AstReturn* node, Type
 }
 
 static bool isNodeLValue(AstNode* node) {
-    return node != NULL && (node->kind == AST_VAR || node->kind == AST_DEREF || node->kind == AST_INDEX);
+    return node != NULL
+           && (node->kind == AST_VAR || node->kind == AST_DEREF || node->kind == AST_INDEX)
+           && isSizedType(node->res_type);
 }
 
 static void checkNodeIsLValue(CompilerContext* context, AstNode* node) {
@@ -1383,8 +1385,12 @@ static void checkNodeIsLValue(CompilerContext* context, AstNode* node) {
     }
 }
 
+static bool isAddressableValue(AstNode* node) {
+    return node != NULL && (node->kind == AST_VAR || node->kind == AST_DEREF || node->kind == AST_INDEX);
+}
+
 static void checkNodeIsAddressable(CompilerContext* context, AstNode* node) {
-    if (!isNodeLValue(node)) {
+    if (!isAddressableValue(node)) {
         addMessageToContext(
             &context->msgs,
             createMessage(
@@ -1666,6 +1672,7 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                         raiseArgCountError(context, type, n->arguments, n->function->res_type_reasoning);
                     }
                 }
+                checkNodeIsAddressable(context, n->function);
                 checkTypeConstraints(context, n->function);
                 checkTypeConstraints(context, (AstNode*)n->arguments);
                 break;

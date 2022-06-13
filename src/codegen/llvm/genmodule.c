@@ -381,10 +381,19 @@ static LlvmCodegenValue buildFunctionBody(LlvmCodegenContext* context, LlvmCodeg
             for (size_t i = 0; i < n->arguments->count; i++) {
                 args[i] = getCodegenValue(context, data, n->arguments->nodes[i]);
             }
-            LLVMValueRef value = LLVMBuildCall2(
-                data->builder, generateLlvmType(context, n->res_type), func, args,
-                n->arguments->count, "call"
-            );
+            LLVMValueRef value = NULL;
+            if (isVoidType(n->res_type) == NULL) {
+                value = LLVMBuildCall2(
+                    data->builder, generateLlvmType(context, n->function->res_type), func, args,
+                    n->arguments->count, "call"
+                );
+            } else {
+                LLVMBuildCall2(
+                    data->builder, generateLlvmType(context, n->function->res_type), func, args,
+                    n->arguments->count, ""
+                );
+            }
+            FREE(args);
             return createLlvmCodegenValue(value, false);
         }
         case AST_INDEX: {
@@ -633,6 +642,7 @@ static void buildFunctionStubs(LlvmCodegenContext* context, LLVMModuleRef module
                 SymbolVariable* func = (SymbolVariable*)n->name->binding;
                 LLVMValueRef value = LLVMAddFunction(module, n->name->name, generateLlvmType(context, func->type));
                 func->codegen = value;
+                // TODO: export / import
                 break;
             }
             default:
