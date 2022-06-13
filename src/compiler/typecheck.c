@@ -1527,7 +1527,12 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                 break;
             }
             case AST_OR:
-            case AST_AND:
+            case AST_AND: {
+                AstBinary* n = (AstBinary*)node;
+                checkTypeConstraints(context, n->left);
+                checkTypeConstraints(context, n->right);
+                break;
+            }
             case AST_EQ:
             case AST_NE:
             case AST_LE:
@@ -1535,6 +1540,11 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             case AST_LT:
             case AST_GT: {
                 AstBinary* n = (AstBinary*)node;
+                if (n->left->res_type != NULL) {
+                    if (isNumericType(n->left->res_type) == NULL && isBooleanType(n->left->res_type) && isPointerType(n->left->res_type) == NULL) {
+                        raiseOpTypeError(context, node, n->left, n->left->res_type, n->left->res_type_reasoning, ", must be a numeric value, boolean or pointer");
+                    }
+                }
                 checkTypeConstraints(context, n->left);
                 checkTypeConstraints(context, n->right);
                 break;
