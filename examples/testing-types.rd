@@ -1,5 +1,5 @@
 
-fn foo(test: bool): int {
+export fn foo(test: bool): int {
     let a = true;
     let b = false;
     let c = a;

@@ -7,11 +7,15 @@
 #include "text/string.h"
 #include "util/macro.h"
 
+#ifdef DEBUG
 #define ASSERT(COND, ...) {                                                                                         \
     if (!(COND)) {                                                                                                  \
         fatalError(str("compiler assertion failed, " __FILE__ ":" STRINGIFY(__LINE__) ", " #COND __VA_ARGS__ ));    \
     }                                                                                                               \
 }
+#else
+#define ASSERT(COND, ...)
+#endif
 
 #define UNREACHABLE(...) {                                                                                   \
     fatalError(str("compiler reached unreachable state, " __FILE__ ":" STRINGIFY(__LINE__) __VA_ARGS__ ));   \

@@ -10,6 +10,7 @@ static void initSymbolEntry(SymbolEntry* entry, SymbolEntryKind kind, Symbol nam
     entry->refs = NULL;
     entry->ref_count = 0;
     entry->ref_capacity = 0;
+    entry->codegen = NULL;
 }
 
 SymbolVariable* createVariableSymbol(Symbol name, struct AstVar* def) {

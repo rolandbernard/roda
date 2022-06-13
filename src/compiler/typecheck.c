@@ -1534,11 +1534,7 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                 break;
             }
             case AST_EQ:
-            case AST_NE:
-            case AST_LE:
-            case AST_GE:
-            case AST_LT:
-            case AST_GT: {
+            case AST_NE: {
                 AstBinary* n = (AstBinary*)node;
                 if (n->left->res_type != NULL) {
                     if (isNumericType(n->left->res_type) == NULL && isBooleanType(n->left->res_type) && isPointerType(n->left->res_type) == NULL) {
@@ -1549,12 +1545,32 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                 checkTypeConstraints(context, n->right);
                 break;
             }
-            case AST_POS:
+            case AST_LE:
+            case AST_GE:
+            case AST_LT:
+            case AST_GT: {
+                AstBinary* n = (AstBinary*)node;
+                if (n->left->res_type != NULL) {
+                    if (isNumericType(n->left->res_type) == NULL && isPointerType(n->left->res_type) == NULL) {
+                        raiseOpTypeError(context, node, n->left, n->left->res_type, n->left->res_type_reasoning, ", must be a numeric value or pointer");
+                    }
+                }
+                checkTypeConstraints(context, n->left);
+                checkTypeConstraints(context, n->right);
+                break;
+            }
+            case AST_POS: {
+                AstUnary* n = (AstUnary*)node;
+                if (isNumericType(n->res_type) == NULL) {
+                    raiseOpTypeError(context, node, n->op, n->res_type, n->res_type_reasoning, ", must be a numeric value");
+                }
+                checkTypeConstraints(context, n->op);
+                break;
+            }
             case AST_NEG: {
                 AstUnary* n = (AstUnary*)node;
-                TypeSizedPrimitive* type = isNumericType(n->res_type);
-                if (type == NULL) {
-                    raiseOpTypeError(context, node, n->op, n->res_type, n->res_type_reasoning, ", must be a numeric value");
+                if (isRealType(n->res_type) == NULL && isSignedIntegerType(n->res_type) == NULL) {
+                    raiseOpTypeError(context, node, n->op, n->res_type, n->res_type_reasoning, ", must be a signed numeric value");
                 }
                 checkTypeConstraints(context, n->op);
                 break;

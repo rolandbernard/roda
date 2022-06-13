@@ -19,22 +19,11 @@ typedef enum {
     AST_MUL,
     AST_DIV,
     AST_MOD,
-    AST_OR,
-    AST_AND,
     AST_SHL,
     AST_SHR,
     AST_BAND,
     AST_BOR,
     AST_BXOR,
-    AST_EQ,
-    AST_NE,
-    AST_LE,
-    AST_GE,
-    AST_LT,
-    AST_GT,
-    AST_ASSIGN,
-    AST_INDEX,
-    AST_ARRAY,
     AST_ADD_ASSIGN,
     AST_SUB_ASSIGN,
     AST_MUL_ASSIGN,
@@ -45,6 +34,19 @@ typedef enum {
     AST_BAND_ASSIGN,
     AST_BOR_ASSIGN,
     AST_BXOR_ASSIGN,
+#define AST_ASSIGN_OFFSET (AST_ADD_ASSIGN - AST_ADD)
+
+    AST_OR,
+    AST_AND,
+    AST_EQ,
+    AST_NE,
+    AST_LE,
+    AST_GE,
+    AST_LT,
+    AST_GT,
+    AST_ASSIGN,
+    AST_INDEX,
+    AST_ARRAY,
 
     // AstUnary
     AST_POS,
@@ -78,8 +80,7 @@ typedef enum {
     struct AstNode* parent;             \
     Span location;                      \
     Type* res_type;                     \
-    struct AstNode* res_type_reasoning; \
-    void* codegen;
+    struct AstNode* res_type_reasoning;
 
 typedef struct AstNode {
     AST_NODE_BASE

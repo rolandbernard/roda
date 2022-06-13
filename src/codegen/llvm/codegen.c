@@ -4,6 +4,7 @@
 #include <llvm-c/Target.h>
 #include <llvm-c/Linker.h>
 #include <llvm-c/TargetMachine.h>
+#include <llvm-c/Analysis.h>
 
 #include "text/format.h"
 #include "util/debug.h"
@@ -17,6 +18,7 @@ static void handleLlvmDiagnosticMessage(LLVMDiagnosticInfoRef info, void* udata)
         case LLVMDSError: {
             if (applyFilterForKind(&context->msgfilter, ERROR_LLVM_BACKEND_ERROR)) {
                 char* desc = LLVMGetDiagInfoDescription(info);
+                desc[strlen(desc) - 1] = 0;
                 addMessageToContext(&context->msgs,
                     createMessage(ERROR_LLVM_BACKEND_ERROR, createFormattedString("LLVM backend error: %s", desc), 0)
                 );
@@ -27,6 +29,7 @@ static void handleLlvmDiagnosticMessage(LLVMDiagnosticInfoRef info, void* udata)
         case LLVMDSWarning: {
             if (applyFilterForKind(&context->msgfilter, WARNING_LLVM_BACKEND_WARNING)) {
                 char* desc = LLVMGetDiagInfoDescription(info);
+                desc[strlen(desc) - 1] = 0;
                 addMessageToContext(&context->msgs,
                     createMessage(WARNING_LLVM_BACKEND_WARNING, createFormattedString("LLVM backend warning: %s", desc), 0)
                 );
@@ -37,6 +40,7 @@ static void handleLlvmDiagnosticMessage(LLVMDiagnosticInfoRef info, void* udata)
         case LLVMDSRemark: {
             if (applyFilterForKind(&context->msgfilter, NOTE_LLVM_BACKEND_REMARK)) {
                 char* desc = LLVMGetDiagInfoDescription(info);
+                desc[strlen(desc) - 1] = 0;
                 addMessageToContext(&context->msgs,
                     createMessage(NOTE_LLVM_BACKEND_REMARK, createFormattedString("LLVM backend remark: %s", desc), 0)
                 );
@@ -47,6 +51,7 @@ static void handleLlvmDiagnosticMessage(LLVMDiagnosticInfoRef info, void* udata)
         case LLVMDSNote: {
             if (applyFilterForKind(&context->msgfilter, NOTE_LLVM_BACKEND_NOTE)) {
                 char* desc = LLVMGetDiagInfoDescription(info);
+                desc[strlen(desc) - 1] = 0;
                 addMessageToContext(&context->msgs,
                     createMessage(NOTE_LLVM_BACKEND_NOTE, createFormattedString("LLVM backend note: %s", desc), 0)
                 );
@@ -158,6 +163,7 @@ static LLVMModuleRef generateLinkedModule(LlvmCodegenContext* context) {
     }
     linked_module = LLVMModuleCreateWithName(cstr(name));
     freeString(name);
+    LLVMSetModuleDataLayout(linked_module, context->target_data);
     for (size_t i = 0; i < context->cxt->files.file_count; i++) {
         File* file = context->cxt->files.files[i];
         if (file->ast != NULL) {
@@ -185,6 +191,19 @@ static LLVMModuleRef generateLinkedModule(LlvmCodegenContext* context) {
 
 static LLVMModuleRef generateOptimizedModule(LlvmCodegenContext* context) {
     LLVMModuleRef module = generateLinkedModule(context);
+#ifdef DEBUG
+    if (LLVMVerifyModule(module, LLVMReturnStatusAction, &context->error_msg)) {
+        context->error_msg[strlen(context->error_msg) - 1] = 0;
+        addMessageToContext(
+            &context->cxt->msgs,
+            createMessage(
+                ERROR_LLVM_BACKEND_ERROR,
+                createFormattedString("generated an invalid llvm module: %s", context->error_msg), 0
+            )
+        );
+    }
+    LLVMDisposeMessage(context->error_msg);
+#endif
     // TODO: implement optimization
     return module;
 }
