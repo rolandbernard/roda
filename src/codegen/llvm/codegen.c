@@ -1,7 +1,9 @@
 
+#include <string.h>
 #include <llvm-c/Core.h>
 #include <llvm-c/Target.h>
 #include <llvm-c/Linker.h>
+#include <llvm-c/TargetMachine.h>
 
 #include "text/format.h"
 #include "util/debug.h"
@@ -71,10 +73,81 @@ void deinitLlvmBackend(CompilerContext* context) {
     DEBUG_LOG(context, "shutdown LLVM backend");
 }
 
+static LLVMCodeGenOptLevel getLlvmCodeGenOptLevel(LlvmCodegenContext* context) {
+    switch (context->cxt->settings.opt_level) {
+        case 0:
+            return LLVMCodeGenLevelNone;
+        case 1:
+            return LLVMCodeGenLevelDefault;
+        case 2:
+            return LLVMCodeGenLevelDefault;
+        case 3:
+            return LLVMCodeGenLevelAggressive;
+        default:
+            return context->cxt->settings.size_level == 2
+                ? LLVMCodeGenLevelAggressive
+                : LLVMCodeGenLevelDefault;
+    }
+}
+
+static LLVMRelocMode getLlvmRelocMode(LlvmCodegenContext* context) {
+    // TODO: make this a command line option?
+    return LLVMRelocPIC;
+}
+
 static void initLlvmCodegenContext(LlvmCodegenContext* context, CompilerContext* cxt) {
+    memset(context, 0, sizeof(LlvmCodegenContext));
     context->cxt = cxt;
     context->llvm_cxt = LLVMGetGlobalContext();
     context->error_msg = NULL;
+    const char* target;
+    char* llvm_target = NULL;
+    if (cxt->settings.target.data == NULL || compareStrings(tocnstr(cxt->settings.target), str("native")) == 0) {
+        llvm_target = LLVMGetDefaultTargetTriple();
+        target = llvm_target;
+    } else {
+        target = cstr(cxt->settings.target);
+    }
+    if (LLVMGetTargetFromTriple(target, &context->target, &context->error_msg)) {
+        addMessageToContext(&context->cxt->msgs,createMessage(ERROR_LLVM_BACKEND_ERROR,
+            createFormattedString("failed to get target '%S': %s", context->cxt->settings.target, context->error_msg), 0
+        ));
+    }
+    if (cxt->msgs.error_count == 0) {
+        const char* cpu;
+        char* llvm_cpu = NULL;
+        if (cxt->settings.cpu.data == NULL) {
+            cpu = NULL;
+        } else if(compareStrings(tocnstr(cxt->settings.cpu), str("native")) == 0) {
+            llvm_cpu = LLVMGetHostCPUName();
+            cpu = llvm_cpu;
+        } else {
+            cpu = cstr(cxt->settings.cpu);
+        }
+        const char* features;
+        char* llvm_features = NULL;
+        if (cxt->settings.features.data == NULL) {
+            features = NULL;
+        } else if(compareStrings(tocnstr(cxt->settings.features), str("native")) == 0) {
+            llvm_features = LLVMGetHostCPUFeatures();
+            features = llvm_features;
+        } else {
+            features = cstr(cxt->settings.features);
+        }
+        context->target_machine = LLVMCreateTargetMachine(
+            context->target, target, cpu, features, getLlvmCodeGenOptLevel(context),
+            getLlvmRelocMode(context), LLVMCodeModelDefault
+        );
+        LLVMDisposeMessage(llvm_cpu);
+        LLVMDisposeMessage(llvm_features);
+        context->target_data = LLVMCreateTargetDataLayout(context->target_machine);
+    }
+    LLVMDisposeMessage(llvm_target);
+}
+
+static void deinitLlvmCodegenContext(LlvmCodegenContext* context) {
+    LLVMDisposeTargetData(context->target_data);
+    LLVMDisposeTargetMachine(context->target_machine);
 }
 
 static LLVMModuleRef generateLinkedModule(LlvmCodegenContext* context) {
@@ -110,21 +183,30 @@ static LLVMModuleRef generateLinkedModule(LlvmCodegenContext* context) {
     return linked_module;
 }
 
+static LLVMModuleRef generateOptimizedModule(LlvmCodegenContext* context) {
+    LLVMModuleRef module = generateLinkedModule(context);
+    // TODO: implement optimization
+    return module;
+}
+
 void runCodeGenerationForLlvmIr(CompilerContext* cxt, ConstPath path) {
     LlvmCodegenContext context;
     initLlvmCodegenContext(&context, cxt);
-    LLVMModuleRef module = generateLinkedModule(&context);
-    if (LLVMPrintModuleToFile(module, toCString(path), &context.error_msg)) {
-        addMessageToContext(
-            &cxt->msgs,
-            createMessage(
-                ERROR_LLVM_BACKEND_ERROR,
-                createFormattedString("failed to write output file '%S': %s", path, context.error_msg), 0
-            )
-        );
-        LLVMDisposeMessage(context.error_msg);
+    if (cxt->msgs.error_count == 0) {
+        LLVMModuleRef module = generateOptimizedModule(&context);
+        if (LLVMPrintModuleToFile(module, toCString(path), &context.error_msg)) {
+            addMessageToContext(
+                &cxt->msgs,
+                createMessage(
+                    ERROR_LLVM_BACKEND_ERROR,
+                    createFormattedString("failed to write output file '%S': %s", path, context.error_msg), 0
+                )
+            );
+            LLVMDisposeMessage(context.error_msg);
+        }
+        LLVMDisposeModule(module);
     }
-    LLVMDisposeModule(module);
+    deinitLlvmCodegenContext(&context);
 }
 
 void runCodeGenerationForLlvmBc(CompilerContext* context, ConstPath path) {

@@ -66,6 +66,9 @@ static void initCompilerSettings(CompilerSettings* settings) {
 
 static void deinitCompilerSettings(CompilerSettings* settings) {
     freePath(settings->output_file);
+    freeString(settings->target);
+    freeString(settings->cpu);
+    freeString(settings->features);
 }
 
 void initCompilerContext(CompilerContext* context) {

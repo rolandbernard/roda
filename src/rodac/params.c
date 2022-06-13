@@ -53,7 +53,14 @@ static PARAM_SPEC_FUNCTION(parameterSpecFunction, CompilerContext*, {
             }
         } else if (strlen(value) != 1) {
             PARAM_WARN_UNKNOWN_VALUE()
-        } else if (value[0] >= '0' && value[0] <= '3') {
+        } else if (value[0] >= '0') {
+            if (context->settings.opt_level != -1 || context->settings.size_level != -1) {
+                PARAM_WARN("multiple values for this option, ignoring all but the first");
+            } else {
+                context->settings.opt_level = 0;
+                context->settings.size_level = 0;
+            }
+        } else if (value[0] >= '1' && value[0] <= '3') {
             if (context->settings.opt_level != -1) {
                 PARAM_WARN("multiple values for this option, ignoring all but the first");
             } else {
@@ -82,14 +89,14 @@ static PARAM_SPEC_FUNCTION(parameterSpecFunction, CompilerContext*, {
         } else {
             context->settings.target = copyFromCString(value);
         }
-    }, false, "={<cpu>|native}", "specify the compilation target cpu");
+    }, false, "={<name>|native}", "specify the compilation target cpu name");
     PARAM_VALUED(0, "features", {
         if (context->settings.features.data != NULL) {
             PARAM_WARN("multiple values for this option, ignoring all but the first");
         } else {
             context->settings.features = copyFromCString(value);
         }
-    }, false, "={<features>|native}", "specify the compilation target features");
+    }, false, "={<features>|native}", "specify the compilation target cpu features");
     PARAM_INTEGER(0, "max-errors", {
         if (context->msgfilter.max_errors != SIZE_MAX) {
             PARAM_WARN("multiple values for this option, ignoring all but the first");
