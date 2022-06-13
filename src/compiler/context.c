@@ -56,6 +56,12 @@ static void initCompilerSettings(CompilerSettings* settings) {
     settings->version = false;
     settings->emit = COMPILER_EMIT_AUTO;
     settings->output_file.data = NULL;
+    settings->target.data = NULL;
+    settings->cpu.data = NULL;
+    settings->features.data = NULL;
+    settings->opt_level = -1;
+    settings->size_level = -1;
+    settings->debug = false;
 }
 
 static void deinitCompilerSettings(CompilerSettings* settings) {

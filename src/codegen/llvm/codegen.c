@@ -71,23 +71,29 @@ void deinitLlvmBackend(CompilerContext* context) {
     DEBUG_LOG(context, "shutdown LLVM backend");
 }
 
-static LLVMModuleRef generateLinkedModule(CompilerContext* context) {
+static void initLlvmCodegenContext(LlvmCodegenContext* context, CompilerContext* cxt) {
+    context->cxt = cxt;
+    context->llvm_cxt = LLVMGetGlobalContext();
+    context->error_msg = NULL;
+}
+
+static LLVMModuleRef generateLinkedModule(LlvmCodegenContext* context) {
     LLVMModuleRef linked_module = NULL;
     String name = createEmptyString();
-    for (size_t i = 0; i < context->files.file_count; i++) {
-        pushFormattedString(&name, "%S;", context->files.files[i]->original_path);
+    for (size_t i = 0; i < context->cxt->files.file_count; i++) {
+        pushFormattedString(&name, "%S;", context->cxt->files.files[i]->original_path);
     }
     linked_module = LLVMModuleCreateWithName(cstr(name));
     freeString(name);
-    for (size_t i = 0; i < context->files.file_count; i++) {
-        File* file = context->files.files[i];
+    for (size_t i = 0; i < context->cxt->files.file_count; i++) {
+        File* file = context->cxt->files.files[i];
         if (file->ast != NULL) {
             LLVMModuleRef module = generateSingleModule(context, file);
             if (module != NULL) {
                 if (linked_module != NULL) {
                     if (LLVMLinkModules2(linked_module, module)) {
                         addMessageToContext(
-                            &context->msgs,
+                            &context->cxt->msgs,
                             createMessage(
                                 ERROR_LLVM_BACKEND_ERROR, createFormattedString(
                                     "failed to link in module '%S'", file->original_path
@@ -104,18 +110,19 @@ static LLVMModuleRef generateLinkedModule(CompilerContext* context) {
     return linked_module;
 }
 
-void runCodeGenerationForLlvmIr(CompilerContext* context, ConstPath path) {
-    char* error_msg = NULL;
-    LLVMModuleRef module = generateLinkedModule(context);
-    if (LLVMPrintModuleToFile(module, toCString(path), &error_msg)) {
+void runCodeGenerationForLlvmIr(CompilerContext* cxt, ConstPath path) {
+    LlvmCodegenContext context;
+    initLlvmCodegenContext(&context, cxt);
+    LLVMModuleRef module = generateLinkedModule(&context);
+    if (LLVMPrintModuleToFile(module, toCString(path), &context.error_msg)) {
         addMessageToContext(
-            &context->msgs,
+            &cxt->msgs,
             createMessage(
                 ERROR_LLVM_BACKEND_ERROR,
-                createFormattedString("failed to write output file '%S': %s", path, error_msg), 0
+                createFormattedString("failed to write output file '%S': %s", path, context.error_msg), 0
             )
         );
-        LLVMDisposeMessage(error_msg);
+        LLVMDisposeMessage(context.error_msg);
     }
     LLVMDisposeModule(module);
 }

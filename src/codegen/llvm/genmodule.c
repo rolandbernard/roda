@@ -22,6 +22,7 @@ LLVMModuleRef generateSingleModule(LlvmCodegenContext* context, File* file) {
     LLVMSetSourceFileName(module, cstr(file->original_path), file->original_path.length);
     LLVMBuilderRef builder = LLVMCreateBuilder();
     buildLlvmModule(context, file->ast);
+    LLVMDisposeBuilder(builder);
     return NULL;
 }
 

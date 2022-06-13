@@ -110,7 +110,7 @@
     if (_help) {                                                                \
         printOptionHelpLine(LETTER, NAME, NULL, DESC);                          \
     } else if (_letters) {                                                      \
-        if (LETTER != NULL && argv[_i][_j] == ((const char*)LETTER)[0]) {       \
+        if (LETTER != 0 && argv[_i][_j] == LETTER) {                            \
             ACTION; continue;                                                   \
         }                                                                       \
     } else if (_names) {                                                        \
@@ -126,9 +126,10 @@
     if (_help) {                                                                            \
         printOptionHelpLine(LETTER, NAME, VALUE_DESC, DESC);                                \
     } else if (_letters) {                                                                  \
-        if (LETTER != NULL && argv[_i][_j] == ((const char*)LETTER)[0]) {                   \
+        if (LETTER != 0 && argv[_i][_j] == LETTER) {                                        \
             if (argv[_i][_j + 1] == '=') {                                                  \
                 const char* value = argv[_i] + _j + 2;                                      \
+                _j = strlen(argv[_i]) - 1;                                                  \
                 ACTION; continue;                                                           \
             } else {                                                                        \
                 const char* value = NULL;                                                   \
@@ -146,8 +147,9 @@
             }                                                                               \
         }                                                                                   \
     } else if (_names) {                                                                    \
-        if (NAME != NULL) {                                                                 \
-            if(strcmp(option + 2, ((const char*)NAME)) == 0) {                              \
+        const char* name = NAME;                                                            \
+        if (name != NULL) {                                                                 \
+            if(strcmp(option + 2, name) == 0) {                                             \
                 if (argv[_i][_len + 2] == '=') {                                            \
                     const char* value = argv[_i] + _len + 3;                                \
                     ACTION; continue;                                                       \
@@ -226,6 +228,6 @@
 #define PARAM_WARNING(ACTION)       \
     if (_warning) { ACTION }
 
-void printOptionHelpLine(const char* single, const char* word, const char* value, const char* desc);
+void printOptionHelpLine(char single, const char* word, const char* value, const char* desc);
 
 #endif

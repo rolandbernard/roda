@@ -10,16 +10,16 @@
 
 static PARAM_SPEC_FUNCTION(parameterSpecFunction, CompilerContext*, {
     PARAM_USAGE(PROGRAM_NAME " [options] files...");
-    PARAM_FLAG("h", "help", { context->settings.help = true; }, "print this help information and quit");
-    PARAM_FLAG(NULL, "version", { context->settings.version = true; }, "print version information and quit");
-    PARAM_VALUED("o", "output", {
+    PARAM_FLAG('h', "help", { context->settings.help = true; }, "print this help information and quit");
+    PARAM_FLAG(0, "version", { context->settings.version = true; }, "print version information and quit");
+    PARAM_VALUED('o', "output", {
         if (context->settings.output_file.data != NULL) {
             PARAM_WARN("multiple values for this option, ignoring all but the first");
         } else {
             context->settings.output_file = createPathFromCString(value);
         }
     }, false, "=<file>", "specify the output file");
-    PARAM_VALUED(NULL, "emit", {
+    PARAM_VALUED(0, "emit", {
         if (context->settings.emit != COMPILER_EMIT_AUTO) {
             PARAM_WARN("multiple values for this option, ignoring all but the first");
         } else {
@@ -42,7 +42,55 @@ static PARAM_SPEC_FUNCTION(parameterSpecFunction, CompilerContext*, {
             }
         }
     }, false, "={none|ast|llvm-ir|llvm-bc|asm|obj|bin}", "select what the compiler should emit");
-    PARAM_INTEGER(NULL, "max-errors", {
+    PARAM_FLAG('g', "debug", { context->settings.debug = true; }, "include debug information in the output");
+    PARAM_VALUED('O', NULL, {
+        if (value == NULL) {
+            if (context->settings.opt_level != -1 || context->settings.size_level != -1) {
+                PARAM_WARN("multiple values for this option, ignoring all but the first");
+            } else {
+                context->settings.opt_level = 2;
+                context->settings.size_level = 1;
+            }
+        } else if (strlen(value) != 1) {
+            PARAM_WARN_UNKNOWN_VALUE()
+        } else if (value[0] >= '0' && value[0] <= '3') {
+            if (context->settings.opt_level != -1) {
+                PARAM_WARN("multiple values for this option, ignoring all but the first");
+            } else {
+                context->settings.opt_level = value[0] - '0';
+            }
+        } else if (value[0] == 's' || value[0] == 'z') {
+            if (context->settings.size_level != -1) {
+                PARAM_WARN("multiple values for this option, ignoring all but the first");
+            } else {
+                context->settings.opt_level = value[0] == 's' ? 1 : 2;
+            }
+        } else {
+            PARAM_WARN_UNKNOWN_VALUE()
+        }
+    }, true, "{0|1|2|3|s|z}", "configure the level of optimization to apply");
+    PARAM_VALUED(0, "target", {
+        if (context->settings.target.data != NULL) {
+            PARAM_WARN("multiple values for this option, ignoring all but the first");
+        } else {
+            context->settings.target = copyFromCString(value);
+        }
+    }, false, "={<triple>|native}", "specify the compilation target triple");
+    PARAM_VALUED(0, "cpu", {
+        if (context->settings.target.data != NULL) {
+            PARAM_WARN("multiple values for this option, ignoring all but the first");
+        } else {
+            context->settings.target = copyFromCString(value);
+        }
+    }, false, "={<cpu>|native}", "specify the compilation target cpu");
+    PARAM_VALUED(0, "features", {
+        if (context->settings.features.data != NULL) {
+            PARAM_WARN("multiple values for this option, ignoring all but the first");
+        } else {
+            context->settings.features = copyFromCString(value);
+        }
+    }, false, "={<features>|native}", "specify the compilation target features");
+    PARAM_INTEGER(0, "max-errors", {
         if (context->msgfilter.max_errors != SIZE_MAX) {
             PARAM_WARN("multiple values for this option, ignoring all but the first");
         } else {
@@ -50,7 +98,7 @@ static PARAM_SPEC_FUNCTION(parameterSpecFunction, CompilerContext*, {
         }
     }, "=<value>", "limit the maximum number of errors to show");
 #ifdef DEBUG
-    PARAM_STRING_LIST(NULL, "compiler-debug", {
+    PARAM_STRING_LIST(0, "compiler-debug", {
         if (strcmp("all", value) == 0) {
             context->settings.compiler_debug = ~0;
         } else if (strcmp("log", value) == 0) {

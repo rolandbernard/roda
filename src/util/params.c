@@ -5,16 +5,16 @@
 
 #define COLUMN_WIDTH 27
 
-void printOptionHelpLine(const char* single, const char* word, const char* value, const char* desc) {
+void printOptionHelpLine(char single, const char* word, const char* value, const char* desc) {
     fputs("  ", stderr);
     int col = 2;
-    if (single != NULL) {
+    if (single != 0) {
         fputs("-", stderr);
-        fputs(single, stderr);
-        col += strlen(single) + 1;
+        fputc(single, stderr);
+        col += 2;
     }
     if (word != NULL) {
-        if (single != NULL) {
+        if (single != 0) {
             fputs(" ", stderr);
             col += 1;
         }

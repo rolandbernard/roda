@@ -31,6 +31,12 @@ typedef struct {
     bool version;
     CompilerEmit emit;
     Path output_file;
+    String target;
+    String cpu;
+    String features;
+    int opt_level;
+    int size_level;
+    bool debug;
 } CompilerSettings;
 
 typedef struct {
