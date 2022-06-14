@@ -698,6 +698,7 @@ static void buildFunctionStubs(LlvmCodegenContext* context, LLVMModuleRef module
 }
 
 LLVMModuleRef generateSingleModule(LlvmCodegenContext* context, File* file) {
+    // TODO: emit debug information
     LLVMModuleRef module = LLVMModuleCreateWithNameInContext(cstr(file->original_path), context->llvm_cxt);
     LLVMSetModuleDataLayout(module, context->target_data);
     LLVMSetSourceFileName(module, cstr(file->original_path), file->original_path.length);

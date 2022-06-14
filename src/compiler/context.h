@@ -36,6 +36,24 @@ typedef enum {
 } CompilerOptLevel;
 
 typedef struct {
+    String* strings;
+    size_t count;
+    size_t capacity;
+} StringList;
+
+typedef enum {
+    COMPILER_LINK_DEFAULT,
+    COMPILER_LINK_STATIC,
+    COMPILER_LINK_SHARED,
+} CompilerLinkType;
+
+typedef enum {
+    COMPILER_PIC_DEFAULT,
+    COMPILER_PIC_YES,
+    COMPILER_PIC_NO,
+} CompilerLinkPic;
+
+typedef struct {
     CompilerDebugFlags compiler_debug;
     bool help;
     bool version;
@@ -46,6 +64,11 @@ typedef struct {
     String features;
     CompilerOptLevel opt_level;
     bool emit_debug;
+    StringList libs;
+    StringList lib_dirs;
+    CompilerLinkType link_type;
+    CompilerLinkPic pic;
+    String linker;
 } CompilerSettings;
 
 typedef struct {
@@ -67,5 +90,7 @@ typedef struct {
 void initCompilerContext(CompilerContext* context);
 
 void deinitCompilerContext(CompilerContext* context);
+
+void addStringToList(StringList* list, String string);
 
 #endif

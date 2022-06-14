@@ -14,14 +14,14 @@ static PARAM_SPEC_FUNCTION(parameterSpecFunction, CompilerContext*, {
     PARAM_FLAG(0, "version", { context->settings.version = true; }, "print version information and quit");
     PARAM_VALUED('o', "output", {
         if (context->settings.output_file.data != NULL) {
-            PARAM_WARN("multiple values for this option, ignoring all but the first");
+            PARAM_WARN_MULTIPLE();
         } else {
             context->settings.output_file = createPathFromCString(value);
         }
     }, false, "=<file>", "specify the output file");
     PARAM_VALUED(0, "emit", {
         if (context->settings.emit != COMPILER_EMIT_AUTO) {
-            PARAM_WARN("multiple values for this option, ignoring all but the first");
+            PARAM_WARN_MULTIPLE();
         } else {
             if (strcmp("none", value) == 0) {
                 context->settings.emit = COMPILER_EMIT_NONE;
@@ -42,10 +42,51 @@ static PARAM_SPEC_FUNCTION(parameterSpecFunction, CompilerContext*, {
             }
         }
     }, false, "={none|ast|llvm-ir|llvm-bc|asm|obj|bin}", "select what the compiler should emit");
+    PARAM_STRING_LIST('l', "libs", {
+        addStringToList(&context->settings.libs, copyFromCString(value));
+    }, "=<lib>[,...]", "add libraries to be passed to the linker");
+    PARAM_STRING_LIST('L', "lib-dirs", {
+        addStringToList(&context->settings.lib_dirs, copyFromCString(value));
+    }, "=<dir>[,...]", "add library paths to be passed to the linker");
+    PARAM_FLAG(0, "static", {
+        if (context->settings.link_type == COMPILER_LINK_SHARED) {
+            PARAM_WARN_CONFLICT("--shared")
+        } else {
+            context->settings.link_type = COMPILER_LINK_STATIC; 
+        }
+    }, "tell the linker to link libraries statically");
+    PARAM_FLAG(0, "shared", {
+        if (context->settings.link_type == COMPILER_LINK_STATIC) {
+            PARAM_WARN_CONFLICT("--static")
+        } else {
+            context->settings.link_type = COMPILER_LINK_SHARED; 
+        }
+    }, "tell the linker to link libraries dynamically");
+    PARAM_FLAG(0, "pic", {
+        if (context->settings.pic == COMPILER_PIC_NO) {
+            PARAM_WARN_CONFLICT("--no-pic")
+        } else {
+            context->settings.pic = COMPILER_PIC_YES; 
+        }
+    }, "generate position independent code");
+    PARAM_FLAG(0, "no-pic", {
+        if (context->settings.pic == COMPILER_PIC_YES) {
+            PARAM_WARN_CONFLICT("--pic")
+        } else {
+            context->settings.pic = COMPILER_PIC_NO; 
+        }
+    }, "don't generate independent code");
+    PARAM_VALUED(0, "linker", {
+        if (context->settings.linker.data != NULL) {
+            PARAM_WARN_MULTIPLE();
+        } else {
+            context->settings.linker = copyFromCString(value); 
+        }
+    }, false, "=<linker>", "specify the linker to use");
     PARAM_FLAG('g', "debug", { context->settings.emit_debug = true; }, "include debug information in the output");
     PARAM_VALUED('O', NULL, {
         if (context->settings.opt_level != COMPILER_OPT_DEFAULT) {
-            PARAM_WARN("multiple values for this option, ignoring all but the first");
+            PARAM_WARN_MULTIPLE();
         } else {
             if (value == NULL) {
                 context->settings.opt_level = COMPILER_OPT_FAST;
@@ -70,28 +111,28 @@ static PARAM_SPEC_FUNCTION(parameterSpecFunction, CompilerContext*, {
     }, true, "{0|1|2|3|s|z}", "configure the level of optimization to apply");
     PARAM_VALUED(0, "target", {
         if (context->settings.target.data != NULL) {
-            PARAM_WARN("multiple values for this option, ignoring all but the first");
+            PARAM_WARN_MULTIPLE();
         } else {
             context->settings.target = copyFromCString(value);
         }
     }, false, "={<triple>|native}", "specify the compilation target triple");
     PARAM_VALUED(0, "cpu", {
-        if (context->settings.target.data != NULL) {
-            PARAM_WARN("multiple values for this option, ignoring all but the first");
+        if (context->settings.cpu.data != NULL) {
+            PARAM_WARN_MULTIPLE();
         } else {
-            context->settings.target = copyFromCString(value);
+            context->settings.cpu = copyFromCString(value);
         }
     }, false, "={<name>|native}", "specify the compilation target cpu name");
     PARAM_VALUED(0, "features", {
         if (context->settings.features.data != NULL) {
-            PARAM_WARN("multiple values for this option, ignoring all but the first");
+            PARAM_WARN_MULTIPLE();
         } else {
             context->settings.features = copyFromCString(value);
         }
     }, false, "={<features>|native}", "specify the compilation target cpu features");
     PARAM_INTEGER(0, "max-errors", {
         if (context->msgfilter.max_errors != SIZE_MAX) {
-            PARAM_WARN("multiple values for this option, ignoring all but the first");
+            PARAM_WARN_MULTIPLE();
         } else {
             context->msgfilter.max_errors = value;
         }

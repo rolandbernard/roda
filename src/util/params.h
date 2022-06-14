@@ -15,6 +15,12 @@
     PARAM_WARN(msg);                                                \
 }
 
+#define PARAM_WARN_MULTIPLE() \
+    PARAM_WARN("multiple values for this option, ignoring all but the first");
+
+#define PARAM_WARN_CONFLICT(NAME) \
+    PARAM_WARN("option conflicts with " NAME ", ignoring this option");
+
 #define PARAM_WARN(ABOUT)                               \
     _raiseWarning(option, ABOUT, argc, argv, context);
 

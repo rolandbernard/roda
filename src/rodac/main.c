@@ -27,6 +27,12 @@ static void printVersionInfo() {
 #endif
 }
 
+static void raiseIgnoredParams(CompilerContext* context) {
+    addMessageToContext(&context->msgs,
+        createMessage(WARNING_CMD_ARGS, copyFromCString("some command line arguments were ignored"), 0)
+    );
+}
+
 int main(int argc, const char* const* argv) {
     srand(clock() + time(NULL));
     CompilerContext context;
@@ -36,9 +42,7 @@ int main(int argc, const char* const* argv) {
     DEBUG_LOG(&context, "finished parsing command line arguments");
     if (context.settings.version || context.settings.help) {
         if (arg_count > 1) {
-            addMessageToContext(&context.msgs,
-                createMessage(WARNING_CMD_ARGS, copyFromCString("some command line arguments were ignored"), 0)
-            );
+            raiseIgnoredParams(&context);
             printAndClearMessages(&context.msgs, stderr, false, false);
         }
         if (context.settings.version) {

@@ -1,5 +1,31 @@
 
+#include "util/alloc.h"
+
 #include "compiler/context.h"
+
+static void initStringList(StringList* list) {
+    list->strings = NULL;
+    list->count = 0;
+    list->capacity = 0;
+}
+
+static void deinitStringList(StringList* list) {
+    for (size_t i = 0; i < list->count; i++) {
+        freeString(list->strings[i]);
+    }
+    FREE(list->strings);
+}
+
+#define INITIAL_CAPACITY 8
+
+void addStringToList(StringList* list, String string) {
+    if (list->count == list->capacity) {
+        list->capacity = list->capacity == 0 ? INITIAL_CAPACITY : 3 * list->capacity / 2;
+        list->strings = REALLOC(String*, list->strings, list->capacity);
+    }
+    list->strings[list->count] = string;
+    list->count++;
+}
 
 static void addPrimitiveTypes(CompilerContext* context) {
     addSymbolToTable(&context->buildins, (SymbolEntry*)createTypeSymbolWithType(
@@ -61,6 +87,11 @@ static void initCompilerSettings(CompilerSettings* settings) {
     settings->features.data = NULL;
     settings->opt_level = COMPILER_OPT_DEFAULT;
     settings->emit_debug = false;
+    initStringList(&settings->libs);
+    initStringList(&settings->lib_dirs);
+    settings->link_type = COMPILER_LINK_DEFAULT;
+    settings->pic = COMPILER_PIC_DEFAULT;
+    settings->linker.data = NULL;
 }
 
 static void deinitCompilerSettings(CompilerSettings* settings) {
@@ -68,6 +99,9 @@ static void deinitCompilerSettings(CompilerSettings* settings) {
     freeString(settings->target);
     freeString(settings->cpu);
     freeString(settings->features);
+    deinitStringList(&settings->libs);
+    deinitStringList(&settings->lib_dirs);
+    freeString(settings->linker);
 }
 
 void initCompilerContext(CompilerContext* context) {
