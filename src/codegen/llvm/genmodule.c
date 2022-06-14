@@ -197,7 +197,7 @@ static LlvmCodegenValue buildFunctionBody(LlvmCodegenContext* context, LlvmCodeg
         case AST_STR: {
             AstStr* n = (AstStr*)node;
             LLVMValueRef value = LLVMConstStringInContext(context->llvm_cxt, n->string.data, n->string.length, false);
-            LLVMValueRef global = LLVMAddGlobal(data->module, generateLlvmType(context, n->res_type), ".string");
+            LLVMValueRef global = LLVMAddGlobal(data->module, LLVMTypeOf(value), ".string");
             LLVMSetInitializer(global, value);
             LLVMSetGlobalConstant(global, true);
             LLVMSetLinkage(global, LLVMPrivateLinkage);
@@ -680,8 +680,14 @@ static void buildFunctionStubs(LlvmCodegenContext* context, LLVMModuleRef module
                 AstFn* n = (AstFn*)node;
                 SymbolVariable* func = (SymbolVariable*)n->name->binding;
                 LLVMValueRef value = LLVMAddFunction(module, n->name->name, generateLlvmType(context, func->type));
+                if ((n->flags & AST_FN_FLAG_IMPORT) == 0) {
+                    if ((n->flags & AST_FN_FLAG_EXPORT) != 0) {
+                        LLVMSetLinkage(value, LLVMExternalLinkage);
+                    } else {
+                        LLVMSetLinkage(value, LLVMInternalLinkage);
+                    }
+                }
                 func->codegen = value;
-                // TODO: export / import
                 break;
             }
             default:

@@ -89,6 +89,7 @@ POINT .|[\300-\337]{UB}|[\340-\357]{UB}{2}|[\360-\367]{UB}{3}|[\370-\373]{UB}{4}
 "<<"            { return SHL; }
 ">>"            { return SHR; }
 
+".."            { return DOTS; }
 "=>"            { return ARROW; }
 ":"             { return ':'; }
 ";"             { return ';'; }

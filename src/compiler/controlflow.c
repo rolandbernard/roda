@@ -133,7 +133,7 @@ static void checkControlFlowConstraints(CompilerContext* context, AstNode* node)
             }
             case AST_FN: {
                 AstFn* n = (AstFn*)node;
-                if (n->ret_type != NULL && !controlFlowEndsWithReturn(context, n->body)) {
+                if (n->ret_type != NULL && n->body != NULL && !controlFlowEndsWithReturn(context, n->body)) {
                     addMessageToContext(&context->msgs, createMessage(ERROR_MISSING_RETURN,
                         copyFromCString("function body reaches end of control flow without expected return"), 1,
                         createMessageFragment(MESSAGE_ERROR, createFormattedString("function expected to return a value"), node->location)

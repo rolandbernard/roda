@@ -37,18 +37,24 @@ extern void yyerror(YYLTYPE* yyllocp, yyscan_t scanner, ParserContext* context, 
     AstVar* ident;
     AstNode* ast;
     AstList* list;
+    struct {
+        AstList* list;
+        AstFnFlags flags;
+    } arg_defs;
     DynamicAstList* dynlist;
 }
 
 %destructor { freeAstNode($$); } <ast>
 %destructor { freeAstNode((AstNode*)$$); } <ident>
 %destructor { freeAstNode((AstNode*)$$); } <list>
+%destructor { freeAstNode((AstNode*)$$.list); } <arg_defs>
 %destructor { freeDynamicAstList($$); } <dynlist>
 
 %type <ast> root block stmt block_stmt type expr root_stmt 
 %type <ast> arg_def opt_type assign integer real string bool
 %type <ident> ident
-%type <list> args args_defs
+%type <list> args
+%type <arg_defs> args_defs
 %type <dynlist> args_list args_def_list stmts root_stmts
 
 %token <lexeme> ID      "identifier"
@@ -89,6 +95,7 @@ extern void yyerror(YYLTYPE* yyllocp, yyscan_t scanner, ParserContext* context, 
 %token AND              "&&"
 %token SHR              ">>"
 %token SHL              "<<"
+%token DOTS             ".."
 
 %left "||"
 %left "&&"
@@ -118,9 +125,9 @@ root_stmts : %empty                     { $$ = createDynamicAstList(); $$->locat
            ;
 
 root_stmt : error                                                   { $$ = createAstSimple(@$, AST_ERROR); }
-          | "export" "fn" ident '(' args_defs ')' opt_type block    { $$ = (AstNode*)createAstFn(@$, $3, $5, $7, $8, AST_FN_FLAG_EXPORT); }
-          | "import" "fn" ident '(' args_defs ')' opt_type ';'      { $$ = (AstNode*)createAstFn(@$, $3, $5, $7, NULL, AST_FN_FLAG_IMPORT); }
-          | "fn" ident '(' args_defs ')' opt_type block             { $$ = (AstNode*)createAstFn(@$, $2, $4, $6, $7, AST_FN_FLAG_NONE); }
+          | "export" "fn" ident '(' args_defs ')' opt_type block    { $$ = (AstNode*)createAstFn(@$, $3, $5.list, $7, $8, AST_FN_FLAG_EXPORT | $5.flags); }
+          | "import" "fn" ident '(' args_defs ')' opt_type ';'      { $$ = (AstNode*)createAstFn(@$, $3, $5.list, $7, NULL, AST_FN_FLAG_IMPORT | $5.flags); }
+          | "fn" ident '(' args_defs ')' opt_type block             { $$ = (AstNode*)createAstFn(@$, $2, $4.list, $6, $7, $4.flags); }
           | "type" ident '=' type ';'                               { $$ = (AstNode*)createAstTypeDef(@$, $2, $4); }
           ;
 
@@ -128,9 +135,10 @@ opt_type : %empty   { $$ = NULL; }
          | ':' type { $$ = $2; }
          ;
 
-args_defs : %empty              { $$ = createAstList(@$, AST_LIST, 0, NULL); }
-          | args_def_list       { $$ = toStaticAstList($1); }
-          | args_def_list ','   { $$ = toStaticAstList($1); }
+args_defs : %empty                  { $$.list = createAstList(@$, AST_LIST, 0, NULL); $$.flags = AST_FN_FLAG_NONE; }
+          | args_def_list           { $$.list = toStaticAstList($1); $$.flags = AST_FN_FLAG_NONE; }
+          | args_def_list ','       { $$.list = toStaticAstList($1); $$.flags = AST_FN_FLAG_NONE; }
+          | args_def_list ',' ".."  { $$.list = toStaticAstList($1); $$.flags = AST_FN_FLAG_VARARG; }
           ;
 
 args_def_list : arg_def                         { $$ = createDynamicAstList(); addToDynamicAstList($$, $1); $$->location = @$; }

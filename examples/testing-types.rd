@@ -1,12 +1,12 @@
 
-fn bar(): [2]int {
-    let a;
-    return a;
-}
+import fn printf(fmt: *u8, ..);
 
 fn foo(i: int): int {
-    let a: [5]int;
-    a[i] = 5;
-    return bar()[i];
+    printf("Hello world! %li\n", i);
+    return 0;
+}
+
+export fn main() {
+    foo(42);
 }
 

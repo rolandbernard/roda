@@ -85,7 +85,7 @@ static bool shallowCompareTypes(const Type* a, const Type* b) {
             case TYPE_FUNCTION: {
                 TypeFunction* ta = (TypeFunction*)a;
                 TypeFunction* tb = (TypeFunction*)b;
-                if (ta->arg_count != tb->arg_count || ta->ret_type != tb->ret_type) {
+                if (ta->arg_count != tb->arg_count || ta->ret_type != tb->ret_type || ta->vararg != tb->vararg) {
                     return false;
                 } else {
                     for (size_t i = 0; i < ta->arg_count; i++) {
@@ -129,7 +129,10 @@ static size_t shallowHashType(const Type* type) {
         }
         case TYPE_FUNCTION: {
             TypeFunction* t = (TypeFunction*)type;
-            size_t hash = hashCombine(hashCombine(hashInt(t->kind), hashInt((size_t)t->ret_type)), hashInt(t->arg_count));
+            size_t hash = hashCombine(
+                hashCombine(hashInt(t->kind), hashInt((size_t)t->ret_type)),
+                hashCombine(hashInt(t->arg_count), hashInt(t->vararg))
+            );
             for (size_t i = 0; i < t->arg_count; i++) {
                 hash = hashCombine(hash, hashInt((size_t)t->arguments[i]));
             }
@@ -224,7 +227,7 @@ Type* createArrayType(TypeContext* cxt, Type* base, size_t size) {
     }
 }
 
-Type* createFunctionType(TypeContext* cxt, Type* ret_type, size_t arg_count, Type** arguments) {
+Type* createFunctionType(TypeContext* cxt, Type* ret_type, size_t arg_count, Type** arguments, bool vararg) {
     if (isErrorType(ret_type)) {
         FREE(arguments);
         return ret_type;
@@ -236,7 +239,13 @@ Type* createFunctionType(TypeContext* cxt, Type* ret_type, size_t arg_count, Typ
                 return ret;
             }
         }
-        TypeFunction type = { .kind = TYPE_FUNCTION, .ret_type = ret_type, .arguments = arguments, .arg_count = arg_count };
+        TypeFunction type = {
+            .kind = TYPE_FUNCTION,
+            .ret_type = ret_type,
+            .arguments = arguments,
+            .arg_count = arg_count,
+            .vararg = vararg,
+        };
         bool new;
         Type* ret = createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeFunction), &new);
         if (!new) {
@@ -303,6 +312,9 @@ static void buildTypeNameInto(String* dst, const Type* type) {
                         *dst = pushToString(*dst, str(", "));
                     }
                     buildTypeNameInto(dst, t->arguments[i]);
+                }
+                if (t->vararg) {
+                    *dst = pushToString(*dst, str(", .."));
                 }
                 *dst = pushToString(*dst, str("): "));
                 buildTypeNameInto(dst, t->ret_type);
@@ -529,7 +541,7 @@ static bool compareStructuralTypesHelper(Type* a, Type* b, DoubleTypeReferenceSt
             case TYPE_FUNCTION: {
                 TypeFunction* ta = (TypeFunction*)a;
                 TypeFunction* tb = (TypeFunction*)b;
-                if (ta->arg_count != tb->arg_count || compareStructuralTypesHelper(ta->ret_type, tb->ret_type, stack)) {
+                if (ta->arg_count != tb->arg_count || ta->vararg != tb->vararg || compareStructuralTypesHelper(ta->ret_type, tb->ret_type, stack)) {
                     return false;
                 } else {
                     for (size_t i = 0; i < ta->arg_count; i++) {

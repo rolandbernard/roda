@@ -133,6 +133,7 @@ typedef enum {
     AST_FN_FLAG_NONE   = 0,
     AST_FN_FLAG_EXPORT = 1 << 0,
     AST_FN_FLAG_IMPORT = 1 << 1,
+    AST_FN_FLAG_VARARG = 1 << 2,
 } AstFnFlags;
 
 typedef struct {

@@ -48,6 +48,7 @@ typedef struct {
     Type* ret_type;
     Type** arguments;
     size_t arg_count;
+    bool vararg;
 } TypeFunction;
 
 typedef struct {
@@ -73,7 +74,7 @@ Type* createPointerType(TypeContext* cxt, Type* base);
 
 Type* createArrayType(TypeContext* cxt, Type* base, size_t size);
 
-Type* createFunctionType(TypeContext* cxt, Type* ret_type, size_t arg_count, Type** arguments);
+Type* createFunctionType(TypeContext* cxt, Type* ret_type, size_t arg_count, Type** arguments, bool vararg);
 
 Type* createTypeReference(TypeContext* cxt, struct SymbolType* binding);
 

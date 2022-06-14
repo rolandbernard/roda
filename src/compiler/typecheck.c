@@ -293,7 +293,12 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
                 AstCall* n = (AstCall*)node;
                 if (n->function->res_type != NULL) {
                     TypeFunction* type = isFunctionType(n->function->res_type);
-                    if (type != NULL && type->arg_count == n->arguments->count) {
+                    if (
+                        type != NULL
+                        && (type->arg_count == n->arguments->count
+                            || (type->vararg && type->arg_count < n->arguments->count)
+                        )
+                    ) {
                         AstNode* type_reason = n->function->res_type_reasoning;
                         if (type_reason != NULL && type_reason->kind == AST_FN) {
                             AstFn* fn_node = (AstFn*)type_reason;
@@ -306,7 +311,7 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
                         if (propagateTypeIntoAstNode(context, node, type->ret_type, type_reason)) {
                             propagateTypes(context, node->parent);
                         }
-                        for (size_t i = 0; i < n->arguments->count; i++) {
+                        for (size_t i = 0; i < type->arg_count; i++) {
                             type_reason = n->function->res_type_reasoning;
                             if (type_reason != NULL && type_reason->kind == AST_FN) {
                                 AstFn* fn_node = (AstFn*)type_reason;
@@ -330,24 +335,6 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
                         }
                         if (propagateTypeIntoAstNode(context, node, error, NULL)) {
                             propagateTypes(context, node->parent);
-                        }
-                    }
-                } else if (n->res_type != NULL) {
-                    bool all_types = true;
-                    for (size_t i = 0; i < n->arguments->count; i++) {
-                        if (n->arguments->nodes[i]->res_type == NULL) {
-                            all_types = false;
-                            break;
-                        }
-                    }
-                    if (all_types) {
-                        Type** arg_types = ALLOC(Type*, n->arguments->count);
-                        for (size_t i = 0; i < n->arguments->count; i++) {
-                            arg_types[i] = n->arguments->nodes[i]->res_type;
-                        }
-                        Type* func = createFunctionType(&context->types, n->res_type, n->arguments->count, arg_types);
-                        if (propagateTypeIntoAstNode(context, n->function, func, node)) {
-                            propagateTypes(context, n->function);
                         }
                     }
                 }
@@ -645,7 +632,10 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                     AstArgDef* def = (AstArgDef*)n->arguments->nodes[i];
                     arg_types[i] = def->name->res_type;
                 }
-                n->name->res_type = createFunctionType(&context->types, ret_type, n->arguments->count, arg_types);
+                n->name->res_type = createFunctionType(
+                    &context->types, ret_type, n->arguments->count, arg_types,
+                    (n->flags & AST_FN_FLAG_VARARG) != 0
+                );
                 n->name->res_type_reasoning = node;
                 if (!isValidType(ret_type)) {
                     String type_name = buildTypeName(ret_type);
@@ -1425,7 +1415,7 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             case AST_VAR:
                 break;
             case AST_STR: {
-                if (node->res_type != NULL) {
+                if (node->res_type != NULL && !isErrorType(node->res_type)) {
                     TypePointer* ptr_type = isPointerType(node->res_type);
                     TypeSizedPrimitive* int_type = NULL;
                     if (ptr_type != NULL) {
@@ -1438,7 +1428,7 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                 break;
             }
             case AST_INT: {
-                if (node->res_type != NULL) {
+                if (node->res_type != NULL && !isErrorType(node->res_type)) {
                     TypeSizedPrimitive* int_type = isIntegerType(node->res_type);
                     if (int_type == NULL) {
                         raiseLiteralTypeError(context, node, "integer literal");
@@ -1447,7 +1437,7 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                 break;
             }
             case AST_BOOL: {
-                if (node->res_type != NULL) {
+                if (node->res_type != NULL && !isErrorType(node->res_type)) {
                     if (isBooleanType(node->res_type) == NULL) {
                         raiseLiteralTypeError(context, node, "boolean literal");
                     }
@@ -1455,7 +1445,7 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                 break;
             }
             case AST_REAL: {
-                if (node->res_type != NULL) {
+                if (node->res_type != NULL && !isErrorType(node->res_type)) {
                     TypeSizedPrimitive* real_type = isRealType(node->res_type);
                     if (real_type == NULL) {
                         raiseLiteralTypeError(context, node, "real literal");
@@ -1468,7 +1458,7 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             case AST_MUL_ASSIGN:
             case AST_DIV_ASSIGN: {
                 AstBinary* n = (AstBinary*)node;
-                if (n->left->res_type != NULL) {
+                if (n->left->res_type != NULL && !isErrorType(n->left->res_type)) {
                     TypeSizedPrimitive* type = isNumericType(n->left->res_type);
                     if (type == NULL) {
                         raiseOpTypeError(context, node, n->left, n->left->res_type, n->left->res_type_reasoning, ", must be a numeric value");
@@ -1486,7 +1476,7 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             case AST_BOR_ASSIGN:
             case AST_BXOR_ASSIGN: {
                 AstBinary* n = (AstBinary*)node;
-                if (n->left->res_type != NULL) {
+                if (n->left->res_type != NULL && !isErrorType(n->left->res_type)) {
                     TypeSizedPrimitive* type = isIntegerType(n->left->res_type);
                     if (type == NULL) {
                         raiseOpTypeError(context, node, n->left, n->left->res_type, n->left->res_type_reasoning, ", must be an integer value");
@@ -1506,7 +1496,7 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             }
             case AST_INDEX: {
                 AstBinary* n = (AstBinary*)node;
-                if (n->left->res_type != NULL) {
+                if (n->left->res_type != NULL && !isErrorType(n->left->res_type)) {
                     if (isArrayType(n->left->res_type) == NULL && isPointerType(n->left->res_type) == NULL) {
                         raiseOpTypeError(context, node, n->left, n->left->res_type, n->left->res_type_reasoning, ", must be an array or pointer");
                     }
@@ -1520,8 +1510,7 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             case AST_DIV:
             case AST_ADD: {
                 AstBinary* n = (AstBinary*)node;
-                TypeSizedPrimitive* type = isNumericType(n->res_type);
-                if (type == NULL) {
+                if (n->res_type != NULL && !isErrorType(n->res_type) && isNumericType(n->res_type) == NULL) {
                     raiseOpTypeError(context, node, n->left, n->res_type, n->res_type_reasoning, ", must be a numeric value");
                 }
                 checkTypeConstraints(context, n->left);
@@ -1535,8 +1524,7 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             case AST_BOR:
             case AST_BXOR: {
                 AstBinary* n = (AstBinary*)node;
-                TypeSizedPrimitive* type = isIntegerType(n->res_type);
-                if (type == NULL) {
+                if (n->res_type != NULL && !isErrorType(n->res_type) && isIntegerType(n->res_type) == NULL) {
                     raiseOpTypeError(context, node, n->left, n->res_type, n->res_type_reasoning, ", must be an integer value");
                 }
                 checkTypeConstraints(context, n->left);
@@ -1553,7 +1541,7 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             case AST_EQ:
             case AST_NE: {
                 AstBinary* n = (AstBinary*)node;
-                if (n->left->res_type != NULL) {
+                if (n->left->res_type != NULL && !isErrorType(n->left->res_type)) {
                     if (isNumericType(n->left->res_type) == NULL && isBooleanType(n->left->res_type) && isPointerType(n->left->res_type) == NULL) {
                         raiseOpTypeError(context, node, n->left, n->left->res_type, n->left->res_type_reasoning, ", must be a numeric value, boolean or pointer");
                     }
@@ -1567,7 +1555,7 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             case AST_LT:
             case AST_GT: {
                 AstBinary* n = (AstBinary*)node;
-                if (n->left->res_type != NULL) {
+                if (n->left->res_type != NULL && !isErrorType(n->left->res_type)) {
                     if (isNumericType(n->left->res_type) == NULL && isPointerType(n->left->res_type) == NULL) {
                         raiseOpTypeError(context, node, n->left, n->left->res_type, n->left->res_type_reasoning, ", must be a numeric value or pointer");
                     }
@@ -1578,7 +1566,7 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             }
             case AST_POS: {
                 AstUnary* n = (AstUnary*)node;
-                if (isNumericType(n->res_type) == NULL) {
+                if (n->res_type != NULL && !isErrorType(n->res_type) && isNumericType(n->res_type) == NULL) {
                     raiseOpTypeError(context, node, n->op, n->res_type, n->res_type_reasoning, ", must be a numeric value");
                 }
                 checkTypeConstraints(context, n->op);
@@ -1586,7 +1574,7 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             }
             case AST_NEG: {
                 AstUnary* n = (AstUnary*)node;
-                if (isRealType(n->res_type) == NULL && isSignedIntegerType(n->res_type) == NULL) {
+                if (n->res_type != NULL && !isErrorType(n->res_type) && isRealType(n->res_type) == NULL && isSignedIntegerType(n->res_type)) {
                     raiseOpTypeError(context, node, n->op, n->res_type, n->res_type_reasoning, ", must be a signed numeric value");
                 }
                 checkTypeConstraints(context, n->op);
@@ -1594,7 +1582,7 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             }
             case AST_NOT: {
                 AstUnary* n = (AstUnary*)node;
-                if (isIntegerType(n->res_type) == NULL && isBooleanType(n->res_type) == NULL) {
+                if (n->res_type != NULL && !isErrorType(n->res_type) && isIntegerType(n->res_type) == NULL && isBooleanType(n->res_type)) {
                     raiseOpTypeError(context, node, n->op, n->res_type, n->res_type_reasoning, ", must be an integer or boolean value");
                 }
                 checkTypeConstraints(context, n->op);
@@ -1602,7 +1590,7 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             }
             case AST_ADDR: {
                 AstUnary* n = (AstUnary*)node;
-                if (node->res_type != NULL) {
+                if (node->res_type != NULL && !isErrorType(node->res_type)) {
                     if (isPointerType(node->res_type) == NULL) {
                         raiseOpTypeError(context, node, node, node->res_type, node->res_type_reasoning, ", always returns a pointer");
                     }
@@ -1613,7 +1601,7 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             }
             case AST_DEREF: {
                 AstUnary* n = (AstUnary*)node;
-                if (n->op->res_type != NULL) {
+                if (n->op->res_type != NULL && !isErrorType(n->op->res_type)) {
                     if (isPointerType(n->op->res_type) == NULL) {
                         raiseOpTypeError(context, node, n->op, n->op->res_type, n->op->res_type_reasoning, ", must be a pointer");
                     }
@@ -1623,7 +1611,7 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             }
             case AST_RETURN: {
                 AstReturn* n = (AstReturn*)node;
-                if (n->function->name->res_type != NULL) {
+                if (n->function->name->res_type != NULL && !isErrorType(n->function->name->res_type)) {
                     TypeFunction* func = isFunctionType(n->function->name->res_type);
                     if (func != NULL) {
                         AstNode* type_reason = n->function->name->res_type_reasoning;
@@ -1675,11 +1663,11 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             }
             case AST_CALL: {
                 AstCall* n = (AstCall*)node;
-                if (n->function->res_type != NULL) {
+                if (n->function->res_type != NULL && !isErrorType(n->function->res_type)) {
                     TypeFunction* type = isFunctionType(n->function->res_type);
                     if (type == NULL) {
                         raiseOpTypeError(context, node, n->function, n->function->res_type, n->function->res_type_reasoning, ", must be a function");
-                    } else if (type->arg_count != n->arguments->count) {
+                    } else if (type->arg_count != n->arguments->count && (!type->vararg || type->arg_count > n->arguments->count)) {
                         raiseArgCountError(context, type, n->arguments, n->function->res_type_reasoning);
                     }
                 }

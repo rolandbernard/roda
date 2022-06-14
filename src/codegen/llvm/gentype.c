@@ -59,7 +59,7 @@ static LLVMTypeRef generateLlvmTypeHelper(LlvmCodegenContext* context, Type* typ
                 for (size_t i = 0; i < t->arg_count; i++) {
                     param_types[i] = generateLlvmTypeHelper(context, t->arguments[i], stack);
                 }
-                result = LLVMFunctionType(ret_type, param_types, t->arg_count, false);
+                result = LLVMFunctionType(ret_type, param_types, t->arg_count, t->vararg);
                 FREE(param_types);
                 break;
             }
