@@ -1,18 +1,28 @@
 
-#include <string.h>
-#include <llvm-c/Core.h>
-#include <llvm-c/Target.h>
-#include <llvm-c/Linker.h>
-#include <llvm-c/TargetMachine.h>
 #include <llvm-c/Analysis.h>
+#include <llvm-c/BitWriter.h>
+#include <llvm-c/Core.h>
+#include <llvm-c/Linker.h>
+#include <llvm-c/Target.h>
+#include <llvm-c/TargetMachine.h>
 #include <llvm-c/Transforms/PassBuilder.h>
+#include <string.h>
 
 #include "codegen/llvm/genmodule.h"
 #include "errors/fatalerror.h"
 #include "text/format.h"
+#include "util/alloc.h"
 #include "util/debug.h"
 
 #include "codegen/llvm/codegen.h"
+
+static void trimErrorMessage(char* data) {
+    size_t len = strlen(data);
+    while (data[len - 1] == '\n') {
+        len--;
+    }
+    data[len] = 0;
+}
 
 static void handleLlvmDiagnosticMessage(LLVMDiagnosticInfoRef info, void* udata) {
     CompilerContext* context = (CompilerContext*)udata;
@@ -20,7 +30,7 @@ static void handleLlvmDiagnosticMessage(LLVMDiagnosticInfoRef info, void* udata)
         case LLVMDSError: {
             if (applyFilterForKind(&context->msgfilter, ERROR_LLVM_BACKEND_ERROR)) {
                 char* desc = LLVMGetDiagInfoDescription(info);
-                desc[strlen(desc) - 1] = 0;
+                trimErrorMessage(desc);
                 addMessageToContext(&context->msgs,
                     createMessage(ERROR_LLVM_BACKEND_ERROR, createFormattedString("LLVM backend error: %s", desc), 0)
                 );
@@ -31,7 +41,7 @@ static void handleLlvmDiagnosticMessage(LLVMDiagnosticInfoRef info, void* udata)
         case LLVMDSWarning: {
             if (applyFilterForKind(&context->msgfilter, WARNING_LLVM_BACKEND_WARNING)) {
                 char* desc = LLVMGetDiagInfoDescription(info);
-                desc[strlen(desc) - 1] = 0;
+                trimErrorMessage(desc);
                 addMessageToContext(&context->msgs,
                     createMessage(WARNING_LLVM_BACKEND_WARNING, createFormattedString("LLVM backend warning: %s", desc), 0)
                 );
@@ -42,7 +52,7 @@ static void handleLlvmDiagnosticMessage(LLVMDiagnosticInfoRef info, void* udata)
         case LLVMDSRemark: {
             if (applyFilterForKind(&context->msgfilter, NOTE_LLVM_BACKEND_REMARK)) {
                 char* desc = LLVMGetDiagInfoDescription(info);
-                desc[strlen(desc) - 1] = 0;
+                trimErrorMessage(desc);
                 addMessageToContext(&context->msgs,
                     createMessage(NOTE_LLVM_BACKEND_REMARK, createFormattedString("LLVM backend remark: %s", desc), 0)
                 );
@@ -53,7 +63,7 @@ static void handleLlvmDiagnosticMessage(LLVMDiagnosticInfoRef info, void* udata)
         case LLVMDSNote: {
             if (applyFilterForKind(&context->msgfilter, NOTE_LLVM_BACKEND_NOTE)) {
                 char* desc = LLVMGetDiagInfoDescription(info);
-                desc[strlen(desc) - 1] = 0;
+                trimErrorMessage(desc);
                 addMessageToContext(&context->msgs,
                     createMessage(NOTE_LLVM_BACKEND_NOTE, createFormattedString("LLVM backend note: %s", desc), 0)
                 );
@@ -232,7 +242,7 @@ static LLVMModuleRef generateOptimizedModule(LlvmCodegenContext* context) {
     LLVMModuleRef module = generateLinkedModule(context);
 #ifdef DEBUG
     if (LLVMVerifyModule(module, LLVMReturnStatusAction, &context->error_msg)) {
-        context->error_msg[strlen(context->error_msg) - 1] = 0;
+        trimErrorMessage(context->error_msg);
         addMessageToContext(
             &context->cxt->msgs,
             createMessage(
@@ -255,6 +265,7 @@ void runCodeGenerationForLlvmIr(CompilerContext* cxt, ConstPath path) {
     if (cxt->msgs.error_count == 0) {
         LLVMModuleRef module = generateOptimizedModule(&context);
         if (LLVMPrintModuleToFile(module, toCString(path), &context.error_msg)) {
+            trimErrorMessage(context.error_msg);
             addMessageToContext(
                 &cxt->msgs,
                 createMessage(
@@ -269,14 +280,53 @@ void runCodeGenerationForLlvmIr(CompilerContext* cxt, ConstPath path) {
     deinitLlvmCodegenContext(&context);
 }
 
-void runCodeGenerationForLlvmBc(CompilerContext* context, ConstPath path) {
-    
+void runCodeGenerationForLlvmBc(CompilerContext* cxt, ConstPath path) {
+    LlvmCodegenContext context;
+    initLlvmCodegenContext(&context, cxt);
+    if (cxt->msgs.error_count == 0) {
+        LLVMModuleRef module = generateOptimizedModule(&context);
+        if (LLVMWriteBitcodeToFile(module, toCString(path))) {
+            addMessageToContext(
+                &cxt->msgs,
+                createMessage(
+                    ERROR_LLVM_BACKEND_ERROR, 
+                    createFormattedString("failed to write output file '%S'", path), 0
+                )
+            );
+        }
+        LLVMDisposeModule(module);
+    }
+    deinitLlvmCodegenContext(&context);
 }
 
-void runCodeGenerationForAsm(CompilerContext* context, ConstPath path) {
-    
+static void runCodeGenerationForTargetMachine(CompilerContext* cxt, ConstPath path, LLVMCodeGenFileType type) {
+    LlvmCodegenContext context;
+    initLlvmCodegenContext(&context, cxt);
+    if (cxt->msgs.error_count == 0) {
+        LLVMModuleRef module = generateOptimizedModule(&context);
+        char* filename = copyToCString(path);
+        if (LLVMTargetMachineEmitToFile(context.target_machine, module, filename, type, &context.error_msg)) {
+            trimErrorMessage(context.error_msg);
+            addMessageToContext(
+                &cxt->msgs,
+                createMessage(
+                    ERROR_LLVM_BACKEND_ERROR,
+                    createFormattedString("failed to write output file '%S': %s", path, context.error_msg), 0
+                )
+            );
+            LLVMDisposeMessage(context.error_msg);
+        }
+        FREE(filename);
+        LLVMDisposeModule(module);
+    }
+    deinitLlvmCodegenContext(&context);
 }
 
-void runCodeGenerationForObj(CompilerContext* context, ConstPath path) {
-    
+void runCodeGenerationForAsm(CompilerContext* cxt, ConstPath path) {
+    runCodeGenerationForTargetMachine(cxt, path, LLVMAssemblyFile);
 }
+
+void runCodeGenerationForObj(CompilerContext* cxt, ConstPath path) {
+    runCodeGenerationForTargetMachine(cxt, path, LLVMObjectFile);
+}
+

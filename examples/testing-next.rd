@@ -9,11 +9,11 @@
      */
  */
 
-import fn exit(status: int): !;
+extern fn exit(status: int): !;
 
-import fn print(text: *u8);
+extern fn print(text: *u8);
 
-export fn main(argc: int, argv: **u8): int {
+pub fn main(argc: int, argv: **u8): int {
     let a: int = 5;
     let b = 7;
     let c = a + b;

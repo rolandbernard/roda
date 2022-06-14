@@ -73,6 +73,9 @@ void initMessageFilter(MessageFilter* filter) {
     for (int i = 0; i < NUM_MESSAGE_KIND; i++) {
         filter->message_kind_filter[i] = true;
     }
+    filter->message_kind_filter[WARNING_LLVM_BACKEND_WARNING] = false;
+    filter->message_kind_filter[NOTE_LLVM_BACKEND_REMARK] = false;
+    filter->message_kind_filter[NOTE_LLVM_BACKEND_NOTE] = false;
 }
 
 bool applyFilterForKind(const MessageFilter* filter, MessageKind kind) {

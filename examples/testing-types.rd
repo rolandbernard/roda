@@ -1,12 +1,13 @@
 
-import fn printf(fmt: *u8, ..);
+extern fn printf(fmt: *u8, ..);
 
 fn foo(i: int): int {
     printf("Hello world! %li\n", i);
     return 0;
 }
 
-export fn main() {
+pub fn main(): int {
     foo(42);
+    return 0;
 }
 

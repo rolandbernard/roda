@@ -47,8 +47,6 @@ POINT .|[\300-\337]{UB}|[\340-\357]{UB}{2}|[\360-\367]{UB}{3}|[\370-\373]{UB}{4}
 "for"           { return FOR; }
 "while"         { return WHILE; }
 "fn"            { return FN; }
-"export"        { return EXPORT; }
-"import"        { return IMPORT; }
 "type"          { return TYPE; }
 "let"           { return LET; }
 "return"        { return RETURN; }
@@ -56,6 +54,8 @@ POINT .|[\300-\337]{UB}|[\340-\357]{UB}{2}|[\360-\367]{UB}{3}|[\370-\373]{UB}{4}
 "const"         { return CONST; }
 "true"          { return TRUE; }
 "false"         { return FALSE; }
+"extern"        { return EXTERN; }
+"pub"           { return PUB; }
 
 "=="            { return EQ; }
 "!="            { return NE; }

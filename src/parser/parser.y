@@ -69,13 +69,13 @@ extern void yyerror(YYLTYPE* yyllocp, yyscan_t scanner, ParserContext* context, 
 %token FOR              "for"
 %token WHILE            "while"
 %token MATCH            "match"
-%token EXPORT           "export"
-%token IMPORT           "import"
 %token CONST            "const"
 %token TYPE             "type"
 %token LET              "let"
 %token FN               "fn"
 %token RETURN           "return"
+%token EXTERN           "extern"
+%token PUB              "pub"
 %token EQ               "=="
 %token NE               "!="
 %token LE               "<="
@@ -125,8 +125,8 @@ root_stmts : %empty                     { $$ = createDynamicAstList(); $$->locat
            ;
 
 root_stmt : error                                                   { $$ = createAstSimple(@$, AST_ERROR); }
-          | "export" "fn" ident '(' args_defs ')' opt_type block    { $$ = (AstNode*)createAstFn(@$, $3, $5.list, $7, $8, AST_FN_FLAG_EXPORT | $5.flags); }
-          | "import" "fn" ident '(' args_defs ')' opt_type ';'      { $$ = (AstNode*)createAstFn(@$, $3, $5.list, $7, NULL, AST_FN_FLAG_IMPORT | $5.flags); }
+          | "pub" "fn" ident '(' args_defs ')' opt_type block       { $$ = (AstNode*)createAstFn(@$, $3, $5.list, $7, $8, AST_FN_FLAG_EXPORT | $5.flags); }
+          | "extern" "fn" ident '(' args_defs ')' opt_type ';'      { $$ = (AstNode*)createAstFn(@$, $3, $5.list, $7, NULL, AST_FN_FLAG_IMPORT | $5.flags); }
           | "fn" ident '(' args_defs ')' opt_type block             { $$ = (AstNode*)createAstFn(@$, $2, $4.list, $6, $7, $4.flags); }
           | "type" ident '=' type ';'                               { $$ = (AstNode*)createAstTypeDef(@$, $2, $4); }
           ;

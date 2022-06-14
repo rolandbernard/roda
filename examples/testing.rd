@@ -1,5 +1,5 @@
 
-import fn print(text: *u8);
+extern fn print(text: *u8);
 
 /*
    This is a block comment.
@@ -18,7 +18,7 @@ type Test1 = int;
 type Test2 = Test1;
 type Test3 = Test2;
 
-export fn main(argc: int, argv: **u8): Test1 {
+pub fn main(argc: int, argv: **u8): Test1 {
     /* Print some stuff! */
     print("Hello \t \"world\"!");
     print("猕猴桃");     // Supports utf8 in string literals.
