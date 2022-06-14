@@ -205,7 +205,7 @@ static ConstValue raiseTypeErrorNotInConst(CompilerContext* context, AstNode* no
 
 ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
     if (node == NULL) {
-        UNREACHABLE(", should not evaluate");
+        UNREACHABLE("should not evaluate");
     } else {
         ConstValue res;
         switch (node->kind) {
@@ -236,7 +236,7 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
             case AST_LIST:
             case AST_BLOCK:
             case AST_VARDEF: {
-                UNREACHABLE(", should not evaluate");
+                UNREACHABLE("should not evaluate");
             }
             case AST_VAR: // TODO: constant variables? (We need a scope!)
             case AST_INDEX: // TODO: constant arrays?
@@ -282,7 +282,7 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
                     } else if (t->kind == TYPE_UINT) {
                         res = createConstUInt(context, t->size, n->number);
                     } else {
-                        UNREACHABLE(", integer type expected");
+                        UNREACHABLE("integer type expected");
                     }
                 } else {
                     res = createConstError(context);
@@ -302,7 +302,7 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
                     } else if (t->size == 64) {
                         res = createConstF64(context, n->number);
                     } else {
-                        UNREACHABLE(", unexpected real type size");
+                        UNREACHABLE("unexpected real type size");
                     }
                 } else {
                     res = createConstError(context);
@@ -320,7 +320,7 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
                     if (t->kind == TYPE_INT) {
                         res = createConstBool(context, n->value);
                     } else {
-                        UNREACHABLE(", integer type expected");
+                        UNREACHABLE("integer type expected");
                     }
                 } else {
                     res = createConstError(context);

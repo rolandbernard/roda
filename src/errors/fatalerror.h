@@ -8,17 +8,17 @@
 #include "util/macro.h"
 
 #ifdef DEBUG
-#define ASSERT(COND, ...) {                                                                                         \
-    if (!(COND)) {                                                                                                  \
-        fatalError(str("compiler assertion failed, " __FILE__ ":" STRINGIFY(__LINE__) ", " #COND __VA_ARGS__ ));    \
-    }                                                                                                               \
+#define ASSERT(COND, ...) {                                                                                                         \
+    if (!(COND)) {                                                                                                                  \
+        fatalError(str(__FILE__ ":" XSTRINGIFY(__LINE__) ": compiler assertion failed: " #COND __VA_OPT__(": ") __VA_ARGS__ ));     \
+    }                                                                                                                               \
 }
 #else
 #define ASSERT(COND, ...)
 #endif
 
-#define UNREACHABLE(...) {                                                                                   \
-    fatalError(str("compiler reached unreachable state, " __FILE__ ":" STRINGIFY(__LINE__) __VA_ARGS__ ));   \
+#define UNREACHABLE(...) {                                                                                                      \
+    fatalError(str(__FILE__ ":" XSTRINGIFY(__LINE__) ": compiler reached unreachable state"  __VA_OPT__(": ") __VA_ARGS__ ));   \
 }
 
 noreturn void fatalError(ConstString message);

@@ -8,7 +8,7 @@
 
 Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
     if (node == NULL) {
-        UNREACHABLE(", should not evaluate");
+        UNREACHABLE("should not evaluate");
     } else {
         switch (node->kind) {
             case AST_VOID: {
@@ -68,7 +68,7 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
             case AST_LIST:
             case AST_BLOCK:
             case AST_VARDEF: {
-                UNREACHABLE(", should not evaluate");
+                UNREACHABLE("should not evaluate");
             }
             case AST_VAR: {
                 AstVar* n = (AstVar*)node;

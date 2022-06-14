@@ -1,6 +1,6 @@
 
-#include <llvm-c/Core.h>
 #include <stdbool.h>
+#include <string.h>
 
 #include "codegen/llvm/gentype.h"
 #include "errors/fatalerror.h"
@@ -149,13 +149,28 @@ static LLVMValueRef buildRealComparison(LLVMBuilderRef builder, LLVMValueRef lhs
     }
 }
 
+static LLVMValueRef buildLlvmIntrinsicCall(
+    LlvmCodegenContext* context, LlvmCodegenBodyContext* data, const char* name,
+    LLVMValueRef* params, size_t param_count, const char* val_name
+) {
+    size_t id = LLVMLookupIntrinsicID(name, strlen(name));
+    LLVMTypeRef* param_types = ALLOC(LLVMTypeRef, param_count);
+    for (size_t i = 0; i < param_count; i++) {
+        param_types[i] = LLVMTypeOf(params[i]);
+    }
+    LLVMValueRef func = LLVMGetIntrinsicDeclaration(data->module, id, param_types, param_count);
+    LLVMTypeRef type = LLVMIntrinsicGetType(context->llvm_cxt, id, param_types, param_count);
+    FREE(param_types);
+    return LLVMBuildCall2(data->builder, type, func, params, param_count, val_name);
+}
+
 static LlvmCodegenValue buildFunctionBody(LlvmCodegenContext* context, LlvmCodegenBodyContext* data, AstNode* node) {
     ASSERT(node != NULL);
     switch (node->kind) {
         case AST_VOID:
         case AST_ARRAY:
         case AST_ERROR: {
-            UNREACHABLE(", should not evaluate");
+            UNREACHABLE("should not evaluate");
         }
         case AST_LIST: {
             AstList* n = (AstList*)node;
@@ -374,7 +389,6 @@ static LlvmCodegenValue buildFunctionBody(LlvmCodegenContext* context, LlvmCodeg
             return createLlvmCodegenValue(NULL, false);
         }
         case AST_CALL: {
-            // TODO: fix this!
             AstCall* n = (AstCall*)node;
             LLVMValueRef func = getCodegenReference(context, data, n->function);
             LLVMValueRef* args = ALLOC(LLVMValueRef, n->arguments->count);
@@ -397,12 +411,37 @@ static LlvmCodegenValue buildFunctionBody(LlvmCodegenContext* context, LlvmCodeg
             return createLlvmCodegenValue(value, false);
         }
         case AST_INDEX: {
-            // TODO: fix this!
             AstBinary* n = (AstBinary*)node;
-            LLVMValueRef pointer = getCodegenValue(context, data, n->left);
-            LLVMValueRef index = getCodegenValue(context, data, n->right);
-            LLVMValueRef value = LLVMBuildGEP2(data->builder, generateLlvmType(context, n->res_type), pointer, &index, 1, "index");
-            return createLlvmCodegenValue(value, false);
+            if (isPointerType(n->left->res_type) != NULL) {
+                LLVMValueRef pointer = getCodegenValue(context, data, n->left);
+                LLVMValueRef index = getCodegenValue(context, data, n->right);
+                LLVMValueRef value = LLVMBuildGEP2(data->builder, generateLlvmType(context, n->res_type), pointer, &index, 1, "index");
+                return createLlvmCodegenValue(value, true);
+            } else {
+                LlvmCodegenValue array = buildFunctionBody(context, data, n->left);
+                LLVMValueRef index = getCodegenValue(context, data, n->right);
+                LLVMValueRef indicies[2] = {
+                    LLVMConstInt(LLVMIntPtrTypeInContext(context->llvm_cxt, context->target_data), 0, false), index
+                };
+                if (array.is_reference) {
+                    LLVMValueRef value = LLVMBuildGEP2(
+                        data->builder, generateLlvmType(context, n->left->res_type), array.value, indicies, 2, "index"
+                    );
+                    return createLlvmCodegenValue(value, true);
+                } else {
+                    LLVMValueRef stack = buildLlvmIntrinsicCall(context, data, "llvm.stacksave", NULL, 0, "stacksave");
+                    LLVMValueRef tmp = LLVMBuildAlloca(
+                        data->builder, generateLlvmType(context, n->left->res_type), "tmp"
+                    );
+                    LLVMBuildStore(data->builder, array.value, tmp);
+                    LLVMValueRef value_ref = LLVMBuildGEP2(
+                        data->builder, generateLlvmType(context, n->left->res_type), tmp, indicies, 2, "index"
+                    );
+                    LLVMValueRef value = LLVMBuildLoad2(data->builder, generateLlvmType(context, n->res_type), value_ref, "tmp");
+                    buildLlvmIntrinsicCall(context, data, "llvm.stackrestore", &stack, 1, "");
+                    return createLlvmCodegenValue(value, false);
+                }
+            }
         }
         case AST_RETURN: {
             AstReturn* n = (AstReturn*)node;
@@ -429,7 +468,7 @@ static void buildFunctionVariables(LlvmCodegenContext* context, LLVMBuilderRef b
         switch (node->kind) {
             case AST_VOID:
             case AST_ARRAY: {
-                UNREACHABLE(", should not evaluate");
+                UNREACHABLE("should not evaluate");
             }
             case AST_ERROR:
             case AST_VAR:

@@ -102,7 +102,7 @@ static bool shallowCompareTypes(const Type* a, const Type* b) {
                 return ta->binding == tb->binding;
             }
         }
-        UNREACHABLE(", unhandled type kind");
+        UNREACHABLE("unhandled type kind");
     }
 }
 
@@ -140,7 +140,7 @@ static size_t shallowHashType(const Type* type) {
             return hashCombine(hashInt(t->kind), hashInt((size_t)t->binding));
         }
     }
-    UNREACHABLE(", unhandled type kind");
+    UNREACHABLE("unhandled type kind");
 }
 
 static bool continueSearch(const TypeContext* table, size_t idx, const Type* key) {
@@ -561,7 +561,7 @@ static bool compareStructuralTypesHelper(Type* a, Type* b, DoubleTypeReferenceSt
                 }
             }
         }
-        UNREACHABLE(", unhandled type kind");
+        UNREACHABLE("unhandled type kind");
     }
 }
 

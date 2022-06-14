@@ -1,16 +1,12 @@
 
-fn add(a: int, b: int): int {
-    return a + b;
+fn bar(): [2]int {
+    let a;
+    return a;
 }
 
-export fn foo(test: bool): int {
-    let a = true;
-    let b = false;
-    let c = a;
-    if (test) {
-        return add(5, 6);
-    } else {
-        return 0;
-    }
+fn foo(i: int): int {
+    let a: [5]int;
+    a[i] = 5;
+    return bar()[i];
 }
 
