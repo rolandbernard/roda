@@ -1366,27 +1366,21 @@ static void raiseVoidReturnError(CompilerContext* context, AstReturn* node, Type
     freeString(type_name);
 }
 
-static bool isNodeLValue(AstNode* node) {
-    return node != NULL
-           && (node->kind == AST_VAR || node->kind == AST_DEREF || node->kind == AST_INDEX)
-           && isSizedType(node->res_type);
-}
-
-static void checkNodeIsLValue(CompilerContext* context, AstNode* node) {
-    if (!isNodeLValue(node)) {
-        addMessageToContext(
-            &context->msgs,
-            createMessage(
-                ERROR_INCOMPATIBLE_TYPE,
-                copyFromCString("the left side of an assignment is not writable"), 1,
-                createMessageFragment(MESSAGE_ERROR, copyFromCString("expected this to be writable"), node->location)
-            )
-        );
-    }
-}
-
 static bool isAddressableValue(AstNode* node) {
-    return node != NULL && (node->kind == AST_VAR || node->kind == AST_DEREF || node->kind == AST_INDEX);
+    if (node == NULL) {
+        return false;
+    } else if (node->kind == AST_VAR || node->kind == AST_DEREF) {
+        return true;
+    } else if (node->kind == AST_INDEX) {
+        AstBinary* n = (AstBinary*)node;
+        if (isPointerType(n->left->res_type) != NULL) {
+            return true;
+        } else {
+            return isAddressableValue(n->left);
+        }
+    } else {
+        return false;
+    }
 }
 
 static void checkNodeIsAddressable(CompilerContext* context, AstNode* node) {
@@ -1397,6 +1391,23 @@ static void checkNodeIsAddressable(CompilerContext* context, AstNode* node) {
                 ERROR_INCOMPATIBLE_TYPE,
                 copyFromCString("attempting to take pointer to expression that is not addressable"), 1,
                 createMessageFragment(MESSAGE_ERROR, copyFromCString("expected this to be addressable"), node->location)
+            )
+        );
+    }
+}
+
+static bool isNodeWritable(AstNode* node) {
+    return isAddressableValue(node) && isSizedType(node->res_type);
+}
+
+static void checkNodeIsWritable(CompilerContext* context, AstNode* node) {
+    if (!isNodeWritable(node)) {
+        addMessageToContext(
+            &context->msgs,
+            createMessage(
+                ERROR_INCOMPATIBLE_TYPE,
+                copyFromCString("the left side of an assignment is not writable"), 1,
+                createMessageFragment(MESSAGE_ERROR, copyFromCString("expected this to be writable"), node->location)
             )
         );
     }
@@ -1463,7 +1474,7 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                         raiseOpTypeError(context, node, n->left, n->left->res_type, n->left->res_type_reasoning, ", must be a numeric value");
                     }
                 }
-                checkNodeIsLValue(context, n->left);
+                checkNodeIsWritable(context, n->left);
                 checkTypeConstraints(context, n->right);
                 checkTypeConstraints(context, n->left);
                 break;
@@ -1481,14 +1492,14 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                         raiseOpTypeError(context, node, n->left, n->left->res_type, n->left->res_type_reasoning, ", must be an integer value");
                     }
                 }
-                checkNodeIsLValue(context, n->left);
+                checkNodeIsWritable(context, n->left);
                 checkTypeConstraints(context, n->right);
                 checkTypeConstraints(context, n->left);
                 break;
             }
             case AST_ASSIGN: {
                 AstBinary* n = (AstBinary*)node;
-                checkNodeIsLValue(context, n->left);
+                checkNodeIsWritable(context, n->left);
                 checkTypeConstraints(context, n->right);
                 checkTypeConstraints(context, n->left);
                 break;
