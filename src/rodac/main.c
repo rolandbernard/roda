@@ -1,6 +1,6 @@
 
-#include <locale.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "compiler/compiler.h"
 #include "errors/msgprint.h"
@@ -28,6 +28,7 @@ static void printVersionInfo() {
 }
 
 int main(int argc, const char* const* argv) {
+    srand(clock() + time(NULL));
     CompilerContext context;
     initCompilerContext(&context);
     int arg_count = parseProgramParams(argc, argv, &context);

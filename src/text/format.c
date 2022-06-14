@@ -53,6 +53,7 @@ String createFormattedString(const char* format, ...) {
     va_start(args, format);
     formatCustomString(data, format, args);
     va_end(args);
+    data[size] = 0;
     return createString(data, size);
 }
 
@@ -65,6 +66,7 @@ void pushFormattedString(String* dst, const char* format, ...) {
     va_start(args, format);
     formatCustomString(data, format, args);
     va_end(args);
+    data[size] = 0;
     *dst = pushToString(*dst, createConstString(data, size));
     FREE(data);
 }

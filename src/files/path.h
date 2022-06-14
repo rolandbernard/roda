@@ -23,13 +23,7 @@ ConstString getExtention(ConstPath path);
 
 ConstPath getParentDirectory(ConstPath path);
 
-Path getWorkingDirectory();
-
-Path getAbsolutePath(ConstPath path);
-
 Path getPathFromTo(ConstPath from, ConstPath to);
-
-Path getRelativePath(ConstPath path);
 
 Path createPath(ConstString path);
 

@@ -1,9 +1,8 @@
 
-#include <unistd.h>
-#include <errno.h>
-#include <string.h>
-#include <stdlib.h>
 #include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "files/path.h"
 
@@ -120,32 +119,6 @@ ConstPath getParentDirectory(ConstPath path) {
     return createConstString(path.data, end);
 }
 
-Path getWorkingDirectory() {
-    size_t capacity = 32;
-    char* str = ALLOC(char, capacity);
-    char* ret;
-    while ((ret = getcwd(str, capacity)) == NULL && errno == ERANGE) {
-        capacity *= 2;
-        str = REALLOC(char, str, capacity);
-    }
-    if (ret == NULL) {
-        return createEmptyString();
-    } else {
-        return inlineReducePath(resizeStringData(createFromCString(ret)));
-    }
-}
-
-Path getAbsolutePath(ConstPath path) {
-    if (isAbsolutePath(path)) {
-        return createPath(path);
-    } else {
-        Path cwd = getWorkingDirectory();
-        Path ret = joinPaths(toConstPath(cwd), path);
-        freePath(cwd);
-        return ret;
-    }
-}
-
 Path getPathFromTo(ConstPath from, ConstPath to) {
     // Reducing the path to get a consistent format (i.e. no '.', no duplicate-'/', all '..' are at the beginning)
     Path reduced_from = reducePath(from);
@@ -212,17 +185,6 @@ Path getPathFromTo(ConstPath from, ConstPath to) {
     freePath(reduced_from);
     freePath(reduced_to);
     return inlineReducePath(createString(data, insert_pos + reduced_to.length - read_to_pos));
-}
-
-Path getRelativePath(ConstPath path) {
-    if (isRelativePath(path)) {
-        return createPath(path);
-    } else {
-        Path cwd = getWorkingDirectory();
-        Path ret = getPathFromTo(toConstPath(cwd), path);
-        freePath(cwd);
-        return ret;
-    }
 }
 
 Path createPath(ConstString path) {

@@ -3,11 +3,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "errors/fatalerror.h"
-#include "text/string.h"
 #include "ast/ast.h"
-#include "util/alloc.h"
+#include "errors/fatalerror.h"
+#include "files/fs.h"
+#include "text/string.h"
 #include "text/utf8.h"
+#include "util/alloc.h"
 
 #include "files/file.h"
 
@@ -113,7 +114,7 @@ Location advanceLocationWith(Location start, const char* text, size_t len) {
 }
 
 bool loadFileData(const File* file, String* output) {
-    FILE* stream = fopen(cstr(file->absolute_path), "r");
+    FILE* stream = openPath(toConstPath(file->absolute_path), "r");
     if (stream == NULL) {
         return false;
     } else {
@@ -129,5 +130,5 @@ bool loadFileData(const File* file, String* output) {
 }
 
 FILE* openFileStream(const File* file, const char* mode) {
-    return fopen(cstr(file->absolute_path), mode);
+    return openPath(toConstPath(file->absolute_path), mode);
 }

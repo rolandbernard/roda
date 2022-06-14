@@ -13,13 +13,17 @@
         fatalError(str(__FILE__ ":" XSTRINGIFY(__LINE__) ": compiler assertion failed: " #COND __VA_OPT__(": ") __VA_ARGS__ ));     \
     }                                                                                                                               \
 }
-#else
-#define ASSERT(COND, ...)
-#endif
 
 #define UNREACHABLE(...) {                                                                                                      \
     fatalError(str(__FILE__ ":" XSTRINGIFY(__LINE__) ": compiler reached unreachable state"  __VA_OPT__(": ") __VA_ARGS__ ));   \
 }
+#else
+#define ASSERT(COND, ...)
+
+#define UNREACHABLE(...) {                                  \
+    fatalError(str("compiler reached unreachable state"));  \
+}
+#endif
 
 noreturn void fatalError(ConstString message);
 

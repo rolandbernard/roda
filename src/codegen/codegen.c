@@ -1,10 +1,12 @@
 
 #include <errno.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
-#include "errors/fatalerror.h"
 #include "ast/astprinter.h"
+#include "errors/fatalerror.h"
+#include "files/fs.h"
 #include "util/debug.h"
 
 #ifdef LLVM
@@ -66,7 +68,7 @@ void runCodeGeneration(CompilerContext* context) {
                 )
             );
         } else {
-            FILE* output_file = fopen(cstr(context->settings.output_file), "w");
+            FILE* output_file = openPath(toConstPath(context->settings.output_file), "w");
             if (output_file == NULL) {
                 addMessageToContext(
                     &context->msgs,
@@ -89,7 +91,6 @@ void runCodeGeneration(CompilerContext* context) {
                     }
                     case COMPILER_EMIT_LLVM_IR: {
                         fclose(output_file);
-                        remove(cstr(context->settings.output_file));
 #ifdef LLVM
                         initLlvmBackend(context);
                         runCodeGenerationForLlvmIr(context, toConstPath(context->settings.output_file));
@@ -101,7 +102,6 @@ void runCodeGeneration(CompilerContext* context) {
                     }
                     case COMPILER_EMIT_LLVM_BC: {
                         fclose(output_file);
-                        remove(cstr(context->settings.output_file));
 #ifdef LLVM
                         initLlvmBackend(context);
                         runCodeGenerationForLlvmBc(context, toConstPath(context->settings.output_file));
@@ -113,7 +113,6 @@ void runCodeGeneration(CompilerContext* context) {
                     }
                     case COMPILER_EMIT_ASM: {
                         fclose(output_file);
-                        remove(cstr(context->settings.output_file));
 #ifdef LLVM
                         initLlvmBackend(context);
                         runCodeGenerationForAsm(context, toConstPath(context->settings.output_file));
@@ -125,7 +124,6 @@ void runCodeGeneration(CompilerContext* context) {
                     }
                     case COMPILER_EMIT_OBJ: {
                         fclose(output_file);
-                        remove(cstr(context->settings.output_file));
 #ifdef LLVM
                         initLlvmBackend(context);
                         runCodeGenerationForObj(context, toConstPath(context->settings.output_file));
@@ -137,7 +135,24 @@ void runCodeGeneration(CompilerContext* context) {
                     }
                     case COMPILER_EMIT_BIN: {
                         fclose(output_file);
-                        // TODO: generate obj + linking
+                        Path tmp = getTemporaryFilePath("o");
+#ifdef LLVM
+                        initLlvmBackend(context);
+                        runCodeGenerationForObj(context, toConstPath(tmp));
+                        deinitLlvmBackend(context);
+#else
+                        raiseNoBackendError(context, "object file");
+#endif
+                        if (context->msgs.error_count == 0) {
+                            // TODO: do things correctly!
+                            String command = createFormattedString(
+                                "cc -o %S %S", context->settings.output_file, tmp
+                            );
+                            system(cstr(command));
+                            freeString(command);
+                        }
+                        removePath(toConstPath(tmp));
+                        freePath(tmp);
                         break;
                     }
                 }
