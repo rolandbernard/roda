@@ -59,9 +59,8 @@ static void initCompilerSettings(CompilerSettings* settings) {
     settings->target.data = NULL;
     settings->cpu.data = NULL;
     settings->features.data = NULL;
-    settings->opt_level = -1;
-    settings->size_level = -1;
-    settings->debug = false;
+    settings->opt_level = COMPILER_OPT_DEFAULT;
+    settings->emit_debug = false;
 }
 
 static void deinitCompilerSettings(CompilerSettings* settings) {

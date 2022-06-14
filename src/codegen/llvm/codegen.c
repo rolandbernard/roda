@@ -5,10 +5,12 @@
 #include <llvm-c/Linker.h>
 #include <llvm-c/TargetMachine.h>
 #include <llvm-c/Analysis.h>
+#include <llvm-c/Transforms/PassBuilder.h>
 
+#include "codegen/llvm/genmodule.h"
+#include "errors/fatalerror.h"
 #include "text/format.h"
 #include "util/debug.h"
-#include "codegen/llvm/genmodule.h"
 
 #include "codegen/llvm/codegen.h"
 
@@ -80,19 +82,19 @@ void deinitLlvmBackend(CompilerContext* context) {
 
 static LLVMCodeGenOptLevel getLlvmCodeGenOptLevel(LlvmCodegenContext* context) {
     switch (context->cxt->settings.opt_level) {
-        case 0:
+        case COMPILER_OPT_DEFAULT:
+            return LLVMCodeGenLevelDefault;
+        case COMPILER_OPT_NONE:
             return LLVMCodeGenLevelNone;
-        case 1:
+        case COMPILER_OPT_SOME:
             return LLVMCodeGenLevelDefault;
-        case 2:
-            return LLVMCodeGenLevelDefault;
-        case 3:
+        case COMPILER_OPT_FAST:
+        case COMPILER_OPT_FASTER:
+        case COMPILER_OPT_SMALL:
+        case COMPILER_OPT_SMALLER:
             return LLVMCodeGenLevelAggressive;
-        default:
-            return context->cxt->settings.size_level == 2
-                ? LLVMCodeGenLevelAggressive
-                : LLVMCodeGenLevelDefault;
     }
+    UNREACHABLE();
 }
 
 static LLVMRelocMode getLlvmRelocMode(LlvmCodegenContext* context) {
@@ -189,6 +191,43 @@ static LLVMModuleRef generateLinkedModule(LlvmCodegenContext* context) {
     return linked_module;
 }
 
+static const char* getLlvmPassPipeline(LlvmCodegenContext* context) {
+    switch (context->cxt->settings.opt_level) {
+        case COMPILER_OPT_DEFAULT:
+            return "default<O2>";
+        case COMPILER_OPT_NONE:
+            return "default<O0>";
+        case COMPILER_OPT_SOME:
+            return "default<O1>";
+        case COMPILER_OPT_FAST:
+            return "default<O2>";
+        case COMPILER_OPT_FASTER:
+            return "default<O3>";
+        case COMPILER_OPT_SMALL:
+            return "default<Os>";
+        case COMPILER_OPT_SMALLER:
+            return "default<Oz>";
+    }
+    UNREACHABLE();
+}
+
+static void optimizeUsingNewPassManager(LlvmCodegenContext* context, LLVMModuleRef module) {
+    LLVMPassBuilderOptionsRef options = LLVMCreatePassBuilderOptions();
+    LLVMErrorRef error = LLVMRunPasses(module, getLlvmPassPipeline(context), context->target_machine, options);
+    if (error != NULL) {
+        context->error_msg = LLVMGetErrorMessage(error);
+        addMessageToContext(
+            &context->cxt->msgs,
+            createMessage(
+                ERROR_LLVM_BACKEND_ERROR,
+                createFormattedString("failed an optimize llvm module: %s", context->error_msg), 0
+            )
+        );
+        LLVMDisposeErrorMessage(context->error_msg);
+    }
+    LLVMDisposePassBuilderOptions(options);
+}
+
 static LLVMModuleRef generateOptimizedModule(LlvmCodegenContext* context) {
     LLVMModuleRef module = generateLinkedModule(context);
 #ifdef DEBUG
@@ -204,7 +243,9 @@ static LLVMModuleRef generateOptimizedModule(LlvmCodegenContext* context) {
     }
     LLVMDisposeMessage(context->error_msg);
 #endif
-    // TODO: implement optimization
+    if (context->cxt->settings.opt_level != COMPILER_OPT_NONE) {
+        optimizeUsingNewPassManager(context, module);
+    }
     return module;
 }
 

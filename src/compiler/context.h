@@ -25,6 +25,16 @@ typedef enum {
     COMPILER_EMIT_BIN,
 } CompilerEmit;
 
+typedef enum {
+    COMPILER_OPT_DEFAULT,
+    COMPILER_OPT_NONE,
+    COMPILER_OPT_SOME,
+    COMPILER_OPT_FAST,
+    COMPILER_OPT_FASTER,
+    COMPILER_OPT_SMALL,
+    COMPILER_OPT_SMALLER,
+} CompilerOptLevel;
+
 typedef struct {
     CompilerDebugFlags compiler_debug;
     bool help;
@@ -34,9 +44,8 @@ typedef struct {
     String target;
     String cpu;
     String features;
-    int opt_level;
-    int size_level;
-    bool debug;
+    CompilerOptLevel opt_level;
+    bool emit_debug;
 } CompilerSettings;
 
 typedef struct {

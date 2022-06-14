@@ -42,38 +42,30 @@ static PARAM_SPEC_FUNCTION(parameterSpecFunction, CompilerContext*, {
             }
         }
     }, false, "={none|ast|llvm-ir|llvm-bc|asm|obj|bin}", "select what the compiler should emit");
-    PARAM_FLAG('g', "debug", { context->settings.debug = true; }, "include debug information in the output");
+    PARAM_FLAG('g', "debug", { context->settings.emit_debug = true; }, "include debug information in the output");
     PARAM_VALUED('O', NULL, {
-        if (value == NULL) {
-            if (context->settings.opt_level != -1 || context->settings.size_level != -1) {
-                PARAM_WARN("multiple values for this option, ignoring all but the first");
-            } else {
-                context->settings.opt_level = 2;
-                context->settings.size_level = 1;
-            }
-        } else if (strlen(value) != 1) {
-            PARAM_WARN_UNKNOWN_VALUE()
-        } else if (value[0] >= '0') {
-            if (context->settings.opt_level != -1 || context->settings.size_level != -1) {
-                PARAM_WARN("multiple values for this option, ignoring all but the first");
-            } else {
-                context->settings.opt_level = 0;
-                context->settings.size_level = 0;
-            }
-        } else if (value[0] >= '1' && value[0] <= '3') {
-            if (context->settings.opt_level != -1) {
-                PARAM_WARN("multiple values for this option, ignoring all but the first");
-            } else {
-                context->settings.opt_level = value[0] - '0';
-            }
-        } else if (value[0] == 's' || value[0] == 'z') {
-            if (context->settings.size_level != -1) {
-                PARAM_WARN("multiple values for this option, ignoring all but the first");
-            } else {
-                context->settings.opt_level = value[0] == 's' ? 1 : 2;
-            }
+        if (context->settings.opt_level != COMPILER_OPT_DEFAULT) {
+            PARAM_WARN("multiple values for this option, ignoring all but the first");
         } else {
-            PARAM_WARN_UNKNOWN_VALUE()
+            if (value == NULL) {
+                context->settings.opt_level = COMPILER_OPT_FAST;
+            } else if (strlen(value) != 1) {
+               PARAM_WARN_UNKNOWN_VALUE()
+            } else if (value[0] == '0') {
+                context->settings.opt_level = COMPILER_OPT_NONE;
+            } else if (value[0] == '1') {
+                context->settings.opt_level = COMPILER_OPT_SOME;
+            } else if (value[0] == '2') {
+                context->settings.opt_level = COMPILER_OPT_FAST;
+            } else if (value[0] == '3') {
+                context->settings.opt_level = COMPILER_OPT_FASTER;
+            } else if (value[0] == 's') {
+                context->settings.opt_level = COMPILER_OPT_SMALL;
+            } else if (value[0] == 'z') {
+                context->settings.opt_level = COMPILER_OPT_SMALLER;
+            } else {
+               PARAM_WARN_UNKNOWN_VALUE()
+            }
         }
     }, true, "{0|1|2|3|s|z}", "configure the level of optimization to apply");
     PARAM_VALUED(0, "target", {

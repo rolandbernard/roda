@@ -360,7 +360,7 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
                             }
                         }
                     }
-                } // TODO: infer types of function?
+                }
                 break;
             }
         }
