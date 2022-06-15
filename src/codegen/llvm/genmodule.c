@@ -205,6 +205,7 @@ static LlvmCodegenValue buildFunctionBody(LlvmCodegenContext* context, LlvmCodeg
             LLVMValueRef ret_value = LLVMBuildPointerCast(data->builder, global, generateLlvmType(context, n->res_type), "cast");
             return createLlvmCodegenValue(ret_value, false);
         }
+        case AST_CHAR:
         case AST_INT: {
             AstInt* n = (AstInt*)node;
             LLVMValueRef value = LLVMConstInt(generateLlvmType(context, n->res_type), n->number, isSignedIntegerType(n->res_type) != NULL);
@@ -477,6 +478,7 @@ static void buildFunctionVariables(LlvmCodegenContext* context, LLVMBuilderRef b
             case AST_VAR:
             case AST_STR:
             case AST_INT:
+            case AST_CHAR:
             case AST_BOOL:
             case AST_REAL:
                 break;

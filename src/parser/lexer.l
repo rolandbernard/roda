@@ -18,13 +18,15 @@
     yylloc->end = advanceLocationWith(yylloc->end, yytext, yyleng);
 %}
 
+UB [\200-\277]
+UPOINT [\300-\337]{UB}|[\340-\357]{UB}{2}|[\360-\367]{UB}{3}|[\370-\373]{UB}{4}|[\374-\375]{UB}{5}
+POINT .|{UPOINT}
+
 ID      [_[:alpha:]][_[:alnum:]]*
 STR     \"([^"\\]|\\.)*\"
+CHAR    \'([^'\\]|{UPOINT}|\\(.|x.{2}|u.{4}|U.{8}))\'
 INT     0[hx][_0-9a-fA-F]+|0o[_0-7]+|0d[_0-9]+|0b[_01]+|[0-9][0-9_]*
 REAL    [0-9][_0-9]*(\.[0-9][_0-9]*)?([eE][-+]?[0-9][_0-9]*)?
-
-UB [\200-\277]
-POINT .|[\300-\337]{UB}|[\340-\357]{UB}{2}|[\360-\367]{UB}{3}|[\370-\373]{UB}{4}|[\374-\375]{UB}{5}
 
 %x BLOCK_COMMENT
 
@@ -102,10 +104,9 @@ POINT .|[\300-\337]{UB}|[\340-\357]{UB}{2}|[\360-\367]{UB}{3}|[\370-\373]{UB}{4}
 "}"             { return '}'; }
 
 {INT}           { yylval->lexeme = yytext; return INT; }
-
 {REAL}          { yylval->lexeme = yytext; return REAL; }
-
 {STR}           { yylval->lexeme = yytext; return STR; }
+{CHAR}          { yylval->lexeme = yytext; return CHAR; }
 
 {ID}            { yylval->lexeme = yytext; return ID; }
 

@@ -14,6 +14,7 @@ static bool controlFlowEndsWithReturn(CompilerContext* context, AstNode* node) {
                 return true;
             case AST_VAR:
             case AST_STR:
+            case AST_CHAR:
             case AST_INT:
             case AST_REAL:
             case AST_BOOL:

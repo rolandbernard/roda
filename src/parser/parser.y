@@ -50,7 +50,7 @@ extern void yyerror(YYLTYPE* yyllocp, yyscan_t scanner, ParserContext* context, 
 %destructor { freeAstNode((AstNode*)$$.list); } <arg_defs>
 %destructor { freeDynamicAstList($$); } <dynlist>
 
-%type <ast> root block stmt block_stmt type expr root_stmt 
+%type <ast> root block stmt block_stmt type expr root_stmt if
 %type <ast> arg_def opt_type assign integer real string bool
 %type <ident> ident
 %type <list> args
@@ -61,6 +61,7 @@ extern void yyerror(YYLTYPE* yyllocp, yyscan_t scanner, ParserContext* context, 
 %token <lexeme> STR     "string"
 %token <lexeme> INT     "integer"
 %token <lexeme> REAL    "real"
+%token <lexeme> CHAR    "character"
 %token TRUE             "true"
 %token FALSE            "false"
 
@@ -159,11 +160,15 @@ stmts   : %empty            { $$ = createDynamicAstList(); $$->location = @$; }
         ;
 
 block_stmt  : error                             { $$ = createAstSimple(@$, AST_ERROR); }
-            | "if" expr block                   { $$ = (AstNode*)createAstIfElse(@$, $2, $3, NULL); }
-            | "if" expr block "else" block      { $$ = (AstNode*)createAstIfElse(@$, $2, $3, $5); }
             | "while" expr block                { $$ = (AstNode*)createAstWhile(@$, $2, $3); }
             | block                             { $$ = $1; }
+            | if                                { $$ = $1; }
             ;
+
+if  : "if" expr block                  { $$ = (AstNode*)createAstIfElse(@$, $2, $3, NULL); }
+    | "if" expr block "else" block     { $$ = (AstNode*)createAstIfElse(@$, $2, $3, $5); }
+    | "if" expr block "else" if        { $$ = (AstNode*)createAstIfElse(@$, $2, $3, $5); }
+    ;
 
 stmt    : expr                           { $$ = $1; }
         | assign                         { $$ = $1; }
@@ -227,6 +232,7 @@ expr    : ident                         { $$ = (AstNode*)$1; }
         ;
 
 integer : INT   { $$ = parseIntLiteralIn(context, @1, $1); }
+        | CHAR  { $$ = parseCharLiteralIn(context, @1, $1); }
         ;
 
 real    : REAL  { $$ = parseRealLiteralIn(context, @1, $1); }

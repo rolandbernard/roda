@@ -112,9 +112,9 @@ AstCall* createAstCall(Span loc, AstNode* func, AstList* arguments) {
     return node;
 }
 
-AstInt* createAstInt(Span loc, AstIntType num) {
+AstInt* createAstInt(Span loc, AstNodeKind kind, AstIntType num) {
     AstInt* node = NEW(AstInt);
-    initAstNode((AstNode*)node, AST_INT, loc);
+    initAstNode((AstNode*)node, kind, loc);
     node->number = num;
     return node;
 }
@@ -323,6 +323,7 @@ void freeAstNode(AstNode* node) {
             case AST_VOID:
             case AST_BOOL:
             case AST_INT:
+            case AST_CHAR:
             case AST_REAL: break;
         }
         FREE(node);

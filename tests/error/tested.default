@@ -1,0 +1,7 @@
+build:
+run: ./build/$BUILD/bin/rodac % --messages=minimal
+
+buildtime: < 1s
+time: < 1s
+exit: != 0
+stderr: !=

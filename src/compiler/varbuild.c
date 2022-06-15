@@ -192,6 +192,7 @@ static void buildLocalSymbolTables(CompilerContext* context, AstNode* node, Symb
             case AST_VOID:
             case AST_STR:
             case AST_INT:
+            case AST_CHAR:
             case AST_BOOL:
             case AST_REAL: break;
         }
@@ -370,6 +371,7 @@ static void buildControlFlowReferences(CompilerContext* context, AstNode* node, 
             case AST_VOID:
             case AST_STR:
             case AST_INT:
+            case AST_CHAR:
             case AST_BOOL:
             case AST_REAL: break;
         }

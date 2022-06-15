@@ -1,0 +1,8 @@
+build: ./build/$BUILD/bin/rodac % -o=%.out
+run: %.out
+cleanup: rm %.out
+
+buildtime: < 1s
+time: < 1s
+exit: = 0
+stderr: = 

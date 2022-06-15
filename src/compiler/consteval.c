@@ -269,6 +269,7 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
             case AST_POS: UNARY_OP(UACTION_NUM(o))
             case AST_NEG: UNARY_OP(UACTION_NUM(-o))
             case AST_NOT: UNARY_OP(UACTIONS_T(UACTION_INTS(~o) else UACTION_BOOLS(!o)))
+            case AST_CHAR:
             case AST_INT: {
                 AstInt* n = (AstInt*)node;
                 if (n->res_type == NULL || n->res_type->kind != TYPE_ERROR) {

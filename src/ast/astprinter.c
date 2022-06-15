@@ -66,6 +66,7 @@ static const char* ast_type_names[] = {
     [AST_FN] = "function",
     [AST_CALL] = "call",
     [AST_INT] = "integer",
+    [AST_CHAR] = "character",
     [AST_REAL] = "real",
     [AST_STR] = "string",
     [AST_BOOL] = "boolean",
@@ -348,21 +349,22 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
             }
             case AST_STR: {
                 AstStr* n = (AstStr*)node;
-                fprintf(file, " (string = %s)", cstr(n->string));
+                fprintf(file, " (value = %s)", cstr(n->string));
                 printAstNodeExtraInfo(file, node, colors);
                 fprintf(file, "\n");
                 break;
             }
+            case AST_CHAR:
             case AST_INT: {
                 AstInt* n = (AstInt*)node;
-                fprintf(file, " (int = %ji)", n->number);
+                fprintf(file, " (value = %ji)", n->number);
                 printAstNodeExtraInfo(file, node, colors);
                 fprintf(file, "\n");
                 break;
             }
             case AST_REAL: {
                 AstReal* n = (AstReal*)node;
-                fprintf(file, " (real = %.15lg)", n->number);
+                fprintf(file, " (value = %.15lg)", n->number);
                 printAstNodeExtraInfo(file, node, colors);
                 fprintf(file, "\n");
                 break;

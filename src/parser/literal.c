@@ -1,4 +1,6 @@
 
+#include <string.h>
+
 #include "text/utf8.h"
 
 #include "parser/literal.h"
@@ -35,7 +37,7 @@ static bool isDigitChar(char c, int base) {
            && digitCharToInt(c) < base;
 }
 
-static CodePoint parseEscapeCode(char* data, size_t* length) {
+static CodePoint parseEscapeCode(const char* data, size_t* length) {
     CodePoint ret;
     switch (data[0]) {
         case 0:
@@ -154,6 +156,40 @@ LiteralParseError parseStringLiteral(const char* str, String* res) {
         } else {
             freeString(result);
             return error;
+        }
+    }
+}
+
+LiteralParseError parseCharLiteral(const char* str, CodePoint* res) {
+    size_t len = strlen(str);
+    if (str[0] != '\'' || str[len - 1] != '\'') {
+        return createLiteralParseError(0, len);
+    } else {
+        CodePoint codepoint;
+        size_t len_read;
+        size_t col_len;
+        if (str[1] == '\\') {
+            size_t length;
+            codepoint = parseEscapeCode(str + 2, &length);
+            len_read = 3 + length;
+            col_len = length;
+        } else {
+            len_read = 2 + decodeUTF8(&codepoint, str + 1, len - 2);
+            col_len = getCodePointWidth(codepoint);
+        }
+        if (len != len_read) {
+            return createLiteralParseError(0, len);
+        } else {
+            if (codepoint == INVALID_CODEPOINT) {
+                if (col_len + 1 < len) {
+                    return createLiteralParseError(1, col_len + 1);
+                } else {
+                    return createLiteralParseError(1, len - 1);
+                }
+            } else {
+                *res = codepoint;
+            }
+            return createLiteralParseNoError();
         }
     }
 }
@@ -280,11 +316,32 @@ AstNode* parseStringLiteralIn(ParserContext* ctx, Span loc, const char* str) {
     }
 }
 
+AstNode* parseCharLiteralIn(ParserContext* ctx, Span loc, const char* str) {
+    CodePoint result;
+    LiteralParseError error = parseCharLiteral(str, &result);
+    if (isLiteralParseNoError(error)) {
+        return (AstNode*)createAstInt(loc, AST_CHAR, result);
+    } else if (error.length == getSpanLength(loc)) {
+        addMessageToContext(&ctx->context->msgs, createMessage(ERROR_INVALID_INT, copyFromCString("character literal is invalid"), 1,
+            createMessageFragment(MESSAGE_ERROR, copyFromCString("invalid character literal"), loc)
+        ));
+        return createAstSimple(loc, AST_ERROR);
+    } else {
+        Span err_loc = loc;
+        err_loc.begin = advanceLocationWith(err_loc.begin, str, error.offset);
+        err_loc.end = advanceLocationWith(err_loc.begin, str + error.offset, error.length);
+        addMessageToContext(&ctx->context->msgs, createMessage(ERROR_INVALID_STR, copyFromCString("character literal contains invalid character"), 1,
+            createMessageFragment(MESSAGE_ERROR, copyFromCString("invalid character"), err_loc)
+        ));
+        return createAstSimple(loc, AST_ERROR);
+    }
+}
+
 AstNode* parseIntLiteralIn(ParserContext* ctx, Span loc, const char* str) {
     AstIntType result;
     LiteralParseError error = parseIntLiteral(str, &result);
     if (isLiteralParseNoError(error)) {
-        return (AstNode*)createAstInt(loc, result);
+        return (AstNode*)createAstInt(loc, AST_INT, result);
     } else {
         addMessageToContext(&ctx->context->msgs, createMessage(ERROR_INVALID_INT, copyFromCString("integer literal is invalid"), 1,
             createMessageFragment(MESSAGE_ERROR, copyFromCString("invalid integer literal"), loc)

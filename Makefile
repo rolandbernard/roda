@@ -74,3 +74,10 @@ $(YACC_C): $(YACC_SRC)
 	$(YACC) $(YFLAGS) --output=$(YACC_C) --defines=$(YACC_H) $<
 # ==
 
+# == Tetsing
+test: build
+	@$(ECHO) "Starting tests"
+	tested -j12 $(BASE_DIR)/tests
+	@$(ECHO) "Finished tests"
+# ==
+

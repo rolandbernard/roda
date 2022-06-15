@@ -69,6 +69,7 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
             case AST_ARGDEF:
             case AST_STR:
             case AST_INT:
+            case AST_CHAR:
             case AST_REAL:
             case AST_BOOL:
             case AST_LIST:
@@ -470,6 +471,7 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
             case AST_VAR:
             case AST_STR:
             case AST_INT:
+            case AST_CHAR:
             case AST_BOOL:
             case AST_REAL:
                 break;
@@ -697,6 +699,7 @@ static void propagateAllTypes(CompilerContext* context, AstNode* node) {
             case AST_VAR:
             case AST_STR:
             case AST_INT:
+            case AST_CHAR:
             case AST_BOOL:
             case AST_REAL:
                 break;
@@ -833,6 +836,7 @@ static void assumeAmbiguousTypes(CompilerContext* context, AstNode* node) {
                     }
                 }
                 break;
+            case AST_CHAR:
             case AST_INT:
                 if (node->res_type == NULL) {
                     Type* type = createSizedPrimitiveType(&context->types, TYPE_INT, 64);
@@ -973,6 +977,7 @@ static void checkForUntypedVariables(CompilerContext* context, AstNode* node) {
             case AST_VAR:
             case AST_STR:
             case AST_INT:
+            case AST_CHAR:
             case AST_BOOL:
             case AST_REAL:
                 break;
@@ -1135,6 +1140,7 @@ static void checkForUntypedNodes(CompilerContext* context, AstNode* node) {
                 case AST_VAR:
                 case AST_STR:
                 case AST_INT:
+                case AST_CHAR:
                 case AST_BOOL:
                 case AST_REAL:
                     break;
@@ -1427,11 +1433,12 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                 }
                 break;
             }
+            case AST_CHAR:
             case AST_INT: {
                 if (node->res_type != NULL && !isErrorType(node->res_type)) {
                     TypeSizedPrimitive* int_type = isIntegerType(node->res_type);
                     if (int_type == NULL) {
-                        raiseLiteralTypeError(context, node, "integer literal");
+                        raiseLiteralTypeError(context, node, node->kind == AST_INT ? "integer literal" : "character literal");
                     }
                 }
                 break;

@@ -21,6 +21,8 @@ LiteralParseError parseRealLiteral(const char* str, AstRealType* res);
 
 AstNode* parseStringLiteralIn(ParserContext* ctx, Span loc, const char* str);
 
+AstNode* parseCharLiteralIn(ParserContext* ctx, Span loc, const char* str);
+
 AstNode* parseIntLiteralIn(ParserContext* ctx, Span loc, const char* str);
 
 AstNode* parseRealLiteralIn(ParserContext* ctx, Span loc, const char* str);

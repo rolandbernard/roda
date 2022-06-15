@@ -70,6 +70,7 @@ typedef enum {
     AST_RETURN,
 
     AST_INT,
+    AST_CHAR,
     AST_REAL,
     AST_STR,
     AST_BOOL,
@@ -230,7 +231,7 @@ AstFn* createAstFn(Span loc, AstVar* name, AstList* arguments, AstNode* ret_type
 
 AstCall* createAstCall(Span loc, AstNode* func, AstList* arguments);
 
-AstInt* createAstInt(Span loc, AstIntType num);
+AstInt* createAstInt(Span loc, AstNodeKind kind, AstIntType num);
 
 AstReal* createAstReal(Span loc, AstRealType num);
 
