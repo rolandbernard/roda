@@ -332,6 +332,8 @@ static LLVMModuleRef generateOptimizedModule(LlvmCodegenContext* context) {
     if (context->cxt->settings.opt_level != COMPILER_OPT_NONE) {
 #if LLVM_VERSION_MAJOR >= 14
         optimizeUsingNewPassManager(context, module);
+#else
+        optimizeUsingLegacyPassManager(context, module);
 #endif
     }
     return module;
