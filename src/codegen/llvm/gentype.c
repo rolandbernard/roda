@@ -15,7 +15,7 @@ static LLVMTypeRef generateLlvmTypeHelper(LlvmCodegenContext* context, Type* typ
     if (type->codegen != NULL) {
         return type->codegen;
     } else {
-        LLVMTypeRef result;
+        LLVMTypeRef result = NULL;
         switch (type->kind) {
             case TYPE_ERROR:
                 UNREACHABLE();

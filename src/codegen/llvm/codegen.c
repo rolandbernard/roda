@@ -5,8 +5,13 @@
 #include <llvm-c/Linker.h>
 #include <llvm-c/Target.h>
 #include <llvm-c/TargetMachine.h>
-#include <llvm-c/Transforms/PassBuilder.h>
 #include <string.h>
+
+#if LLVM_VERSION_MAJOR >= 14
+#include <llvm-c/Transforms/PassBuilder.h>
+#else
+#include <llvm-c/Transforms/PassManagerBuilder.h>
+#endif
 
 #include "codegen/llvm/genmodule.h"
 #include "errors/fatalerror.h"
@@ -204,6 +209,7 @@ static LLVMModuleRef generateLinkedModule(LlvmCodegenContext* context) {
     return linked_module;
 }
 
+#if LLVM_VERSION_MAJOR >= 14
 static const char* getLlvmPassPipeline(LlvmCodegenContext* context) {
     switch (context->cxt->settings.opt_level) {
         case COMPILER_OPT_DEFAULT:
@@ -240,6 +246,73 @@ static void optimizeUsingNewPassManager(LlvmCodegenContext* context, LLVMModuleR
     }
     LLVMDisposePassBuilderOptions(options);
 }
+#else
+static int getLlvmPassInlineThreshold(LlvmCodegenContext* context) {
+    switch (context->cxt->settings.opt_level) {
+        case COMPILER_OPT_DEFAULT:
+            return 200;
+        case COMPILER_OPT_NONE:
+            return 0;
+        case COMPILER_OPT_SOME:
+            return 100;
+        case COMPILER_OPT_FAST:
+            return 200;
+        case COMPILER_OPT_FASTER:
+            return 1000;
+        case COMPILER_OPT_SMALL:
+            return 200;
+        case COMPILER_OPT_SMALLER:
+            return 100;
+    }
+    UNREACHABLE();
+}
+
+static int getLlvmOptLevel(LlvmCodegenContext* context) {
+    switch (context->cxt->settings.opt_level) {
+        case COMPILER_OPT_DEFAULT:
+            return 2;
+        case COMPILER_OPT_NONE:
+            return 0;
+        case COMPILER_OPT_SOME:
+            return 1;
+        case COMPILER_OPT_FAST:
+            return 2;
+        case COMPILER_OPT_FASTER:
+            return 3;
+        case COMPILER_OPT_SMALL:
+        case COMPILER_OPT_SMALLER:
+            return 2;
+    }
+    UNREACHABLE();
+}
+
+static int getLlvmSizeLevel(LlvmCodegenContext* context) {
+    switch (context->cxt->settings.opt_level) {
+        case COMPILER_OPT_DEFAULT:
+        case COMPILER_OPT_NONE:
+        case COMPILER_OPT_SOME:
+        case COMPILER_OPT_FAST:
+        case COMPILER_OPT_FASTER:
+            return 0;
+        case COMPILER_OPT_SMALL:
+            return 1;
+        case COMPILER_OPT_SMALLER:
+            return 2;
+    }
+    UNREACHABLE();
+}
+
+static void optimizeUsingLegacyPassManager(LlvmCodegenContext* context, LLVMModuleRef module) {
+    LLVMPassManagerRef module_pass_manager = LLVMCreatePassManager();
+    LLVMPassManagerBuilderRef pass_manager_builder = LLVMPassManagerBuilderCreate();
+    LLVMPassManagerBuilderSetOptLevel(pass_manager_builder, getLlvmOptLevel(context));
+    LLVMPassManagerBuilderSetSizeLevel(pass_manager_builder, getLlvmSizeLevel(context));
+    LLVMPassManagerBuilderUseInlinerWithThreshold(pass_manager_builder, getLlvmPassInlineThreshold(context));
+    LLVMAddAnalysisPasses(context->target_machine, module_pass_manager);
+    LLVMPassManagerBuilderPopulateModulePassManager(pass_manager_builder, module_pass_manager);
+    LLVMRunPassManager(module_pass_manager, module);
+}
+#endif
 
 static LLVMModuleRef generateOptimizedModule(LlvmCodegenContext* context) {
     LLVMModuleRef module = generateLinkedModule(context);
@@ -257,7 +330,9 @@ static LLVMModuleRef generateOptimizedModule(LlvmCodegenContext* context) {
     LLVMDisposeMessage(context->error_msg);
 #endif
     if (context->cxt->settings.opt_level != COMPILER_OPT_NONE) {
+#if LLVM_VERSION_MAJOR >= 14
         optimizeUsingNewPassManager(context, module);
+#endif
     }
     return module;
 }
