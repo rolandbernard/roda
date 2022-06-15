@@ -7,7 +7,7 @@
 #include <llvm-c/TargetMachine.h>
 #include <string.h>
 
-#if LLVM_VERSION_MAJOR >= 14
+#if LLVM_VERSION_MAJOR >= 13
 #include <llvm-c/Transforms/PassBuilder.h>
 #else
 #include <llvm-c/Transforms/PassManagerBuilder.h>
@@ -209,7 +209,7 @@ static LLVMModuleRef generateLinkedModule(LlvmCodegenContext* context) {
     return linked_module;
 }
 
-#if LLVM_VERSION_MAJOR >= 14
+#if LLVM_VERSION_MAJOR >= 13
 static const char* getLlvmPassPipeline(LlvmCodegenContext* context) {
     switch (context->cxt->settings.opt_level) {
         case COMPILER_OPT_DEFAULT:
@@ -332,7 +332,7 @@ static LLVMModuleRef generateOptimizedModule(LlvmCodegenContext* context) {
     LLVMDisposeMessage(context->error_msg);
 #endif
     if (context->cxt->settings.opt_level != COMPILER_OPT_NONE) {
-#if LLVM_VERSION_MAJOR >= 14
+#if LLVM_VERSION_MAJOR >= 13
         optimizeUsingNewPassManager(context, module);
 #else
         optimizeUsingLegacyPassManager(context, module);
