@@ -1,5 +1,5 @@
 // test: Functions must return in all branches
-// stderr: = error[E0016]: 4:1-1: function body reaches end of control flow without expected return\n
+// stderr: = error[E0016]: 4:1: function body reaches end of control flow without expected return\n
 
 pub fn foo(a: int): int {
     if a == 0 {

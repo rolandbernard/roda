@@ -539,7 +539,7 @@ void printMessage(const Message* message, FILE* output, const MessageFilter* fil
                 }
                 if (style == MESSAGE_STYLE_MINIMAL) {
                     fprintf(output, "%zi:%zi", location.begin.line + 1, location.begin.column + 1);
-                    if (location.begin.offset + 1 < location.end.offset) {
+                    if (location.begin.line == location.end.line && location.begin.offset + 1 < location.end.offset) {
                         fprintf(output, "-%zi", location.end.column);
                     }
                 } else {

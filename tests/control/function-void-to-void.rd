@@ -7,6 +7,8 @@ fn foo() { }
 pub fn fizz() { }
 
 pub fn main(): int {
+    foo();
+    fizz();
     return 0;
 }
 
