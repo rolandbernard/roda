@@ -396,14 +396,20 @@ static LlvmCodegenValue buildFunctionBody(LlvmCodegenContext* context, LlvmCodeg
                 args[i] = getCodegenValue(context, data, n->arguments->nodes[i]);
             }
             LLVMValueRef value = NULL;
+            LLVMTypeRef* param_types = ALLOC(LLVMTypeRef, n->arguments->count);
+            for (size_t i = 0; i < n->arguments->count; i++) {
+                param_types[i] = generateLlvmType(context, n->arguments->nodes[i]->res_type);
+            }
+            LLVMTypeRef type = LLVMFunctionType(generateLlvmType(context, n->res_type), param_types, n->arguments->count, false);
+            FREE(param_types);
             if (isVoidType(n->res_type) == NULL) {
                 value = LLVMBuildCall2(
-                    data->builder, generateLlvmType(context, n->function->res_type), func, args,
+                    data->builder, type, func, args,
                     n->arguments->count, "call"
                 );
             } else {
                 LLVMBuildCall2(
-                    data->builder, generateLlvmType(context, n->function->res_type), func, args,
+                    data->builder, type, func, args,
                     n->arguments->count, ""
                 );
             }

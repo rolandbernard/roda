@@ -183,8 +183,8 @@ void runCodeGeneration(CompilerContext* context) {
 #else
                         raiseNoBackendError(context, "object file");
 #endif
+                        addStringToList(&context->settings.objects, tmp);
                         if (context->msgs.error_count == 0) {
-                            addStringToList(&context->settings.objects, tmp);
                             String command = getLinkerCommand(context);
                             int ret = system(cstr(command));
                             if (ret < 0) {
