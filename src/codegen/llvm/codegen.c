@@ -108,8 +108,11 @@ static LLVMCodeGenOptLevel getLlvmCodeGenOptLevel(LlvmCodegenContext* context) {
 }
 
 static LLVMRelocMode getLlvmRelocMode(LlvmCodegenContext* context) {
-    // TODO: make this a command line option?
-    return LLVMRelocPIC;
+    if (context->cxt->settings.pie == COMPILER_PIE_NO) {
+        return LLVMRelocStatic;
+    } else {
+        return LLVMRelocPIC;
+    }
 }
 
 static void initLlvmCodegenContext(LlvmCodegenContext* context, CompilerContext* cxt) {

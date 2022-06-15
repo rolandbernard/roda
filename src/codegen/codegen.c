@@ -26,6 +26,46 @@ void raiseNoBackendError(CompilerContext* context, const char* kind) {
     );
 }
 
+static String getLinkerCommand(CompilerContext* context) {
+    String command = copyFromCString("cc");
+    if (context->settings.link_type == COMPILER_LINK_STATIC) {
+        pushFormattedString(&command, " -static");
+    } else if (context->settings.link_type == COMPILER_LINK_SHARED) {
+        pushFormattedString(&command, " -shared");
+    }
+    if (context->settings.pie == COMPILER_PIE_YES) {
+        pushFormattedString(&command, " -pie");
+    } else if (context->settings.pie == COMPILER_PIE_NO) {
+        pushFormattedString(&command, " -no-pie");
+    }
+    if (context->settings.linker.data != NULL) {
+        pushFormattedString(&command, " -fuse-ld=%S", context->settings.linker);
+    }
+    if (context->settings.entry.data != NULL) {
+        pushFormattedString(&command, " -e %S", context->settings.entry);
+    }
+    if (context->settings.export_dynamic) {
+        pushFormattedString(&command, " -rdynamic");
+    }
+    if (!context->settings.defaultlibs) {
+        pushFormattedString(&command, " -nodefaultlibs");
+    }
+    if (!context->settings.startfiles) {
+        pushFormattedString(&command, " -nostartfiles");
+    }
+    for (size_t i = 0; i < context->settings.lib_dirs.count; i++) {
+        pushFormattedString(&command, " -L%S", context->settings.lib_dirs.strings[i]);
+    }
+    pushFormattedString(&command, " -o %S", context->settings.output_file);
+    for (size_t i = 0; i < context->settings.objects.count; i++) {
+        pushFormattedString(&command, " %S", context->settings.objects.strings[i]);
+    }
+    for (size_t i = 0; i < context->settings.libs.count; i++) {
+        pushFormattedString(&command, " -l%S", context->settings.libs.strings[i]);
+    }
+    return command;
+}
+
 void runCodeGeneration(CompilerContext* context) {
     if (context->settings.emit == COMPILER_EMIT_AUTO) {
         if (context->settings.output_file.data == NULL) {
@@ -144,15 +184,21 @@ void runCodeGeneration(CompilerContext* context) {
                         raiseNoBackendError(context, "object file");
 #endif
                         if (context->msgs.error_count == 0) {
-                            // TODO: do things correctly!
-                            String command = createFormattedString(
-                                "cc -o %S %S", context->settings.output_file, tmp
-                            );
-                            system(cstr(command));
+                            addStringToList(&context->settings.objects, tmp);
+                            String command = getLinkerCommand(context);
+                            int ret = system(cstr(command));
+                            if (ret < 0) {
+                                addMessageToContext(&context->msgs, createMessage(ERROR_LINKER,
+                                    copyFromCString("failed to link program, spawning linker failed"), 0
+                                ));
+                            } else if (ret != 0) {
+                                addMessageToContext(&context->msgs, createMessage(ERROR_LINKER, createFormattedString(
+                                    "failed to link program, linker exited with non-zero exit code %i", ret
+                                ), 0));
+                            }
                             freeString(command);
                         }
                         removePath(toConstPath(tmp));
-                        freePath(tmp);
                         break;
                     }
                 }

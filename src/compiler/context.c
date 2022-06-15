@@ -90,8 +90,13 @@ static void initCompilerSettings(CompilerSettings* settings) {
     initStringList(&settings->libs);
     initStringList(&settings->lib_dirs);
     settings->link_type = COMPILER_LINK_DEFAULT;
-    settings->pic = COMPILER_PIC_DEFAULT;
+    settings->pie = COMPILER_PIE_DEFAULT;
     settings->linker.data = NULL;
+    settings->entry.data = NULL;
+    settings->export_dynamic = false;
+    settings->defaultlibs = true;
+    settings->startfiles = true;
+    initStringList(&settings->objects);
 }
 
 static void deinitCompilerSettings(CompilerSettings* settings) {
@@ -102,6 +107,8 @@ static void deinitCompilerSettings(CompilerSettings* settings) {
     deinitStringList(&settings->libs);
     deinitStringList(&settings->lib_dirs);
     freeString(settings->linker);
+    freeString(settings->entry);
+    deinitStringList(&settings->objects);
 }
 
 void initCompilerContext(CompilerContext* context) {

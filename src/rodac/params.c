@@ -62,20 +62,20 @@ static PARAM_SPEC_FUNCTION(parameterSpecFunction, CompilerContext*, {
             context->settings.link_type = COMPILER_LINK_SHARED; 
         }
     }, "tell the linker to link libraries dynamically");
-    PARAM_FLAG(0, "pic", {
-        if (context->settings.pic == COMPILER_PIC_NO) {
-            PARAM_WARN_CONFLICT("--no-pic")
+    PARAM_FLAG(0, "pie", {
+        if (context->settings.pie == COMPILER_PIE_NO) {
+            PARAM_WARN_CONFLICT("--no-pie")
         } else {
-            context->settings.pic = COMPILER_PIC_YES; 
+            context->settings.pie = COMPILER_PIE_YES; 
         }
-    }, "generate position independent code");
-    PARAM_FLAG(0, "no-pic", {
-        if (context->settings.pic == COMPILER_PIC_YES) {
-            PARAM_WARN_CONFLICT("--pic")
+    }, "generate a position independent executable");
+    PARAM_FLAG(0, "no-pie", {
+        if (context->settings.pie == COMPILER_PIE_YES) {
+            PARAM_WARN_CONFLICT("--pie")
         } else {
-            context->settings.pic = COMPILER_PIC_NO; 
+            context->settings.pie = COMPILER_PIE_NO; 
         }
-    }, "don't generate independent code");
+    }, "don't generate a position independent code executable");
     PARAM_VALUED(0, "linker", {
         if (context->settings.linker.data != NULL) {
             PARAM_WARN_MULTIPLE();
@@ -83,6 +83,16 @@ static PARAM_SPEC_FUNCTION(parameterSpecFunction, CompilerContext*, {
             context->settings.linker = copyFromCString(value); 
         }
     }, false, "=<linker>", "specify the linker to use");
+    PARAM_VALUED(0, "entry", {
+        if (context->settings.entry.data != NULL) {
+            PARAM_WARN_MULTIPLE();
+        } else {
+            context->settings.entry = copyFromCString(value); 
+        }
+    }, false, "=<symbol>", "specify the program entry to be passed to the linker");
+    PARAM_FLAG(0, "no-default-libs", { context->settings.defaultlibs = false; }, "don't link with default libraries");
+    PARAM_FLAG(0, "no-start-files", { context->settings.startfiles = false; }, "don't link with default startup files");
+    PARAM_FLAG(0, "export-dynamic", { context->settings.export_dynamic = true; }, "tell the linker to keep all symbols");
     PARAM_FLAG('g', "debug", { context->settings.emit_debug = true; }, "include debug information in the output");
     PARAM_VALUED('O', NULL, {
         if (context->settings.opt_level != COMPILER_OPT_DEFAULT) {
@@ -154,8 +164,12 @@ static PARAM_SPEC_FUNCTION(parameterSpecFunction, CompilerContext*, {
 #endif
     PARAM_DEFAULT({
         Path path = createPathFromCString(value);
-        createFileInSet(&context->files, toConstPath(path));
-        freePath(path);
+        if (compareStrings(str("o"), getExtention(toConstPath(path))) == 0) {
+            addStringToList(&context->settings.objects, path);
+        } else {
+            createFileInSet(&context->files, toConstPath(path));
+            freePath(path);
+        }
     });
     PARAM_WARNING({
         addMessageToContext(&context->msgs, createMessage(

@@ -20,6 +20,7 @@ static const char* message_kind_strings[] = {
     [ERROR_NO_OUTPUT_FILE] = "no-output-file",
     [ERROR_NO_COMPILER_BACKEND] = "no-compiler-backed",
     [ERROR_LLVM_BACKEND_ERROR] = "llvm-backend-error",
+    [ERROR_LINKER] = "linker",
     [WARNING_UNKNOWN] = "unknown",
     [WARNING_CMD_ARGS] = "cmd-line-args",
     [WARNING_LLVM_BACKEND_WARNING] = "llvm-backend-warning",

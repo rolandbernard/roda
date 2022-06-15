@@ -48,9 +48,9 @@ typedef enum {
 } CompilerLinkType;
 
 typedef enum {
-    COMPILER_PIC_DEFAULT,
-    COMPILER_PIC_YES,
-    COMPILER_PIC_NO,
+    COMPILER_PIE_DEFAULT,
+    COMPILER_PIE_YES,
+    COMPILER_PIE_NO,
 } CompilerLinkPic;
 
 typedef struct {
@@ -67,8 +67,13 @@ typedef struct {
     StringList libs;
     StringList lib_dirs;
     CompilerLinkType link_type;
-    CompilerLinkPic pic;
+    CompilerLinkPic pie;
     String linker;
+    String entry;
+    bool export_dynamic;
+    bool defaultlibs;
+    bool startfiles;
+    StringList objects;
 } CompilerSettings;
 
 typedef struct {
