@@ -202,7 +202,8 @@ static LlvmCodegenValue buildFunctionBody(LlvmCodegenContext* context, LlvmCodeg
             LLVMSetGlobalConstant(global, true);
             LLVMSetLinkage(global, LLVMPrivateLinkage);
             LLVMSetUnnamedAddress(global, LLVMGlobalUnnamedAddr);
-            return createLlvmCodegenValue(global, false);
+            LLVMValueRef ret_value = LLVMBuildPointerCast(data->builder, global, generateLlvmType(context, n->res_type), "cast");
+            return createLlvmCodegenValue(ret_value, false);
         }
         case AST_INT: {
             AstInt* n = (AstInt*)node;
@@ -396,12 +397,7 @@ static LlvmCodegenValue buildFunctionBody(LlvmCodegenContext* context, LlvmCodeg
                 args[i] = getCodegenValue(context, data, n->arguments->nodes[i]);
             }
             LLVMValueRef value = NULL;
-            LLVMTypeRef* param_types = ALLOC(LLVMTypeRef, n->arguments->count);
-            for (size_t i = 0; i < n->arguments->count; i++) {
-                param_types[i] = generateLlvmType(context, n->arguments->nodes[i]->res_type);
-            }
-            LLVMTypeRef type = LLVMFunctionType(generateLlvmType(context, n->res_type), param_types, n->arguments->count, false);
-            FREE(param_types);
+            LLVMTypeRef type = generateLlvmType(context, n->function->res_type);
             if (isVoidType(n->res_type) == NULL) {
                 value = LLVMBuildCall2(
                     data->builder, type, func, args,

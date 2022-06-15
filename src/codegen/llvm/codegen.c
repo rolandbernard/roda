@@ -311,6 +311,8 @@ static void optimizeUsingLegacyPassManager(LlvmCodegenContext* context, LLVMModu
     LLVMAddAnalysisPasses(context->target_machine, module_pass_manager);
     LLVMPassManagerBuilderPopulateModulePassManager(pass_manager_builder, module_pass_manager);
     LLVMRunPassManager(module_pass_manager, module);
+    LLVMDisposePassManager(module_pass_manager);
+    LLVMPassManagerBuilderDispose(pass_manager_builder);
 }
 #endif
 

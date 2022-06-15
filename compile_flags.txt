@@ -1,5 +1,0 @@
--Isrc/
--Wall
--Wextra
--DDEBUG
--DLLVM

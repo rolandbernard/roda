@@ -7,7 +7,8 @@ ALL_SWITCHES := llvm
 # ==
 
 # == Feature detection
-LLVM_VERSION ?= $(shell llvm-config --version || true)
+LLVM_CONFIG  ?= llvm-config
+LLVM_VERSION ?= $(shell $(LLVM_CONFIG) --version || true)
 ifneq ($(LLVM_VERSION),)
 LLVM ?= yes
 endif
@@ -44,9 +45,9 @@ CFLAGS += -DLLVM_VERSION="\"$(LLVM_VERSION)\""
 endif
 YFLAGS += -Wall
 
-CFLAGS.llvm  += $(shell llvm-config --cflags || true)
-LDFLAGS.llvm += $(shell llvm-config --ldflags || true)
-LDLIBS.llvm  += $(shell llvm-config --libs --system-libs || true)
+CFLAGS.llvm  += $(shell $(LLVM_CONFIG) --cflags || true)
+LDFLAGS.llvm += $(shell $(LLVM_CONFIG) --ldflags || true)
+LDLIBS.llvm  += $(shell $(LLVM_CONFIG) --libs --system-libs || true)
 # ==
 
 # == Parser generator files
