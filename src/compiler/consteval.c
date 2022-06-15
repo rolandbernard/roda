@@ -231,7 +231,6 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
             case AST_ASSIGN:
             case AST_RETURN:
             case AST_ARRAY:
-            case AST_VOID:
             case AST_ROOT:
             case AST_LIST:
             case AST_BLOCK:
@@ -240,6 +239,7 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
             }
             case AST_VAR: // TODO: constant variables? (We need a scope!)
             case AST_INDEX: // TODO: constant arrays?
+            case AST_VOID:
             case AST_CALL: // TODO: constant calls?
             case AST_STR: // TODO: constant strings?
             case AST_ADDR:

@@ -83,13 +83,6 @@ static PARAM_SPEC_FUNCTION(parameterSpecFunction, CompilerContext*, {
             context->settings.linker = copyFromCString(value); 
         }
     }, false, "=<linker>", "specify the linker to use");
-    PARAM_VALUED(0, "entry", {
-        if (context->settings.entry.data != NULL) {
-            PARAM_WARN_MULTIPLE();
-        } else {
-            context->settings.entry = copyFromCString(value); 
-        }
-    }, false, "=<symbol>", "specify the program entry to be passed to the linker");
     PARAM_FLAG(0, "no-default-libs", { context->settings.defaultlibs = false; }, "don't link with default libraries");
     PARAM_FLAG(0, "no-start-files", { context->settings.startfiles = false; }, "don't link with default startup files");
     PARAM_FLAG(0, "export-dynamic", { context->settings.export_dynamic = true; }, "tell the linker to keep all symbols");

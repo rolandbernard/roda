@@ -108,6 +108,8 @@ bool isValidType(Type* type);
 
 bool isSizedType(Type* type);
 
+bool isEffectivelyVoidType(Type* type);
+
 bool isErrorType(Type* type);
 
 bool compareStructuralTypes(Type* a, Type* b);

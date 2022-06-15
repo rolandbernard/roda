@@ -62,11 +62,11 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
             case AST_ARRAY:
-            case AST_VOID:
                 UNREACHABLE("should not evaluate");
             case AST_ERROR:
             case AST_TYPEDEF:
             case AST_ARGDEF:
+            case AST_VOID:
             case AST_STR:
             case AST_INT:
             case AST_CHAR:
@@ -460,7 +460,6 @@ static void propagateToVariableReferences(CompilerContext* context, AstVar* node
 static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
-            case AST_VOID:
             case AST_ARRAY: {
                 UNREACHABLE("should not evaluate");
             }
@@ -469,6 +468,7 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                 break;
             }
             case AST_VAR:
+            case AST_VOID:
             case AST_STR:
             case AST_INT:
             case AST_CHAR:
@@ -692,11 +692,11 @@ static void propagateAllTypes(CompilerContext* context, AstNode* node) {
         propagateTypes(context, node);
         switch (node->kind) {
             case AST_ARRAY:
-            case AST_VOID:
                 UNREACHABLE("should not evaluate");
             case AST_ERROR:
             case AST_TYPEDEF:
             case AST_VAR:
+            case AST_VOID:
             case AST_STR:
             case AST_INT:
             case AST_CHAR:
@@ -819,7 +819,6 @@ static void assumeAmbiguousTypes(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
             case AST_ARRAY:
-            case AST_VOID:
                 UNREACHABLE("should not evaluate");
             case AST_ERROR:
             case AST_VAR:
@@ -836,7 +835,22 @@ static void assumeAmbiguousTypes(CompilerContext* context, AstNode* node) {
                     }
                 }
                 break;
+            case AST_VOID:
+                if (node->res_type == NULL) {
+                    Type* type = createUnsizedPrimitiveType(&context->types, TYPE_VOID);
+                    if (propagateTypeIntoAstNode(context, node, type, node)) {
+                        propagateTypes(context, node->parent);
+                    }
+                }
+                break;
             case AST_CHAR:
+                if (node->res_type == NULL) {
+                    Type* type = createSizedPrimitiveType(&context->types, TYPE_UINT, 8);
+                    if (propagateTypeIntoAstNode(context, node, type, node)) {
+                        propagateTypes(context, node->parent);
+                    }
+                }
+                break;
             case AST_INT:
                 if (node->res_type == NULL) {
                     Type* type = createSizedPrimitiveType(&context->types, TYPE_INT, 64);
@@ -970,11 +984,11 @@ static void checkForUntypedVariables(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
             case AST_ARRAY:
-            case AST_VOID:
                 UNREACHABLE("should not evaluate");
             case AST_ERROR:
             case AST_TYPEDEF:
             case AST_VAR:
+            case AST_VOID:
             case AST_STR:
             case AST_INT:
             case AST_CHAR:
@@ -1132,12 +1146,12 @@ static void checkForUntypedNodes(CompilerContext* context, AstNode* node) {
         } else {
             switch (node->kind) {
                 case AST_ARRAY:
-                case AST_VOID:
                     UNREACHABLE("should not evaluate");
                 case AST_ERROR:
                 case AST_TYPEDEF:
                 case AST_ARGDEF:
                 case AST_VAR:
+                case AST_VOID:
                 case AST_STR:
                 case AST_INT:
                 case AST_CHAR:
@@ -1413,13 +1427,22 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
             case AST_ARRAY:
-            case AST_VOID:
                 UNREACHABLE("should not evaluate");
             case AST_ERROR:
             case AST_TYPEDEF:
             case AST_ARGDEF:
             case AST_VAR:
                 break;
+            case AST_VOID: {
+                if (node->res_type != NULL && !isErrorType(node->res_type)) {
+                    Type* void_type = isVoidType(node->res_type);
+                    TypeArray* arr_type = isArrayType(node->res_type);
+                    if (void_type == NULL && (arr_type == 0 || arr_type->size != 0)) {
+                        raiseLiteralTypeError(context, node, "`()`");
+                    }
+                }
+                break;
+            }
             case AST_STR: {
                 if (node->res_type != NULL && !isErrorType(node->res_type)) {
                     TypePointer* ptr_type = isPointerType(node->res_type);

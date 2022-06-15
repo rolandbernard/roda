@@ -79,7 +79,6 @@ typedef struct {
     CompilerLinkType link_type;
     CompilerLinkPic pie;
     String linker;
-    String entry;
     bool export_dynamic;
     bool defaultlibs;
     bool startfiles;

@@ -451,14 +451,28 @@ STRUCTURAL_TYPE_CHECK(
         type->kind == TYPE_ERROR || type->kind == TYPE_VOID || type->kind == TYPE_BOOL || type->kind == TYPE_INT
         || type->kind == TYPE_UINT || type->kind == TYPE_REAL || type->kind == TYPE_POINTER || type->kind == TYPE_FUNCTION
     ) {
-        String type_str = buildTypeName(type);
-        freeString(type_str);
         return true;
     } else if (type->kind == TYPE_ARRAY) {
         TypeArray* array = (TypeArray*)type;
         return isValidTypeHelper(array->base, stack);
     },
     else { return false; }
+)
+
+STRUCTURAL_TYPE_CHECK(
+    bool, isEffectivelyVoidType,
+    if (type->kind == TYPE_VOID) {
+        return true;
+    } else if (
+        type->kind == TYPE_ERROR || type->kind == TYPE_BOOL || type->kind == TYPE_INT || type->kind == TYPE_UINT
+        || type->kind == TYPE_REAL || type->kind == TYPE_POINTER || type->kind == TYPE_FUNCTION
+    ) {
+        return false;
+    } else if (type->kind == TYPE_ARRAY) {
+        TypeArray* array = (TypeArray*)type;
+        return array->size == 0 || isEffectivelyVoidTypeHelper(array->base, stack);
+    },
+    else { return true; }
 )
 
 bool isSizedType(Type* type) {

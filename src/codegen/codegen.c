@@ -41,9 +41,6 @@ static String getLinkerCommand(CompilerContext* context) {
     if (context->settings.linker.data != NULL) {
         pushFormattedString(&command, " -fuse-ld=%S", context->settings.linker);
     }
-    if (context->settings.entry.data != NULL) {
-        pushFormattedString(&command, " -e %S", context->settings.entry);
-    }
     if (context->settings.export_dynamic) {
         pushFormattedString(&command, " -rdynamic");
     }
@@ -197,6 +194,7 @@ void runCodeGeneration(CompilerContext* context) {
                                 ), 0));
                             }
                             freeString(command);
+                            DEBUG_LOG(context, "finished running linker");
                         }
                         removePath(toConstPath(tmp));
                         break;

@@ -8,11 +8,11 @@ static bool controlFlowEndsWithReturn(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
             case AST_ARRAY:
-            case AST_VOID:
                 UNREACHABLE("should not evaluate");
             case AST_ERROR:
                 return true;
             case AST_VAR:
+            case AST_VOID:
             case AST_STR:
             case AST_CHAR:
             case AST_INT:

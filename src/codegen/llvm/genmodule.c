@@ -167,7 +167,6 @@ static LLVMValueRef buildLlvmIntrinsicCall(
 static LlvmCodegenValue buildFunctionBody(LlvmCodegenContext* context, LlvmCodegenBodyContext* data, AstNode* node) {
     ASSERT(node != NULL);
     switch (node->kind) {
-        case AST_VOID:
         case AST_ARRAY:
         case AST_ERROR: {
             UNREACHABLE("should not evaluate");
@@ -193,6 +192,16 @@ static LlvmCodegenValue buildFunctionBody(LlvmCodegenContext* context, LlvmCodeg
             AstVar* n = (AstVar*)node;
             SymbolVariable* var = (SymbolVariable*)n->binding;
             return createLlvmCodegenValue(var->codegen, true);
+        }
+        case AST_VOID: {
+            if (isVoidType(node->res_type) != NULL) {
+                LLVMValueRef value = LLVMConstArray(LLVMInt8TypeInContext(context->llvm_cxt), NULL, 0);
+                return createLlvmCodegenValue(value, false);
+            } else {
+                TypeArray* type = isArrayType(node->res_type);
+                LLVMValueRef value = LLVMConstArray(generateLlvmType(context, type->base), NULL, 0);
+                return createLlvmCodegenValue(value, false);
+            }
         }
         case AST_STR: {
             AstStr* n = (AstStr*)node;
@@ -400,17 +409,10 @@ static LlvmCodegenValue buildFunctionBody(LlvmCodegenContext* context, LlvmCodeg
             }
             LLVMValueRef value = NULL;
             LLVMTypeRef type = generateLlvmType(context, n->function->res_type);
-            if (isVoidType(n->res_type) == NULL) {
-                value = LLVMBuildCall2(
-                    data->builder, type, func, args,
-                    n->arguments->count, "call"
-                );
-            } else {
-                LLVMBuildCall2(
-                    data->builder, type, func, args,
-                    n->arguments->count, ""
-                );
-            }
+            value = LLVMBuildCall2(
+                data->builder, type, func, args,
+                n->arguments->count, "call"
+            );
             FREE(args);
             return createLlvmCodegenValue(value, false);
         }
@@ -449,10 +451,8 @@ static LlvmCodegenValue buildFunctionBody(LlvmCodegenContext* context, LlvmCodeg
         }
         case AST_RETURN: {
             AstReturn* n = (AstReturn*)node;
-            if (n->value != NULL) {
-                LLVMValueRef value = getCodegenValue(context, data, n->value);
-                LLVMBuildStore(data->builder, value, data->ret_value);
-            }
+            LLVMValueRef value = getCodegenValue(context, data, n->value);
+            LLVMBuildStore(data->builder, value, data->ret_value);
             LLVMBuildBr(data->builder, data->exit);
             LLVMBasicBlockRef rest_block = LLVMCreateBasicBlockInContext(context->llvm_cxt, "dead");
             LLVMInsertExistingBasicBlockAfterInsertBlock(data->builder, rest_block);
@@ -470,12 +470,12 @@ static LlvmCodegenValue buildFunctionBody(LlvmCodegenContext* context, LlvmCodeg
 static void buildFunctionVariables(LlvmCodegenContext* context, LLVMBuilderRef builder, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
-            case AST_VOID:
             case AST_ARRAY: {
                 UNREACHABLE("should not evaluate");
             }
             case AST_ERROR:
             case AST_VAR:
+            case AST_VOID:
             case AST_STR:
             case AST_INT:
             case AST_CHAR:
@@ -631,9 +631,7 @@ static void buildFunctionBodies(LlvmCodegenContext* context, LLVMModuleRef modul
                     LLVMBuilderRef builder = LLVMCreateBuilderInContext(context->llvm_cxt);
                     LLVMPositionBuilderAtEnd(builder, entry);
                     LLVMValueRef ret_value = NULL;
-                    if (isVoidType(type->ret_type) == NULL) {
-                        ret_value = LLVMBuildAlloca(builder, generateLlvmType(context, type->ret_type), "ret_value");
-                    }
+                    ret_value = LLVMBuildAlloca(builder, generateLlvmType(context, type->ret_type), "ret_value");
                     buildFunctionVariables(context, builder, (AstNode*)n->arguments);
                     buildFunctionVariables(context, builder, n->body);
                     for (size_t i = 0; i < n->arguments->count; i++) {
@@ -649,12 +647,8 @@ static void buildFunctionBodies(LlvmCodegenContext* context, LLVMModuleRef modul
                     buildFunctionBody(context, &data, n->body);
                     LLVMBuildBr(builder, exit);
                     LLVMPositionBuilderAtEnd(builder, exit);
-                    if (isVoidType(type->ret_type) == NULL) {
-                        LLVMValueRef ret = LLVMBuildLoad2(builder, generateLlvmType(context, type->ret_type), ret_value, "ret");
-                        LLVMBuildRet(builder, ret);
-                    } else {
-                        LLVMBuildRetVoid(builder);
-                    }
+                    LLVMValueRef ret = LLVMBuildLoad2(builder, generateLlvmType(context, type->ret_type), ret_value, "ret");
+                    LLVMBuildRet(builder, ret);
                     LLVMDisposeBuilder(builder);
                 }
                 break;

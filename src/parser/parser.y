@@ -202,6 +202,7 @@ expr    : ident                         { $$ = (AstNode*)$1; }
         | real                          { $$ = $1; }
         | string                        { $$ = $1; }
         | bool                          { $$ = $1; }
+        | '(' ')'                       { $$ = createAstSimple(@$, AST_VOID); }
         | '(' expr ')'                  { $$ = $2; }
         | '(' error ')'                 { $$ = createAstSimple(@$, AST_ERROR); }
         | '-' expr %prec UNARY_PRE      { $$ = (AstNode*)createAstUnary(@$, AST_NEG, $2); }
