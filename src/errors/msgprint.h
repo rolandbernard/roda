@@ -7,10 +7,16 @@
 #include "errors/msgcontext.h"
 #include "errors/msgkind.h"
 
-void printMessage(const Message* error, FILE* output, const MessageFilter* filter, bool print_fragments, bool print_source);
+typedef enum {
+    MESSAGE_STYLE_MINIMAL,
+    MESSAGE_STYLE_LESS_NO_SOURCE,
+    MESSAGE_STYLE_LESS,
+    MESSAGE_STYLE_NO_SOURCE,
+    MESSAGE_STYLE_ALL,
+} MessageStyle;
 
-void printMessages(const MessageContext* message_context, FILE* output, bool print_fragments, bool print_source);
+void printMessage(const Message* error, FILE* output, const MessageFilter* filter, MessageStyle style);
 
-void printAndClearMessages(MessageContext* message_context, FILE* output, bool print_fragments, bool print_source);
+void printMessages(const MessageContext* message_context, FILE* output, MessageStyle style);
 
 #endif

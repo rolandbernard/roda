@@ -147,6 +147,25 @@ static PARAM_SPEC_FUNCTION(parameterSpecFunction, CompilerContext*, {
             context->msgfilter.max_errors = value;
         }
     }, "=<value>", "limit the maximum number of errors to show");
+    PARAM_VALUED(0, "messages", {
+        if (context->settings.message_style != COMPILER_MSG_DEFAULT) {
+            PARAM_WARN_MULTIPLE();
+        } else {
+            if (strcmp("minimal", value) == 0) {
+                context->settings.message_style = COMPILER_MSG_MINIMAL;
+            } else if (strcmp("less-nosource", value) == 0) {
+                context->settings.message_style = COMPILER_MSG_LESS_NO_SOURCE;
+            } else if (strcmp("less", value) == 0) {
+                context->settings.message_style = COMPILER_MSG_LESS;
+            } else if (strcmp("nosource", value) == 0) {
+                context->settings.message_style = COMPILER_MSG_NO_SOURCE;
+            } else if (strcmp("all", value) == 0) {
+                context->settings.message_style = COMPILER_MSG_ALL;
+            } else {
+                PARAM_WARN_UNKNOWN_VALUE()
+            }
+        }
+    }, false, "={minimal|less-nosource|less|nosource|all}", "select how error messages should be printed");
 #ifdef DEBUG
     PARAM_STRING_LIST(0, "compiler-debug", {
         if (strcmp("all", value) == 0) {

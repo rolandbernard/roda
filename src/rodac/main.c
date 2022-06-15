@@ -38,12 +38,12 @@ int main(int argc, const char* const* argv) {
     CompilerContext context;
     initCompilerContext(&context);
     int arg_count = parseProgramParams(argc, argv, &context);
-    printAndClearMessages(&context.msgs, stderr, false, false);
+    printAndClearMessages(&context, stderr);
     DEBUG_LOG(&context, "finished parsing command line arguments");
     if (context.settings.version || context.settings.help) {
         if (arg_count > 1) {
             raiseIgnoredParams(&context);
-            printAndClearMessages(&context.msgs, stderr, false, false);
+            printAndClearMessages(&context, stderr);
         }
         if (context.settings.version) {
             printVersionInfo();
@@ -59,7 +59,7 @@ int main(int argc, const char* const* argv) {
             runCompilation(&context);
         }
     }
-    printAndClearMessages(&context.msgs, stderr, false, false);
+    printAndClearMessages(&context, stderr);
     deinitCompilerContext(&context);
     if (context.msgs.error_count == 0) {
         DEBUG_LOG(&context, "compilation finished without errors");

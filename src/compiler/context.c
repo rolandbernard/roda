@@ -1,5 +1,7 @@
 
 #include "util/alloc.h"
+#include "errors/msgprint.h"
+#include "errors/fatalerror.h"
 
 #include "compiler/context.h"
 
@@ -78,6 +80,7 @@ static void addPrimitiveTypes(CompilerContext* context) {
 
 static void initCompilerSettings(CompilerSettings* settings) {
     settings->compiler_debug = COMPILER_DEBUG_NONE;
+    settings->message_style = COMPILER_MSG_DEFAULT;
     settings->help = false;
     settings->version = false;
     settings->emit = COMPILER_EMIT_AUTO;
@@ -129,5 +132,28 @@ void deinitCompilerContext(CompilerContext* context) {
     deinitSymbolContext(&context->syms);
     deinitTypeContext(&context->types);
     deinitSymbolTable(&context->buildins);
+}
+
+static MessageStyle getMessageStyle(CompilerContext* context) {
+    switch (context->settings.message_style) {
+        case COMPILER_MSG_DEFAULT:
+            return MESSAGE_STYLE_ALL;
+        case COMPILER_MSG_MINIMAL:
+            return MESSAGE_STYLE_MINIMAL;
+        case COMPILER_MSG_LESS_NO_SOURCE:
+            return MESSAGE_STYLE_LESS_NO_SOURCE;
+        case COMPILER_MSG_LESS:
+            return MESSAGE_STYLE_LESS;
+        case COMPILER_MSG_NO_SOURCE:
+            return MESSAGE_STYLE_NO_SOURCE;
+        case COMPILER_MSG_ALL:
+            return MESSAGE_STYLE_ALL;
+    }
+    UNREACHABLE();
+}
+
+void printAndClearMessages(CompilerContext* context, FILE* output) {
+    printMessages(&context->msgs, output, getMessageStyle(context));
+    clearMessageContext(&context->msgs);
 }
 

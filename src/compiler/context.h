@@ -53,8 +53,18 @@ typedef enum {
     COMPILER_PIE_NO,
 } CompilerLinkPic;
 
+typedef enum {
+    COMPILER_MSG_DEFAULT,
+    COMPILER_MSG_MINIMAL,
+    COMPILER_MSG_LESS_NO_SOURCE,
+    COMPILER_MSG_LESS,
+    COMPILER_MSG_NO_SOURCE,
+    COMPILER_MSG_ALL,
+} CompilerMessageStyle;
+
 typedef struct {
     CompilerDebugFlags compiler_debug;
+    CompilerMessageStyle message_style;
     bool help;
     bool version;
     CompilerEmit emit;
@@ -97,5 +107,7 @@ void initCompilerContext(CompilerContext* context);
 void deinitCompilerContext(CompilerContext* context);
 
 void addStringToList(StringList* list, String string);
+
+void printAndClearMessages(CompilerContext* context, FILE* output);
 
 #endif

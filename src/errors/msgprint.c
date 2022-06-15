@@ -514,7 +514,9 @@ static void printMessageFragments(
     }
 }
 
-void printMessage(const Message* message, FILE* output, const MessageFilter* filter, bool print_fragments, bool print_source) {
+void printMessage(const Message* message, FILE* output, const MessageFilter* filter, MessageStyle style) {
+    bool print_fragments = style == MESSAGE_STYLE_ALL || style == MESSAGE_STYLE_NO_SOURCE;
+    bool print_source = style == MESSAGE_STYLE_LESS || style == MESSAGE_STYLE_ALL;
     if (applyFilterForKind(filter, message->kind)) {
         bool color = isATerminal(output);
         MessageCategory category = getMessageCategory(message->kind);
@@ -535,7 +537,14 @@ void printMessage(const Message* message, FILE* output, const MessageFilter* fil
                 if (color) {
                     fputs(CONSOLE_SGR() CONSOLE_SGR(CONSOLE_SGR_BOLD), output);
                 }
-                printFileName(output, location, true);
+                if (style == MESSAGE_STYLE_MINIMAL) {
+                    fprintf(output, "%zi:%zi", location.begin.line + 1, location.begin.column + 1);
+                    if (location.begin.offset + 1 < location.end.offset) {
+                        fprintf(output, "-%zi", location.end.column);
+                    }
+                } else {
+                    printFileName(output, location, true);
+                }
             }
         }
         if (message->message.length != 0) {
@@ -566,14 +575,9 @@ void printMessage(const Message* message, FILE* output, const MessageFilter* fil
     }
 }
 
-void printMessages(const MessageContext* message_context, FILE* output, bool print_fragments, bool print_source) {
+void printMessages(const MessageContext* message_context, FILE* output, MessageStyle style) {
     for (size_t i = 0; i < message_context->message_count; i++) {
-        printMessage(message_context->messages[i], output, message_context->filter, print_fragments, print_source);
+        printMessage(message_context->messages[i], output, message_context->filter, style);
     }
-}
-
-void printAndClearMessages(MessageContext* message_context, FILE* output, bool print_fragments, bool print_source) {
-    printMessages(message_context, output, print_fragments, print_source);
-    clearMessageContext(message_context);
 }
 

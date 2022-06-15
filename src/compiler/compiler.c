@@ -15,7 +15,7 @@ void runCompilation(CompilerContext* context) {
         File* file = context->files.files[i];
         file->ast = parseFile(file, context);
         DEBUG_DO(context, COMPILER_DEBUG_PARSE_AST, { printAst(stderr, file->ast); });
-        printAndClearMessages(&context->msgs, stderr, true, true);
+        printAndClearMessages(context, stderr);
     }
     DEBUG_LOG(context, "finished parsing all files");
     if (context->msgs.error_count == 0) {
@@ -23,7 +23,7 @@ void runCompilation(CompilerContext* context) {
         DEBUG_LOG(context, "finished control flow reference resolution");
         runSymbolResolution(context);
         DEBUG_LOG(context, "finished symbol reference resolution");
-        printAndClearMessages(&context->msgs, stderr, true, true);
+        printAndClearMessages(context, stderr);
     }
     if (context->msgs.error_count == 0) {
         runTypeChecking(context);
@@ -31,16 +31,16 @@ void runCompilation(CompilerContext* context) {
             FOR_ALL_MODULES({ printAst(stderr, file->ast); });
         });
         DEBUG_LOG(context, "finished type checking");
-        printAndClearMessages(&context->msgs, stderr, true, true);
+        printAndClearMessages(context, stderr);
     }
     if (context->msgs.error_count == 0) {
         runControlFlowChecking(context);
         DEBUG_LOG(context, "finished control flow checking");
-        printAndClearMessages(&context->msgs, stderr, true, true);
+        printAndClearMessages(context, stderr);
     }
     if (context->msgs.error_count == 0) {
         runCodeGeneration(context);
-        printAndClearMessages(&context->msgs, stderr, true, true);
+        printAndClearMessages(context, stderr);
     }
 }
 

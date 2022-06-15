@@ -268,16 +268,16 @@ static LlvmCodegenValue buildFunctionBody(LlvmCodegenContext* context, LlvmCodeg
             LLVMBasicBlockRef start_block = LLVMGetInsertBlock(data->builder);
             LLVMBasicBlockRef right_block = LLVMCreateBasicBlockInContext(context->llvm_cxt, "lazy-right");
             LLVMBasicBlockRef rest_block = LLVMCreateBasicBlockInContext(context->llvm_cxt, "lazy-end");
-            LLVMInsertExistingBasicBlockAfterInsertBlock(data->builder, right_block);
-            LLVMInsertExistingBasicBlockAfterInsertBlock(data->builder, rest_block);
             if (n->kind == AST_AND) {
                 LLVMBuildCondBr(data->builder, left, right_block, rest_block);
             } else {
                 LLVMBuildCondBr(data->builder, left, rest_block, right_block);
             }
+            LLVMInsertExistingBasicBlockAfterInsertBlock(data->builder, right_block);
             LLVMPositionBuilderAtEnd(data->builder, right_block);
             LLVMValueRef right = getCodegenValue(context, data, n->right);
             LLVMBuildBr(data->builder, rest_block);
+            LLVMInsertExistingBasicBlockAfterInsertBlock(data->builder, rest_block);
             LLVMPositionBuilderAtEnd(data->builder, rest_block);
             LLVMValueRef value = LLVMBuildPhi(data->builder, generateLlvmType(context, n->res_type), "lazy-res");
             LLVMValueRef incoming_val[2] = { left, right };
@@ -350,42 +350,43 @@ static LlvmCodegenValue buildFunctionBody(LlvmCodegenContext* context, LlvmCodeg
             AstIfElse* n = (AstIfElse*)node;
             LLVMBasicBlockRef if_block = LLVMCreateBasicBlockInContext(context->llvm_cxt, "if");
             LLVMBasicBlockRef rest_block = LLVMCreateBasicBlockInContext(context->llvm_cxt, "endif");
-            LLVMInsertExistingBasicBlockAfterInsertBlock(data->builder, if_block);
             LLVMBasicBlockRef else_block;
             if (n->else_block != NULL) {
                 else_block = LLVMCreateBasicBlockInContext(context->llvm_cxt, "else");
-                LLVMInsertExistingBasicBlockAfterInsertBlock(data->builder, else_block);
             } else {
                 else_block = rest_block;
             }
-            LLVMInsertExistingBasicBlockAfterInsertBlock(data->builder, rest_block);
             LLVMValueRef cond = getCodegenValue(context, data, n->condition);
             LLVMBuildCondBr(data->builder, cond, if_block, else_block);
+            LLVMInsertExistingBasicBlockAfterInsertBlock(data->builder, if_block);
             LLVMPositionBuilderAtEnd(data->builder, if_block);
             buildFunctionBody(context, data, n->if_block);
             LLVMBuildBr(data->builder, rest_block);
             if (n->else_block != NULL) {
+                LLVMInsertExistingBasicBlockAfterInsertBlock(data->builder, else_block);
                 LLVMPositionBuilderAtEnd(data->builder, else_block);
                 buildFunctionBody(context, data, n->else_block);
                 LLVMBuildBr(data->builder, rest_block);
             }
+            LLVMInsertExistingBasicBlockAfterInsertBlock(data->builder, rest_block);
             LLVMPositionBuilderAtEnd(data->builder, rest_block);
             return createLlvmCodegenValue(NULL, false);
         }
         case AST_WHILE: {
             AstWhile* n = (AstWhile*)node;
-            LLVMBasicBlockRef cond_block = LLVMCreateBasicBlockInContext(context->llvm_cxt, "while");
+            LLVMBasicBlockRef cond_block = LLVMCreateBasicBlockInContext(context->llvm_cxt, "while-cond");
             LLVMBasicBlockRef while_block = LLVMCreateBasicBlockInContext(context->llvm_cxt, "while-body");
             LLVMBasicBlockRef rest_block = LLVMCreateBasicBlockInContext(context->llvm_cxt, "endwhile");
-            LLVMInsertExistingBasicBlockAfterInsertBlock(data->builder, cond_block);
-            LLVMInsertExistingBasicBlockAfterInsertBlock(data->builder, while_block);
-            LLVMInsertExistingBasicBlockAfterInsertBlock(data->builder, rest_block);
             LLVMBuildBr(data->builder, cond_block);
+            LLVMInsertExistingBasicBlockAfterInsertBlock(data->builder, cond_block);
+            LLVMPositionBuilderAtEnd(data->builder, cond_block);
             LLVMValueRef cond = getCodegenValue(context, data, n->condition);
             LLVMBuildCondBr(data->builder, cond, while_block, rest_block);
+            LLVMInsertExistingBasicBlockAfterInsertBlock(data->builder, while_block);
             LLVMPositionBuilderAtEnd(data->builder, while_block);
             buildFunctionBody(context, data, n->block);
             LLVMBuildBr(data->builder, cond_block);
+            LLVMInsertExistingBasicBlockAfterInsertBlock(data->builder, rest_block);
             LLVMPositionBuilderAtEnd(data->builder, rest_block);
             return createLlvmCodegenValue(NULL, false);
         }
