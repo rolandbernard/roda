@@ -9,9 +9,8 @@ ALL_SWITCHES := llvm
 # == Feature detection
 LLVM_CONFIG  ?= llvm-config
 LLVM_VERSION ?= $(shell $(LLVM_CONFIG) --version || true)
-ifneq ($(LLVM_VERSION),)
-LLVM ?= yes
-endif
+LLVM_MAJOR   ?= $(shell $(LLVM_CONFIG) --version | cut -d "." -f 1)
+LLVM         ?= $(shell if [ $(LLVM_MAJOR) -ge 10 ] ; then echo yes ; else echo no ; fi)
 # ==
 
 # == Enable features
@@ -33,7 +32,7 @@ YACC := bison
 # ==
 
 # == Flags
-CFLAGS += -rdynamic
+LDFLAGS += -rdynamic
 ifneq ($(GIT_HEAD),)
 CFLAGS += -DGIT_HEAD="\"$(GIT_HEAD)\""
 endif
