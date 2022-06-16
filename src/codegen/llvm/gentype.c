@@ -20,7 +20,7 @@ static LLVMTypeRef generateLlvmTypeHelper(LlvmCodegenContext* context, Type* typ
             case TYPE_ERROR:
                 UNREACHABLE();
             case TYPE_VOID:
-                result = LLVMArrayType(LLVMInt8TypeInContext(context->llvm_cxt), 0);
+                result = LLVMStructTypeInContext(context->llvm_cxt, NULL, 0, false);
                 break;
             case TYPE_BOOL:
                 result = LLVMInt1TypeInContext(context->llvm_cxt);

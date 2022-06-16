@@ -55,7 +55,7 @@ static const char* ast_type_names[] = {
 
     // AstList
     [AST_LIST] = "list",
-    [AST_LIST_LIT] = "list literal",
+    [AST_ARRAY_LIT] = "array literal",
     [AST_ROOT] = "root",
     [AST_BLOCK] = "block",
 
@@ -261,7 +261,7 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
                 printAstChildNode(file, n->op, colors, indent, "op", true);
                 break;
             }
-            case AST_LIST_LIT:
+            case AST_ARRAY_LIT:
             case AST_LIST: {
                 AstList* n = (AstList*)node;
                 fprintf(file, " (%zi elements)", n->count);

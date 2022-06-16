@@ -240,7 +240,7 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
             case AST_VAR: // TODO: constant variables? (We need a scope!)
             case AST_INDEX: // TODO: constant arrays?
             case AST_VOID:
-            case AST_LIST_LIT:
+            case AST_ARRAY_LIT:
             case AST_CALL: // TODO: constant calls?
             case AST_STR: // TODO: constant strings?
             case AST_ADDR:

@@ -68,7 +68,7 @@ typedef enum {
     AST_ROOT,
     AST_BLOCK,
     AST_RETURN,
-    AST_LIST_LIT,
+    AST_ARRAY_LIT,
 
     AST_INT,
     AST_CHAR,

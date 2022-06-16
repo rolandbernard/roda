@@ -344,7 +344,7 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
                 }
                 break;
             }
-            case AST_LIST_LIT: {
+            case AST_ARRAY_LIT: {
                 AstList* n = (AstList*)node;
                 if (n->res_type != NULL) {
                     TypeArray* type = isArrayType(n->res_type);
@@ -592,7 +592,7 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                 evaluateTypeHints(context, n->value);
                 break;
             }
-            case AST_LIST_LIT: {
+            case AST_ARRAY_LIT: {
                 AstList* n = (AstList*)node;
                 for (size_t i = 0; i < n->count; i++) {
                     evaluateTypeHints(context, n->nodes[i]);
@@ -807,7 +807,7 @@ static void propagateAllTypes(CompilerContext* context, AstNode* node) {
                 propagateAllTypes(context, n->value);
                 break;
             }
-            case AST_LIST_LIT:
+            case AST_ARRAY_LIT:
             case AST_LIST: {
                 AstList* n = (AstList*)node;
                 for (size_t i = 0; i < n->count; i++) {
@@ -989,7 +989,7 @@ static void assumeAmbiguousTypes(CompilerContext* context, AstNode* node) {
                 assumeAmbiguousTypes(context, n->value);
                 break;
             }
-            case AST_LIST_LIT: {
+            case AST_ARRAY_LIT: {
                 AstList* n = (AstList*)node;
                 for (size_t i = 0; i < n->count; i++) {
                     assumeAmbiguousTypes(context, n->nodes[i]);
@@ -1116,7 +1116,7 @@ static void checkForUntypedVariables(CompilerContext* context, AstNode* node) {
                 checkForUntypedVariables(context, n->value);
                 break;
             }
-            case AST_LIST_LIT:
+            case AST_ARRAY_LIT:
             case AST_LIST: {
                 AstList* n = (AstList*)node;
                 for (size_t i = 0; i < n->count; i++) {
@@ -1280,7 +1280,7 @@ static void checkForUntypedNodes(CompilerContext* context, AstNode* node) {
                     checkForUntypedNodes(context, n->value);
                     break;
                 }
-                case AST_LIST_LIT:
+                case AST_ARRAY_LIT:
                 case AST_LIST: {
                     AstList* n = (AstList*)node;
                     for (size_t i = 0; i < n->count; i++) {
@@ -1733,7 +1733,7 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                 checkTypeConstraints(context, n->value);
                 break;
             }
-            case AST_LIST_LIT: {
+            case AST_ARRAY_LIT: {
                 AstList* n = (AstList*)node;
                 for (size_t i = 0; i < n->count; i++) {
                     checkTypeConstraints(context, n->nodes[i]);
