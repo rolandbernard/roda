@@ -228,6 +228,8 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
             case AST_OR:
             case AST_AND:
                 break;
+            case AST_SIZEOF:
+                break;
             case AST_NOT:
             case AST_POS:
             case AST_NEG: {
@@ -586,6 +588,31 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                 evaluateTypeHints(context, n->op);
                 break;
             }
+            case AST_SIZEOF: {
+                AstUnary* n = (AstUnary*)node;
+                n->op->res_type = evaluateTypeExpr(context, n->op);
+                n->op->res_type_reasoning = n->op;
+                if (!isValidType(n->op->res_type)) {
+                    String type_name = buildTypeName(n->op->res_type);
+                    addMessageToContext(&context->msgs, createMessage(ERROR_UNSIZED_TYPE,
+                        createFormattedString("type error, sizeof for unsized type `%S`", type_name), 1,
+                        createMessageFragment(MESSAGE_ERROR, createFormattedString("this type is unsized"), n->op->location)
+                    ));
+                    freeString(type_name);
+                    n->op->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
+                    n->op->res_type_reasoning = NULL;
+                } else if (!isSizedType(n->op->res_type)) {
+                    String type_name = buildTypeName(n->op->res_type);
+                    addMessageToContext(&context->msgs, createMessage(ERROR_INVALID_TYPE,
+                        createFormattedString("type error, sizeof for invalid type `%S`", type_name), 1,
+                        createMessageFragment(MESSAGE_ERROR, createFormattedString("this type is invalid"), n->op->location)
+                    ));
+                    freeString(type_name);
+                    n->op->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
+                    n->op->res_type_reasoning = NULL;
+                }
+                break;
+            }
             case AST_RETURN: {
                 AstReturn* n = (AstReturn*)node;
                 n->res_type = createUnsizedPrimitiveType(&context->types, TYPE_VOID);
@@ -802,6 +829,8 @@ static void propagateAllTypes(CompilerContext* context, AstNode* node) {
                 propagateAllTypes(context, n->op);
                 break;
             }
+            case AST_SIZEOF:
+                break;
             case AST_RETURN: {
                 AstReturn* n = (AstReturn*)node;
                 propagateAllTypes(context, n->value);
@@ -921,6 +950,14 @@ static void assumeAmbiguousTypes(CompilerContext* context, AstNode* node) {
             case AST_REAL:
                 if (node->res_type == NULL) {
                     Type* type = createSizedPrimitiveType(&context->types, TYPE_REAL, 64);
+                    if (propagateTypeIntoAstNode(context, node, type, node)) {
+                        propagateTypes(context, node->parent);
+                    }
+                }
+                break;
+            case AST_SIZEOF:
+                if (node->res_type == NULL) {
+                    Type* type = createSizedPrimitiveType(&context->types, TYPE_UINT, 64);
                     if (propagateTypeIntoAstNode(context, node, type, node)) {
                         propagateTypes(context, node->parent);
                     }
@@ -1111,6 +1148,8 @@ static void checkForUntypedVariables(CompilerContext* context, AstNode* node) {
                 checkForUntypedVariables(context, n->op);
                 break;
             }
+            case AST_SIZEOF:
+                break;
             case AST_RETURN: {
                 AstReturn* n = (AstReturn*)node;
                 checkForUntypedVariables(context, n->value);
@@ -1275,6 +1314,8 @@ static void checkForUntypedNodes(CompilerContext* context, AstNode* node) {
                     checkForUntypedNodes(context, n->op);
                     break;
                 }
+                case AST_SIZEOF:
+                    break;
                 case AST_RETURN: {
                     AstReturn* n = (AstReturn*)node;
                     checkForUntypedNodes(context, n->value);
@@ -1539,6 +1580,14 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                 if (node->res_type != NULL && !isErrorType(node->res_type)) {
                     if (isBooleanType(node->res_type) == NULL) {
                         raiseLiteralTypeError(context, node, "boolean literal");
+                    }
+                }
+                break;
+            }
+            case AST_SIZEOF: {
+                if (node->res_type != NULL && !isErrorType(node->res_type)) {
+                    if (isIntegerType(node->res_type) == NULL) {
+                        raiseLiteralTypeError(context, node, "sizeof expression");
                     }
                 }
                 break;

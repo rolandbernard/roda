@@ -356,6 +356,12 @@ static LlvmCodegenValue buildFunctionBody(LlvmCodegenContext* context, LlvmCodeg
             LLVMValueRef value = LLVMBuildNot(data->builder, op, "not");
             return createLlvmCodegenValue(value, false);
         }
+        case AST_SIZEOF: {
+            AstUnary* n = (AstUnary*)node;
+            LLVMTypeRef type = generateLlvmType(context, n->op->res_type);
+            LLVMValueRef value = LLVMConstInt(generateLlvmType(context, n->res_type), LLVMABISizeOfType(context->target_data, type), false);
+            return createLlvmCodegenValue(value, false);
+        }
         case AST_ADDR: {
             AstUnary* n = (AstUnary*)node;
             LLVMValueRef value = getCodegenReference(context, data, n->op);
@@ -551,6 +557,8 @@ static void buildFunctionVariables(LlvmCodegenContext* context, LLVMBuilderRef b
                 buildFunctionVariables(context, builder, n->right);
                 break;
             }
+            case AST_SIZEOF:
+                break;
             case AST_POS:
             case AST_NEG:
             case AST_ADDR:

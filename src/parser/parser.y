@@ -64,21 +64,18 @@ extern void yyerror(YYLTYPE* yyllocp, yyscan_t scanner, ParserContext* context, 
 
 %token IF               "if"
 %token ELSE             "else"
-%token FOR              "for"
 %token WHILE            "while"
-%token MATCH            "match"
-%token CONST            "const"
 %token TYPE             "type"
 %token LET              "let"
 %token FN               "fn"
 %token RETURN           "return"
 %token EXTERN           "extern"
 %token PUB              "pub"
+%token SIZEOF           "sizeof"
 %token EQ               "=="
 %token NE               "!="
 %token LE               "<="
 %token GE               ">="
-%token ARROW            "=>"
 %token ADD_EQ           "+="
 %token SUB_EQ           "-="
 %token MUL_EQ           "*="
@@ -199,6 +196,7 @@ expr    : ident                         { $$ = (AstNode*)$1; }
         | real                          { $$ = $1; }
         | string                        { $$ = $1; }
         | bool                          { $$ = $1; }
+        | "sizeof" '(' type ')'         { $$ = (AstNode*)createAstUnary(@$, AST_SIZEOF, $3); }
         | '(' ')'                       { $$ = createAstSimple(@$, AST_VOID); }
         | '[' list ']'                  { $$ = (AstNode*)toStaticAstList($2); $$->kind = AST_ARRAY_LIT; $$->location = @$; }
         | '(' expr ')'                  { $$ = $2; }

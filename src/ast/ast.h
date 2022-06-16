@@ -54,6 +54,7 @@ typedef enum {
     AST_ADDR,
     AST_DEREF,
     AST_NOT,
+    AST_SIZEOF,
 
     // Other
     AST_VAR,

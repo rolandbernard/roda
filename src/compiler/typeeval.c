@@ -65,6 +65,7 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
             case AST_POS:
             case AST_NEG:
             case AST_NOT:
+            case AST_SIZEOF:
             case AST_ROOT:
             case AST_ARRAY_LIT:
             case AST_LIST:

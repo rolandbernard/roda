@@ -176,11 +176,10 @@ The following are the main steps that make up the compilation process:
 ### Requirements
 
 To compile this project, you will need [GNU Make](https://www.gnu.org/software/make/) and a C
-compiler. This project has only been tested on Linux with the [GNU C Library](https://www.gnu.org/software/libc/)
-but should also work with other POSIX C Libraries. Other requirements include relatively recent
-versions of [Flex](https://github.com/westes/flex) and [Bison](https://www.gnu.org/software/bison/).
-If you want to compile this project with support for code generation, you will need
-[LLVM](https://llvm.org/) 10 or later installed.
+compiler. This project has only been tested on Linux using GCC or Clang and a [GNU C Library](https://www.gnu.org/software/libc/).
+Other requirements include relatively recent versions of [Flex](https://github.com/westes/flex) and
+[Bison](https://www.gnu.org/software/bison/). If you want to compile this project with support for
+code generation, you will need [LLVM](https://llvm.org/) 10 or later installed.
 
 ### Building
 

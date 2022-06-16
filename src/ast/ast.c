@@ -236,6 +236,7 @@ void freeAstNode(AstNode* node) {
             case AST_NEG:
             case AST_ADDR:
             case AST_NOT:
+            case AST_SIZEOF:
             case AST_DEREF: {
                 AstUnary* n = (AstUnary*)node;
                 freeAstNode(n->op);

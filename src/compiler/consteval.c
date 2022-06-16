@@ -243,6 +243,7 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
             case AST_ARRAY_LIT:
             case AST_CALL: // TODO: constant calls?
             case AST_STR: // TODO: constant strings?
+            case AST_SIZEOF: // TODO: would need llvm to make this const?
             case AST_ADDR:
             case AST_DEREF: {
                 // None of these are allowed in constant expressions.

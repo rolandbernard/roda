@@ -52,6 +52,7 @@ static const char* ast_type_names[] = {
     [AST_ADDR] = "address of",
     [AST_DEREF] = "dereference",
     [AST_NOT] = "not",
+    [AST_SIZEOF] = "sizeof",
 
     // AstList
     [AST_LIST] = "list",
@@ -254,6 +255,7 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
             case AST_NEG:
             case AST_ADDR:
             case AST_NOT:
+            case AST_SIZEOF:
             case AST_DEREF: {
                 AstUnary* n = (AstUnary*)node;
                 printAstNodeExtraInfo(file, node, colors);

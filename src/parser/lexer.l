@@ -46,18 +46,16 @@ REAL    [0-9][_0-9]*(\.[0-9][_0-9]*)?([eE][-+]?[0-9][_0-9]*)?
 
 "if"            { return IF; }
 "else"          { return ELSE; }
-"for"           { return FOR; }
 "while"         { return WHILE; }
 "fn"            { return FN; }
 "type"          { return TYPE; }
 "let"           { return LET; }
 "return"        { return RETURN; }
-"match"         { return MATCH; }
-"const"         { return CONST; }
 "true"          { return TRUE; }
 "false"         { return FALSE; }
 "extern"        { return EXTERN; }
 "pub"           { return PUB; }
+"sizeof"        { return SIZEOF; }
 
 "=="            { return EQ; }
 "!="            { return NE; }
@@ -93,7 +91,6 @@ REAL    [0-9][_0-9]*(\.[0-9][_0-9]*)?([eE][-+]?[0-9][_0-9]*)?
 ">>"            { return SHR; }
 
 ".."            { return DOTS; }
-"=>"            { return ARROW; }
 ":"             { return ':'; }
 ";"             { return ';'; }
 ","             { return ','; }
