@@ -405,18 +405,18 @@ static void checkTypeDefinitions(CompilerContext* context, AstNode* node) {
             case AST_LIST: {
                 AstList* n = (AstList*)node;
                 for (size_t i = 0; i < n->count; i++) {
-                    evaluateTypeDefinitions(context, n->nodes[i]);
+                    checkTypeDefinitions(context, n->nodes[i]);
                 }
                 break;
             }
             case AST_ROOT: {
                 AstRoot* n = (AstRoot*)node;
-                evaluateTypeDefinitions(context, (AstNode*)n->nodes);
+                checkTypeDefinitions(context, (AstNode*)n->nodes);
                 break;
             }
             case AST_BLOCK: {
                 AstBlock* n = (AstBlock*)node;
-                evaluateTypeDefinitions(context, (AstNode*)n->nodes);
+                checkTypeDefinitions(context, (AstNode*)n->nodes);
                 break;
             }
             case AST_TYPEDEF: {
