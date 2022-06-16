@@ -241,6 +241,7 @@ void freeAstNode(AstNode* node) {
                 freeAstNode(n->op);
                 break;
             }
+            case AST_LIST_LIT:
             case AST_LIST: {
                 AstList* n = (AstList*)node;
                 for (size_t i = 0; i < n->count; i++) {

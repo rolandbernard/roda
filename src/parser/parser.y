@@ -55,7 +55,7 @@ extern void yyerror(YYLTYPE* yyllocp, yyscan_t scanner, ParserContext* context, 
 %type <ident> ident
 %type <list> args
 %type <arg_defs> args_defs
-%type <dynlist> args_list args_def_list stmts root_stmts
+%type <dynlist> args_list args_def_list stmts root_stmts list long_list
 
 %token <lexeme> ID      "identifier"
 %token <lexeme> STR     "string"
@@ -203,6 +203,7 @@ expr    : ident                         { $$ = (AstNode*)$1; }
         | string                        { $$ = $1; }
         | bool                          { $$ = $1; }
         | '(' ')'                       { $$ = createAstSimple(@$, AST_VOID); }
+        | '(' list ')'                  { $$ = (AstNode*)toStaticAstList($2); $$->kind = AST_LIST_LIT; $$->location = @$; }
         | '(' expr ')'                  { $$ = $2; }
         | '(' error ')'                 { $$ = createAstSimple(@$, AST_ERROR); }
         | '-' expr %prec UNARY_PRE      { $$ = (AstNode*)createAstUnary(@$, AST_NEG, $2); }
@@ -231,6 +232,15 @@ expr    : ident                         { $$ = (AstNode*)$1; }
         | expr '>' expr                 { $$ = (AstNode*)createAstBinary(@$, AST_GT, $1, $3); }
         | expr '<' expr                 { $$ = (AstNode*)createAstBinary(@$, AST_LT, $1, $3); }
         ;
+
+list    : expr ','          { $$ = createDynamicAstList(); addToDynamicAstList($$, $1); $$->location = @$; }
+        | long_list         { $$ = $1; }
+        | long_list ','     { $$ = $1; }
+        ;
+
+long_list   : expr ',' expr         { $$ = createDynamicAstList(); addToDynamicAstList($$, $1); addToDynamicAstList($$, $3); $$->location = @$; }
+            | long_list ',' expr    { $$ = $1; addToDynamicAstList($$, $3); $$->location = @$; }
+            ;
 
 integer : INT   { $$ = parseIntLiteralIn(context, @1, $1); }
         | CHAR  { $$ = parseCharLiteralIn(context, @1, $1); }

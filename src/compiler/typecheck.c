@@ -72,13 +72,16 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
             case AST_CHAR:
             case AST_REAL:
             case AST_BOOL:
-            case AST_LIST:
             case AST_ROOT:
             case AST_BLOCK:
             case AST_IF_ELSE:
             case AST_WHILE:
             case AST_FN:
                 break;
+            case AST_LIST: {
+                propagateTypes(context, node->parent);
+                break;
+            }
             case AST_VAR: {
                 AstVar* n = (AstVar*)node;
                 SymbolVariable* var = (SymbolVariable*)n->binding;
@@ -341,6 +344,46 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
                 }
                 break;
             }
+            case AST_LIST_LIT: {
+                AstList* n = (AstList*)node;
+                if (n->res_type != NULL) {
+                    TypeArray* type = isArrayType(n->res_type);
+                    if (type != NULL) {
+                        AstNode* type_reason = n->res_type_reasoning;
+                        if (type_reason != NULL && type_reason->kind == AST_ARRAY) {
+                            AstBinary* arr_node = (AstBinary*)type_reason;
+                            type_reason = arr_node->right;
+                        }
+                        for (size_t i = 0; i < n->count; i++) {
+                            if (propagateTypeIntoAstNode(context, n->nodes[i], type->base, type_reason)) {
+                                propagateTypes(context, n->nodes[i]);
+                            }
+                        }
+                    }
+                } else {
+                    Type* type = NULL;
+                    AstNode* reasoning = NULL;
+                    for (size_t i = 0; i < n->count; i++) {
+                        if (n->nodes[i]->res_type != NULL) {
+                            type = n->nodes[i]->res_type;
+                            reasoning = n->nodes[i]->res_type_reasoning;
+                            break;
+                        }
+                    }
+                    if (type != NULL) {
+                        for (size_t i = 0; i < n->count; i++) {
+                            if (propagateTypeIntoAstNode(context, n->nodes[i], type, reasoning)) {
+                                propagateTypes(context, n->nodes[i]);
+                            }
+                        }
+                        Type* arr_type = createArrayType(&context->types, type, n->count);
+                        if (propagateTypeIntoAstNode(context, node, arr_type, node)) {
+                            propagateTypes(context, node->parent);
+                        }
+                    }
+                }
+                break;
+            }
             case AST_RETURN: {
                 AstReturn* n = (AstReturn*)node;
                 if (n->function->name->res_type != NULL) {
@@ -547,6 +590,13 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                 AstReturn* n = (AstReturn*)node;
                 n->res_type = createUnsizedPrimitiveType(&context->types, TYPE_VOID);
                 evaluateTypeHints(context, n->value);
+                break;
+            }
+            case AST_LIST_LIT: {
+                AstList* n = (AstList*)node;
+                for (size_t i = 0; i < n->count; i++) {
+                    evaluateTypeHints(context, n->nodes[i]);
+                }
                 break;
             }
             case AST_LIST: {
@@ -757,6 +807,7 @@ static void propagateAllTypes(CompilerContext* context, AstNode* node) {
                 propagateAllTypes(context, n->value);
                 break;
             }
+            case AST_LIST_LIT:
             case AST_LIST: {
                 AstList* n = (AstList*)node;
                 for (size_t i = 0; i < n->count; i++) {
@@ -938,6 +989,13 @@ static void assumeAmbiguousTypes(CompilerContext* context, AstNode* node) {
                 assumeAmbiguousTypes(context, n->value);
                 break;
             }
+            case AST_LIST_LIT: {
+                AstList* n = (AstList*)node;
+                for (size_t i = 0; i < n->count; i++) {
+                    assumeAmbiguousTypes(context, n->nodes[i]);
+                }
+                break;
+            }
             case AST_LIST: {
                 AstList* n = (AstList*)node;
                 for (size_t i = 0; i < n->count; i++) {
@@ -1058,6 +1116,7 @@ static void checkForUntypedVariables(CompilerContext* context, AstNode* node) {
                 checkForUntypedVariables(context, n->value);
                 break;
             }
+            case AST_LIST_LIT:
             case AST_LIST: {
                 AstList* n = (AstList*)node;
                 for (size_t i = 0; i < n->count; i++) {
@@ -1221,6 +1280,7 @@ static void checkForUntypedNodes(CompilerContext* context, AstNode* node) {
                     checkForUntypedNodes(context, n->value);
                     break;
                 }
+                case AST_LIST_LIT:
                 case AST_LIST: {
                     AstList* n = (AstList*)node;
                     for (size_t i = 0; i < n->count; i++) {
@@ -1671,6 +1731,13 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                     }
                 }
                 checkTypeConstraints(context, n->value);
+                break;
+            }
+            case AST_LIST_LIT: {
+                AstList* n = (AstList*)node;
+                for (size_t i = 0; i < n->count; i++) {
+                    checkTypeConstraints(context, n->nodes[i]);
+                }
                 break;
             }
             case AST_LIST: {
