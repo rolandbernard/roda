@@ -151,16 +151,23 @@ static LLVMValueRef buildRealComparison(LLVMBuilderRef builder, LLVMValueRef lhs
 
 static LLVMValueRef buildLlvmIntrinsicCall(
     LlvmCodegenContext* context, LlvmCodegenBodyContext* data, const char* name,
-    LLVMValueRef* params, size_t param_count, const char* val_name
+    LLVMValueRef* params, size_t param_count, const char* val_name, bool overloaded
 ) {
     size_t id = LLVMLookupIntrinsicID(name, strlen(name));
-    LLVMTypeRef* param_types = ALLOC(LLVMTypeRef, param_count);
-    for (size_t i = 0; i < param_count; i++) {
-        param_types[i] = LLVMTypeOf(params[i]);
+    LLVMValueRef func;
+    LLVMTypeRef type;
+    if (overloaded) {
+        LLVMTypeRef* param_types = ALLOC(LLVMTypeRef, param_count);
+        for (size_t i = 0; i < param_count; i++) {
+            param_types[i] = LLVMTypeOf(params[i]);
+        }
+        func = LLVMGetIntrinsicDeclaration(data->module, id, param_types, param_count);
+        type = LLVMIntrinsicGetType(context->llvm_cxt, id, param_types, param_count);
+        FREE(param_types);
+    } else {
+        func = LLVMGetIntrinsicDeclaration(data->module, id, NULL, 0);
+        type = LLVMIntrinsicGetType(context->llvm_cxt, id, NULL, 0);
     }
-    LLVMValueRef func = LLVMGetIntrinsicDeclaration(data->module, id, param_types, param_count);
-    LLVMTypeRef type = LLVMIntrinsicGetType(context->llvm_cxt, id, param_types, param_count);
-    FREE(param_types);
     return LLVMBuildCall2(data->builder, type, func, params, param_count, val_name);
 }
 
@@ -170,6 +177,24 @@ static LlvmCodegenValue buildFunctionBody(LlvmCodegenContext* context, LlvmCodeg
         case AST_ARRAY:
         case AST_ERROR: {
             UNREACHABLE("should not evaluate");
+        }
+        case AST_ARRAY_LIT: {
+            AstList* n = (AstList*)node;
+            TypeArray* type = isArrayType(node->res_type);
+            LLVMValueRef stack = buildLlvmIntrinsicCall(context, data, "llvm.stacksave", NULL, 0, "stacksave", false);
+            LLVMValueRef tmp = LLVMBuildAlloca(data->builder, generateLlvmType(context, n->res_type), "tmp");
+            LLVMTypeRef idx_type = LLVMIntPtrTypeInContext(context->llvm_cxt, context->target_data);
+            for (size_t i = 0; i < type->size; i++) {
+                LLVMValueRef indicies[2] = { LLVMConstInt(idx_type, 0, false), LLVMConstInt(idx_type, i, false) };
+                LLVMValueRef value_ref = LLVMBuildGEP2(
+                    data->builder, generateLlvmType(context, n->res_type), tmp, indicies, 2, "index"
+                );
+                LLVMValueRef elem_val = getCodegenValue(context, data, n->nodes[i]);
+                LLVMBuildStore(data->builder, elem_val, value_ref);
+            }
+            LLVMValueRef value = LLVMBuildLoad2(data->builder, generateLlvmType(context, n->res_type), tmp, "tmp");
+            buildLlvmIntrinsicCall(context, data, "llvm.stackrestore", &stack, 1, "", false);
+            return createLlvmCodegenValue(value, false);
         }
         case AST_LIST: {
             AstList* n = (AstList*)node;
@@ -194,14 +219,8 @@ static LlvmCodegenValue buildFunctionBody(LlvmCodegenContext* context, LlvmCodeg
             return createLlvmCodegenValue(var->codegen, true);
         }
         case AST_VOID: {
-            if (isVoidType(node->res_type) != NULL) {
-                LLVMValueRef value = LLVMConstArray(LLVMInt8TypeInContext(context->llvm_cxt), NULL, 0);
-                return createLlvmCodegenValue(value, false);
-            } else {
-                TypeArray* type = isArrayType(node->res_type);
-                LLVMValueRef value = LLVMConstArray(generateLlvmType(context, type->base), NULL, 0);
-                return createLlvmCodegenValue(value, false);
-            }
+            LLVMValueRef value = LLVMGetUndef(generateLlvmType(context, node->res_type));
+            return createLlvmCodegenValue(value, false);
         }
         case AST_STR: {
             AstStr* n = (AstStr*)node;
@@ -435,7 +454,7 @@ static LlvmCodegenValue buildFunctionBody(LlvmCodegenContext* context, LlvmCodeg
                     );
                     return createLlvmCodegenValue(value, true);
                 } else {
-                    LLVMValueRef stack = buildLlvmIntrinsicCall(context, data, "llvm.stacksave", NULL, 0, "stacksave");
+                    LLVMValueRef stack = buildLlvmIntrinsicCall(context, data, "llvm.stacksave", NULL, 0, "stacksave", false);
                     LLVMValueRef tmp = LLVMBuildAlloca(
                         data->builder, generateLlvmType(context, n->left->res_type), "tmp"
                     );
@@ -444,7 +463,7 @@ static LlvmCodegenValue buildFunctionBody(LlvmCodegenContext* context, LlvmCodeg
                         data->builder, generateLlvmType(context, n->left->res_type), tmp, indicies, 2, "index"
                     );
                     LLVMValueRef value = LLVMBuildLoad2(data->builder, generateLlvmType(context, n->res_type), value_ref, "tmp");
-                    buildLlvmIntrinsicCall(context, data, "llvm.stackrestore", &stack, 1, "");
+                    buildLlvmIntrinsicCall(context, data, "llvm.stackrestore", &stack, 1, "", false);
                     return createLlvmCodegenValue(value, false);
                 }
             }
@@ -546,6 +565,7 @@ static void buildFunctionVariables(LlvmCodegenContext* context, LLVMBuilderRef b
                 buildFunctionVariables(context, builder, n->value);
                 break;
             }
+            case AST_ARRAY_LIT:
             case AST_LIST: {
                 AstList* n = (AstList*)node;
                 for (size_t i = 0; i < n->count; i++) {

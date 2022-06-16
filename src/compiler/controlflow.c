@@ -67,6 +67,7 @@ static bool controlFlowEndsWithReturn(CompilerContext* context, AstNode* node) {
             }
             case AST_RETURN:
                 return true;
+            case AST_ARRAY_LIT:
             case AST_LIST: {
                 AstList* n = (AstList*)node;
                 for (size_t i = 0; i < n->count; i++) {

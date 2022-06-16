@@ -96,6 +96,7 @@ static void buildLocalSymbolTables(CompilerContext* context, AstNode* node, Symb
                 buildLocalSymbolTables(context, n->value, scope, type, root);
                 break;
             }
+            case AST_ARRAY_LIT:
             case AST_LIST: {
                 AstList* n = (AstList*)node;
                 for (size_t i = 0; i < n->count; i++) {
@@ -307,6 +308,7 @@ static void buildControlFlowReferences(CompilerContext* context, AstNode* node, 
                 buildControlFlowReferences(context, n->value, function);
                 break;
             }
+            case AST_ARRAY_LIT:
             case AST_LIST: {
                 AstList* n = (AstList*)node;
                 for (size_t i = 0; i < n->count; i++) {

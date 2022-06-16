@@ -48,6 +48,7 @@ void addToDynamicAstList(DynamicAstList* list, AstNode* node) {
     }
     list->nodes[list->count] = node;
     list->count++;
+    node->parent = (AstNode*)list;
 }
 
 void resizeDynamicAstList(DynamicAstList* list, size_t size) {
@@ -64,7 +65,11 @@ void fitDynamicAstList(DynamicAstList* list) {
 
 AstList* toStaticAstList(DynamicAstList* list) {
     fitDynamicAstList(list);
-    return REALLOC(AstList, list, 1);
+    AstList* ret = REALLOC(AstList, list, 1);
+    for (size_t i = 0; i < ret->count; i++) {
+        ret->nodes[i]->parent = (AstNode*)ret;
+    }
+    return ret;
 }
 
 DynamicAstList* toDynamicAstList(AstList* list) {
