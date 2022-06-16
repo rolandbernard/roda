@@ -1,0 +1,12 @@
+
+### Latex ###
+*.synctex.gz
+*.aux
+*.fls
+*.out
+*.toc
+*.log
+*.fdb_latexmk
+*.synctex*
+*.cpt
+
