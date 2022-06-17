@@ -69,9 +69,11 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
             case AST_FN_TYPE:
             case AST_ARRAY:
                 UNREACHABLE("should not evaluate");
+            case AST_ARGDEF:
+                propagateTypes(context, node->parent);
+                break;
             case AST_ERROR:
             case AST_TYPEDEF:
-            case AST_ARGDEF:
             case AST_VOID:
             case AST_STR:
             case AST_INT:
@@ -369,6 +371,50 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
                 }
                 break;
             }
+            case AST_STRUCT_LIT: {
+                AstList* n = (AstList*)node;
+                if (n->res_type != NULL) {
+                    TypeStruct* type = isStructType(n->res_type);
+                    if (type != NULL) {
+                        for (size_t i = 0; i < n->count; i++) {
+                            AstStructField* field = (AstStructField*)n->nodes[i];
+                            size_t idx = lookupIndexOfStructField(type, field->name->name);
+                            if (idx != NO_POS) {
+                                // TODO: NOW
+                                AstNode* type_reason = n->res_type_reasoning;
+                                if (propagateTypeIntoAstNode(context, field->field_value, type->types[idx], type_reason)) {
+                                    propagateTypes(context, field->field_value);
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    bool has_all = true;
+                    for (size_t i = 0; i < n->count; i++) {
+                        AstStructField* field = (AstStructField*)n->nodes[i];
+                        if (field->field_value->res_type == NULL) {
+                            has_all = false;
+                            break;
+                        }
+                    }
+                    if (has_all) {
+                        if (!checkStructFieldsHaveNoDups(context, n)) {
+                            Symbol* names = ALLOC(Symbol, n->count);
+                            Type** types = ALLOC(Type*, n->count);
+                            for (size_t i = 0; i < n->count; i++) {
+                                AstStructField* field = (AstStructField*)n->nodes[i];
+                                names[i] = field->name->name;
+                                types[i] = field->field_value->res_type;
+                            }
+                            Type* type = createTypeStruct(&context->types, names, types, n->count);
+                            if (propagateTypeIntoAstNode(context, node, type, node)) {
+                                propagateTypes(context, node->parent);
+                            }
+                        }
+                    }
+                }
+                break;
+            }
             case AST_ARRAY_LIT: {
                 AstList* n = (AstList*)node;
                 if (n->res_type != NULL) {
@@ -451,6 +497,7 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
                     if (type != NULL) {
                         size_t idx = lookupIndexOfStructField(type, n->field->name);
                         if (idx != NO_POS) {
+                            // TODO: NOW:
                             AstNode* type_reason = n->res_type_reasoning;
                             if (type_reason != NULL && type_reason->kind == AST_STRUCT_TYPE) {
                                 AstList* strct_node = (AstList*)type_reason;
@@ -700,6 +747,14 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                 evaluateTypeHints(context, n->value);
                 break;
             }
+            case AST_STRUCT_LIT: {
+                AstList* n = (AstList*)node;
+                for (size_t i = 0; i < n->count; i++) {
+                    AstStructField* field = (AstStructField*)n->nodes[i];
+                    evaluateTypeHints(context, field->field_value);
+                }
+                break;
+            }
             case AST_ARRAY_LIT: {
                 AstList* n = (AstList*)node;
                 for (size_t i = 0; i < n->count; i++) {
@@ -929,6 +984,14 @@ static void propagateAllTypes(CompilerContext* context, AstNode* node) {
                 propagateAllTypes(context, n->value);
                 break;
             }
+            case AST_STRUCT_LIT: {
+                AstList* n = (AstList*)node;
+                for (size_t i = 0; i < n->count; i++) {
+                    AstStructField* field = (AstStructField*)n->nodes[i];
+                    propagateAllTypes(context, field->field_value);
+                }
+                break;
+            }
             case AST_ARRAY_LIT:
             case AST_LIST: {
                 AstList* n = (AstList*)node;
@@ -1146,6 +1209,14 @@ static void assumeAmbiguousTypes(CompilerContext* context, AssumeAmbiguousPhase 
                 assumeAmbiguousTypes(context, phase, n->value);
                 break;
             }
+            case AST_STRUCT_LIT: {
+                AstList* n = (AstList*)node;
+                for (size_t i = 0; i < n->count; i++) {
+                    AstStructField* field = (AstStructField*)n->nodes[i];
+                    assumeAmbiguousTypes(context, phase, field->field_value);
+                }
+                break;
+            }
             case AST_ARRAY_LIT:
             case AST_LIST: {
                 AstList* n = (AstList*)node;
@@ -1274,6 +1345,14 @@ static void checkForUntypedVariables(CompilerContext* context, AstNode* node) {
             case AST_RETURN: {
                 AstReturn* n = (AstReturn*)node;
                 checkForUntypedVariables(context, n->value);
+                break;
+            }
+            case AST_STRUCT_LIT: {
+                AstList* n = (AstList*)node;
+                for (size_t i = 0; i < n->count; i++) {
+                    AstStructField* field = (AstStructField*)n->nodes[i];
+                    checkForUntypedVariables(context, field->field_value);
+                }
                 break;
             }
             case AST_ARRAY_LIT:
@@ -1452,6 +1531,14 @@ static void checkForUntypedNodes(CompilerContext* context, AstNode* node) {
                 case AST_RETURN: {
                     AstReturn* n = (AstReturn*)node;
                     checkForUntypedNodes(context, n->value);
+                    break;
+                }
+                case AST_STRUCT_LIT: {
+                    AstList* n = (AstList*)node;
+                    for (size_t i = 0; i < n->count; i++) {
+                        AstStructField* field = (AstStructField*)n->nodes[i];
+                        checkForUntypedNodes(context, field->field_value);
+                    }
                     break;
                 }
                 case AST_ARRAY_LIT:
@@ -1715,6 +1802,63 @@ static void raiseNoSuchFieldError(CompilerContext* context, AstStructIndex* node
     } else {
         addMessageToContext(
             &context->msgs, createMessage(ERROR_NO_SUCH_FIELD, message, 1, error)
+        );
+    }
+    freeString(type_name);
+}
+
+void raiseStructFieldMismatchError(CompilerContext* context, AstNode* node) {
+    // TODO: say what is different!
+    String type_name = buildTypeName(node->res_type);
+    String message = createFormattedString(
+        "inconsistent fields in struct literal, expected literal of type `%S`", type_name
+    );
+    MessageFragment* error = createMessageFragment(
+        MESSAGE_ERROR, copyFromCString("mismatch in struct field"), node->location
+    );
+    if (node->res_type_reasoning != NULL) {
+        addMessageToContext(
+            &context->msgs,
+            createMessage(
+                ERROR_NO_SUCH_FIELD, message, 2, error,
+                createMessageFragment(
+                    MESSAGE_NOTE,
+                    copyFromCString("note: struct type defined here"),
+                    node->res_type_reasoning->location
+                )
+            )
+        );
+    } else {
+        addMessageToContext(
+            &context->msgs, createMessage(ERROR_NO_SUCH_FIELD, message, 1, error)
+        );
+    }
+    freeString(type_name);
+}
+
+void raiseArrayLengthMismatchError(CompilerContext* context, AstNode* node) {
+    String type_name = buildTypeName(node->res_type);
+    String message = createFormattedString(
+        "inconsistent length of array literal, expected literal of type `%S`", type_name
+    );
+    MessageFragment* error = createMessageFragment(
+        MESSAGE_ERROR, copyFromCString("mismatch in array lengths"), node->location
+    );
+    if (node->res_type_reasoning != NULL) {
+        addMessageToContext(
+            &context->msgs,
+            createMessage(
+                ERROR_INCOMPATIBLE_TYPE, message, 2, error,
+                createMessageFragment(
+                    MESSAGE_NOTE,
+                    copyFromCString("note: array type defined here"),
+                    node->res_type_reasoning->location
+                )
+            )
+        );
+    } else {
+        addMessageToContext(
+            &context->msgs, createMessage(ERROR_INCOMPATIBLE_TYPE, message, 1, error)
         );
     }
     freeString(type_name);
@@ -2057,8 +2201,45 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                 checkTypeConstraints(context, n->value);
                 break;
             }
+            case AST_STRUCT_LIT: {
+                AstList* n = (AstList*)node;
+                if (n->res_type != NULL && !isErrorType(n->res_type)) {
+                    TypeStruct* type = isStructType(n->res_type);
+                    if (type != NULL) {
+                        sortStructFieldsByName(n);
+                        if (type->count != n->count) {
+                            raiseStructFieldMismatchError(context, node);
+                        } else {
+                            for (size_t i = 0; i < type->count; i++) {
+                                AstStructField* field = (AstStructField*)n->nodes[i];
+                                if (type->names[i] != field->name->name) {
+                                    raiseStructFieldMismatchError(context, node);
+                                    break;
+                                }
+                            }
+                        }
+                    } else {
+                        raiseLiteralTypeError(context, node, "struct literal");
+                    }
+                }
+                for (size_t i = 0; i < n->count; i++) {
+                    AstStructField* field = (AstStructField*)n->nodes[i];
+                    checkTypeConstraints(context, field->field_value);
+                }
+                break;
+            }
             case AST_ARRAY_LIT: {
                 AstList* n = (AstList*)node;
+                if (n->res_type != NULL && !isErrorType(n->res_type)) {
+                    TypeArray* type = isArrayType(n->res_type);
+                    if (type != NULL) {
+                        if (type->size != n->count) {
+                            raiseArrayLengthMismatchError(context, node);
+                        }
+                    } else {
+                        raiseLiteralTypeError(context, node, "array literal");
+                    }
+                }
                 for (size_t i = 0; i < n->count; i++) {
                     checkTypeConstraints(context, n->nodes[i]);
                 }

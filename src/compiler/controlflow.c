@@ -75,6 +75,16 @@ static bool controlFlowEndsWithReturn(CompilerContext* context, AstNode* node) {
                 return false;
             case AST_RETURN:
                 return true;
+            case AST_STRUCT_LIT: {
+                AstList* n = (AstList*)node;
+                for (size_t i = 0; i < n->count; i++) {
+                    AstStructField* field = (AstStructField*)n->nodes[i];
+                    if (controlFlowEndsWithReturn(context, field->field_value)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
             case AST_ARRAY_LIT:
             case AST_LIST: {
                 AstList* n = (AstList*)node;

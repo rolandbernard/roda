@@ -24,6 +24,42 @@ static bool compareStructFieldNames(size_t i, size_t j, void* cxt) {
     }
 }
 
+void sortStructFieldsByName(AstList* n) {
+    heapSort(n->count, swapStructFields, compareStructFieldNames, n->nodes);
+}
+
+bool checkStructFieldsHaveNoDups(CompilerContext* context, AstList* n) {
+    sortStructFieldsByName(n);
+    bool error = false;
+    for (size_t i = 1; i < n->count; i++) {
+        AstStructField* last = (AstStructField*)n->nodes[i - 1];
+        AstStructField* field = (AstStructField*)n->nodes[i];
+        if (field->name->name == last->name->name) {
+            addMessageToContext(
+                &context->msgs,
+                createMessage(
+                    ERROR_DUPLICATE_STRUCT_FIELD,
+                    createFormattedString(
+                        "duplicate definition of struct field named `%s`", field->name->name
+                    ),
+                    2,
+                    createMessageFragment(
+                        MESSAGE_ERROR, copyFromCString("duplicate field definition"),
+                        field->name->location
+                    ),
+                    createMessageFragment(
+                        MESSAGE_NOTE, copyFromCString("note: previously defined here"),
+                        last->name->location
+                    )
+                )
+            );
+            error = true;
+            break;
+        }
+    }
+    return error;
+}
+
 Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
     if (node == NULL) {
         UNREACHABLE("should not evaluate");
@@ -88,6 +124,7 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
             case AST_SIZEOF:
             case AST_ROOT:
             case AST_ARRAY_LIT:
+            case AST_STRUCT_LIT:
             case AST_LIST:
             case AST_BLOCK:
             case AST_VARDEF: {
@@ -167,38 +204,16 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
             }
             case AST_STRUCT_TYPE: {
                 AstList* n = (AstList*)node;
-                AstStructField** nodes = ALLOC(AstStructField*, n->count);
-                memcpy(nodes, n->nodes, sizeof(AstNode*) * n->count);
-                heapSort(n->count, swapStructFields, compareStructFieldNames, nodes);
-                bool error = false;
-                for (size_t i = 1; i < n->count; i++) {
-                    if (nodes[i]->name->name == nodes[i - 1]->name->name) {
-                        addMessageToContext(
-                            &context->msgs,
-                            createMessage(ERROR_DUPLICATE_STRUCT_FIELD,
-                                createFormattedString("duplicate definition of struct field named `%s`", nodes[i]->name->name), 2,
-                                createMessageFragment(MESSAGE_ERROR,
-                                    copyFromCString("duplicate field definition"), nodes[i]->name->location
-                                ),
-                                createMessageFragment(MESSAGE_NOTE,
-                                    copyFromCString("note: previously defined here"), nodes[i - 1]->name->location
-                                )
-                            )
-                        );
-                        error = true;
-                        break;
-                    }
-                }
-                if (!error) {
+                if (!checkStructFieldsHaveNoDups(context, n)) {
                     Symbol* names = ALLOC(Symbol, n->count);
                     Type** types = ALLOC(Type*, n->count);
                     for (size_t i = 0; i < n->count; i++) {
-                        names[i] = nodes[i]->name->name;
-                        types[i] = evaluateTypeExpr(context, nodes[i]->type);
+                        AstStructField* field = (AstStructField*)n->nodes[i];
+                        names[i] = field->name->name;
+                        types[i] = evaluateTypeExpr(context, field->type);
                     }
                     n->res_type = createTypeStruct(&context->types, names, types, n->count);
                 }
-                FREE(nodes);
                 break;
             }
         }

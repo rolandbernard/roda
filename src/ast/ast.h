@@ -66,6 +66,8 @@ typedef enum {
     AST_CALL,
     AST_TYPEDEF,
     AST_ARGDEF,
+    AST_FIELD_DEF = AST_ARGDEF,
+    AST_FIELD_VAL = AST_ARGDEF,
     AST_LIST,
     AST_ROOT,
     AST_BLOCK,
@@ -74,6 +76,7 @@ typedef enum {
     AST_FN_TYPE,
     AST_STRUCT_TYPE,
     AST_STRUCT_INDEX,
+    AST_STRUCT_LIT,
 
     AST_INT,
     AST_CHAR,
@@ -193,6 +196,7 @@ typedef struct {
     AST_NODE_BASE
     AstVar* name;
     AstNode* type;
+#define field_value type
 } AstArgDef;
 
 typedef AstArgDef AstStructField;

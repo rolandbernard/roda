@@ -266,6 +266,7 @@ void freeAstNode(AstNode* node) {
             }
             case AST_STRUCT_TYPE:
             case AST_ARRAY_LIT:
+            case AST_STRUCT_LIT:
             case AST_LIST: {
                 AstList* n = (AstList*)node;
                 for (size_t i = 0; i < n->count; i++) {

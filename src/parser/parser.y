@@ -49,11 +49,11 @@ extern void yyerror(YYLTYPE* yyllocp, yyscan_t scanner, ParserContext* context, 
 %destructor { freeDynamicAstList($$); } <dynlist>
 
 %type <ast> root block stmt block_stmt type expr root_stmt if
-%type <ast> arg_def opt_type assign integer real string bool
+%type <ast> arg_def opt_type assign integer real string bool field_val
 %type <ident> ident
 %type <arg_defs> arg_defs arg_types
 %type <dynlist> arg_def_list stmts root_stmts list
-%type <dynlist> type_list_nonempty list_nonempty
+%type <dynlist> type_list_nonempty list_nonempty field_vals
 
 %token <lexeme> ID      "identifier"
 %token <lexeme> STR     "string"
@@ -219,6 +219,8 @@ expr    : ident                         { $$ = (AstNode*)$1; }
         | '(' ')'                       { $$ = createAstSimple(@$, AST_VOID); }
         | '[' list ']'                  { $$ = (AstNode*)toStaticAstList($2); $$->kind = AST_ARRAY_LIT; $$->location = @$; }
         | '(' expr ')'                  { $$ = $2; }
+        | '(' field_vals ')'            { $$ = (AstNode*)toStaticAstList($2); $$->kind = AST_STRUCT_LIT; $$->location = @$; }
+        | '(' field_vals ',' ')'        { $$ = (AstNode*)toStaticAstList($2); $$->kind = AST_STRUCT_LIT; $$->location = @$; }
         | '-' expr %prec UNARY_PRE      { $$ = (AstNode*)createAstUnary(@$, AST_NEG, $2); }
         | '+' expr %prec UNARY_PRE      { $$ = (AstNode*)createAstUnary(@$, AST_POS, $2); }
         | '*' expr %prec UNARY_PRE      { $$ = (AstNode*)createAstUnary(@$, AST_ADDR, $2); }
@@ -250,6 +252,13 @@ expr    : ident                         { $$ = (AstNode*)$1; }
         | expr '[' error ']'            { $$ = createAstSimple(@$, AST_ERROR); freeAstNode($1); }
         | expr '(' error ')'            { $$ = createAstSimple(@$, AST_ERROR); freeAstNode($1); }
         ;
+
+field_vals  : field_val                      { $$ = createDynamicAstList(); addToDynamicAstList($$, $1); $$->location = @$; }
+            | field_vals ',' field_val     { $$ = $1; addToDynamicAstList($1, $3); $$->location = @$; }
+            ;
+
+field_val : ident '=' expr { $$ = (AstNode*)createAstArgDef(@$, $1, $3); }
+          ;
 
 list    : %empty                { $$ = createDynamicAstList(); $$->location = @$; }
         | list_nonempty         { $$ = $1; }

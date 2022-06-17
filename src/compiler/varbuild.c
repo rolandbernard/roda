@@ -115,6 +115,14 @@ static void buildLocalSymbolTables(CompilerContext* context, AstNode* node, Symb
                 }
                 break;
             }
+            case AST_STRUCT_LIT: {
+                AstList* n = (AstList*)node;
+                for (size_t i = 0; i < n->count; i++) {
+                    AstStructField* field = (AstStructField*)n->nodes[i];
+                    buildLocalSymbolTables(context, field->field_value, scope, type);
+                }
+                break;
+            }
             case AST_ARRAY_LIT:
             case AST_LIST: {
                 AstList* n = (AstList*)node;
@@ -341,6 +349,14 @@ static void buildControlFlowReferences(CompilerContext* context, AstNode* node, 
                 AstReturn* n = (AstReturn*)node;
                 n->function = function;
                 buildControlFlowReferences(context, n->value, function);
+                break;
+            }
+            case AST_STRUCT_LIT: {
+                AstList* n = (AstList*)node;
+                for (size_t i = 0; i < n->count; i++) {
+                    AstStructField* field = (AstStructField*)n->nodes[i];
+                    buildControlFlowReferences(context, field->field_value, function);
+                }
                 break;
             }
             case AST_ARRAY_LIT:

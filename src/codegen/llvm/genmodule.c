@@ -180,6 +180,24 @@ static LlvmCodegenValue buildFunctionBody(LlvmCodegenContext* context, LlvmCodeg
         case AST_ERROR: {
             UNREACHABLE("should not evaluate");
         }
+        case AST_STRUCT_LIT: {
+            AstList* n = (AstList*)node;
+            TypeStruct* type = isStructType(n->res_type);
+            LLVMValueRef stack = buildLlvmIntrinsicCall(context, data, "llvm.stacksave", NULL, 0, "stacksave", false);
+            LLVMValueRef tmp = LLVMBuildAlloca(data->builder, generateLlvmType(context, n->res_type), "tmp");
+            for (size_t i = 0; i < type->count; i++) {
+                AstStructField* field = (AstStructField*)n->nodes[i];
+                size_t idx = lookupIndexOfStructField(type, field->name->name);
+                LLVMValueRef value_ref = LLVMBuildStructGEP2(
+                    data->builder, generateLlvmType(context, n->res_type), tmp, idx, "index"
+                );
+                LLVMValueRef elem_val = getCodegenValue(context, data, field->field_value);
+                LLVMBuildStore(data->builder, elem_val, value_ref);
+            }
+            LLVMValueRef value = LLVMBuildLoad2(data->builder, generateLlvmType(context, n->res_type), tmp, "tmp");
+            buildLlvmIntrinsicCall(context, data, "llvm.stackrestore", &stack, 1, "", false);
+            return createLlvmCodegenValue(value, false);
+        }
         case AST_ARRAY_LIT: {
             AstList* n = (AstList*)node;
             TypeArray* type = isArrayType(node->res_type);
@@ -636,6 +654,14 @@ static void buildFunctionVariables(LlvmCodegenContext* context, LLVMBuilderRef b
             case AST_RETURN: {
                 AstReturn* n = (AstReturn*)node;
                 buildFunctionVariables(context, builder, n->value);
+                break;
+            }
+            case AST_STRUCT_LIT: {
+                AstList* n = (AstList*)node;
+                for (size_t i = 0; i < n->count; i++) {
+                    AstStructField* field = (AstStructField*)n->nodes[i];
+                    buildFunctionVariables(context, builder, field->field_value);
+                }
                 break;
             }
             case AST_ARRAY_LIT:
