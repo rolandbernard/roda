@@ -175,6 +175,7 @@ static LlvmCodegenValue buildFunctionBody(LlvmCodegenContext* context, LlvmCodeg
     ASSERT(node != NULL);
     switch (node->kind) {
         case AST_ARRAY:
+        case AST_FN_TYPE:
         case AST_ERROR: {
             UNREACHABLE("should not evaluate");
         }
@@ -531,6 +532,7 @@ static LlvmCodegenValue buildFunctionBody(LlvmCodegenContext* context, LlvmCodeg
 static void buildFunctionVariables(LlvmCodegenContext* context, LLVMBuilderRef builder, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
+            case AST_FN_TYPE:
             case AST_ARRAY: {
                 UNREACHABLE("should not evaluate");
             }

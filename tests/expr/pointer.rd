@@ -15,5 +15,8 @@ pub fn main(): int {
     if a != 3528 || &b != 3528 || &c != 3528 {
         return 3;
     }
+    if b != c || *a != b || *a != c {
+        return 4;
+    }
     return 0;
 }

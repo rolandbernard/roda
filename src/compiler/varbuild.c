@@ -150,6 +150,12 @@ static void buildLocalSymbolTables(CompilerContext* context, AstNode* node, Symb
                 buildLocalSymbolTables(context, n->block, scope, type);
                 break;
             }
+            case AST_FN_TYPE: {
+                AstFnType* n = (AstFnType*)node;
+                buildLocalSymbolTables(context, (AstNode*)n->arguments, scope, type);
+                buildLocalSymbolTables(context, n->ret_type, scope, type);
+                break;
+            }
             case AST_FN: {
                 AstFn* n = (AstFn*)node;
                 buildLocalSymbolTables(context, n->ret_type, scope, true);
@@ -258,6 +264,9 @@ void runSymbolResolution(CompilerContext* context) {
 static void buildControlFlowReferences(CompilerContext* context, AstNode* node, AstFn* function) {
     if (node != NULL) {
         switch (node->kind) {
+            case AST_ARRAY:
+            case AST_FN_TYPE:
+                UNREACHABLE("should not evaluate");
             case AST_ADD_ASSIGN:
             case AST_SUB_ASSIGN:
             case AST_MUL_ASSIGN:
@@ -303,12 +312,6 @@ static void buildControlFlowReferences(CompilerContext* context, AstNode* node, 
                 buildControlFlowReferences(context, n->right, function);
                 break;
             }
-            case AST_ARRAY: { // Part of a type
-                AstBinary* n = (AstBinary*)node;
-                buildControlFlowReferences(context, n->right, function);
-                buildControlFlowReferences(context, n->left, function);
-                break;
-            }
             case AST_POS:
             case AST_NEG:
             case AST_ADDR:
@@ -346,7 +349,6 @@ static void buildControlFlowReferences(CompilerContext* context, AstNode* node, 
             }
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
-                buildControlFlowReferences(context, n->type, function);
                 buildControlFlowReferences(context, n->val, function);
                 break;
             }
@@ -365,7 +367,6 @@ static void buildControlFlowReferences(CompilerContext* context, AstNode* node, 
             }
             case AST_FN: {
                 AstFn* n = (AstFn*)node;
-                buildControlFlowReferences(context, n->ret_type, n);
                 buildControlFlowReferences(context, (AstNode*)n->arguments, n);
                 buildControlFlowReferences(context, n->body, n);
                 break;
@@ -376,16 +377,8 @@ static void buildControlFlowReferences(CompilerContext* context, AstNode* node, 
                 buildControlFlowReferences(context, (AstNode*)n->arguments, function);
                 break;
             }
-            case AST_TYPEDEF: {
-                AstTypeDef* n = (AstTypeDef*)node;
-                buildControlFlowReferences(context, n->value, function);
-                break;
-            }
-            case AST_ARGDEF: {
-                AstArgDef* n = (AstArgDef*)node;
-                buildControlFlowReferences(context, n->type, function);
-                break;
-            }
+            case AST_TYPEDEF:
+            case AST_ARGDEF:
             case AST_VAR:
             case AST_ERROR:
             case AST_VOID:

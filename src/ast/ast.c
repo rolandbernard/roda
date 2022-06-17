@@ -193,6 +193,17 @@ AstReturn* createAstReturn(Span loc, AstNode* value) {
     return node;
 }
 
+AstFnType* createAstFnType(Span loc, AstList* arguments, AstNode* ret_type, bool vararg) {
+    AstFnType* node = NEW(AstFnType);
+    initAstNode((AstNode*)node, AST_FN_TYPE, loc);
+    node->arguments = arguments;
+    node->ret_type = ret_type;
+    node->vararg = vararg;
+    SET_PARENT(arguments);
+    SET_PARENT(ret_type);
+    return node;
+}
+
 void freeAstNode(AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
@@ -282,6 +293,12 @@ void freeAstNode(AstNode* node) {
                 AstWhile* n = (AstWhile*)node;
                 freeAstNode(n->condition);
                 freeAstNode(n->block);
+                break;
+            }
+            case AST_FN_TYPE: {
+                AstFnType* n = (AstFnType*)node;
+                freeAstNode((AstNode*)n->arguments);
+                freeAstNode(n->ret_type);
                 break;
             }
             case AST_FN: {

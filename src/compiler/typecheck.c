@@ -9,43 +9,47 @@
 
 #include "compiler/typecheck.h"
 
+static void raiseConflictingTypes(CompilerContext* context, AstNode* node, Type* other, AstNode* other_reason) {
+    String fst_type = buildTypeName(node->res_type);
+    String snd_type = buildTypeName(other);
+    String message = createFormattedString("type error, conflicting types `%S` and `%S`", fst_type, snd_type);
+    MessageFragment* error = createMessageFragment(MESSAGE_ERROR,
+        createFormattedString("conflicting types `%S` and `%S` for this expression", fst_type, snd_type), node->location
+    );
+    MessageFragment* notes[2];
+    size_t note_count = 0;
+    if (node->res_type_reasoning != NULL) {
+        notes[note_count] = createMessageFragment(MESSAGE_NOTE,
+            createFormattedString("note: expecting `%S` because of this", fst_type),
+            node->res_type_reasoning->location
+        );
+        note_count++;
+    }
+    if (other_reason != NULL) {
+        notes[note_count] = createMessageFragment(MESSAGE_NOTE,
+            createFormattedString("note: expecting `%S` because of this", snd_type),
+            other_reason->location
+        );
+        note_count++;
+    }
+    if (note_count == 0) {
+        addMessageToContext(&context->msgs, createMessage(ERROR_INCOMPATIBLE_TYPE, message, 1, error));
+    } else if (note_count == 1) {
+        addMessageToContext(&context->msgs, createMessage(ERROR_INCOMPATIBLE_TYPE, message, 2, error, notes[0]));
+    } else {
+        addMessageToContext(&context->msgs, createMessage(ERROR_INCOMPATIBLE_TYPE, message, 3, error, notes[0], notes[1]));
+    }
+    freeString(fst_type);
+    freeString(snd_type);
+}
+
 static bool propagateTypeIntoAstNode(CompilerContext* context, AstNode* node, Type* type, AstNode* reasoning) {
     if (node->res_type == NULL) {
         node->res_type = type;
         node->res_type_reasoning = reasoning;
         return true;
     } else if (!isErrorType(type) && !isErrorType(node->res_type) && !compareStructuralTypes(node->res_type, type)) {
-        String fst_type = buildTypeName(node->res_type);
-        String snd_type = buildTypeName(type);
-        String message = createFormattedString("type error, conflicting types `%S` and `%S`", fst_type, snd_type);
-        MessageFragment* error = createMessageFragment(MESSAGE_ERROR,
-            createFormattedString("conflicting types `%S` and `%S` for this expression", fst_type, snd_type), node->location
-        );
-        MessageFragment* notes[2];
-        size_t note_count = 0;
-        if (node->res_type_reasoning != NULL) {
-            notes[note_count] = createMessageFragment(MESSAGE_NOTE,
-                createFormattedString("note: expecting `%S` because of this", fst_type),
-                node->res_type_reasoning->location
-            );
-            note_count++;
-        }
-        if (reasoning != NULL) {
-            notes[note_count] = createMessageFragment(MESSAGE_NOTE,
-                createFormattedString("note: expecting `%S` because of this", snd_type),
-                reasoning->location
-            );
-            note_count++;
-        }
-        if (note_count == 0) {
-            addMessageToContext(&context->msgs, createMessage(ERROR_INCOMPATIBLE_TYPE, message, 1, error));
-        } else if (note_count == 1) {
-            addMessageToContext(&context->msgs, createMessage(ERROR_INCOMPATIBLE_TYPE, message, 2, error, notes[0]));
-        } else {
-            addMessageToContext(&context->msgs, createMessage(ERROR_INCOMPATIBLE_TYPE, message, 3, error, notes[0], notes[1]));
-        }
-        freeString(fst_type);
-        freeString(snd_type);
+        raiseConflictingTypes(context, node, type, reasoning);
         node->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
         node->res_type_reasoning = NULL;
         return true;
@@ -61,6 +65,7 @@ static bool propagateTypeFromIntoAstNode(CompilerContext* context, AstNode* into
 static void propagateTypes(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
+            case AST_FN_TYPE:
             case AST_ARRAY:
                 UNREACHABLE("should not evaluate");
             case AST_ERROR:
@@ -214,7 +219,7 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
                         AstNode* type_reason = n->left->res_type_reasoning;
                         if (type_reason != NULL && type_reason->kind == AST_ADDR) {
                             AstUnary* addr_node = (AstUnary*)type_reason;
-                            type_reason = addr_node->op;
+                            type_reason = addr_node->op->res_type_reasoning;
                         }
                         if (propagateTypeIntoAstNode(context, node, ptr_type->base, type_reason)) {
                             propagateTypes(context, node->parent);
@@ -250,7 +255,7 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
             case AST_ADDR: {
                 AstUnary* n = (AstUnary*)node;
                 if (n->op->res_type != NULL) {
-                    if (propagateTypeIntoAstNode(context, node, createPointerType(&context->types, n->op->res_type), n->op->res_type_reasoning)) {
+                    if (propagateTypeIntoAstNode(context, node, createPointerType(&context->types, n->op->res_type), node)) {
                         propagateTypes(context, node->parent);
                     }
                 } else if (n->res_type != NULL) {
@@ -259,7 +264,7 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
                         AstNode* type_reason = node->res_type_reasoning;
                         if (type_reason != NULL && type_reason->kind == AST_ADDR) {
                             AstUnary* addr_node = (AstUnary*)type_reason;
-                            type_reason = addr_node->op;
+                            type_reason = addr_node->op->res_type_reasoning;
                         }
                         if (propagateTypeIntoAstNode(context, n->op, type->base, type_reason)) {
                             propagateTypes(context, n->op);
@@ -284,7 +289,7 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
                         AstNode* type_reason = n->op->res_type_reasoning;
                         if (type_reason != NULL && type_reason->kind == AST_ADDR) {
                             AstUnary* addr_node = (AstUnary*)type_reason;
-                            type_reason = addr_node->op;
+                            type_reason = addr_node->op->res_type_reasoning;
                         }
                         if (propagateTypeIntoAstNode(context, node, type->base, type_reason)) {
                             propagateTypes(context, node->parent);
@@ -315,6 +320,13 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
                             } else {
                                 type_reason = fn_node->ret_type;
                             }
+                        } else if (type_reason != NULL && type_reason->kind == AST_FN_TYPE) {
+                            AstFnType* fn_node = (AstFnType*)type_reason;
+                            if (fn_node->ret_type == NULL) {
+                                type_reason = (AstNode*)fn_node;
+                            } else {
+                                type_reason = fn_node->ret_type;
+                            }
                         }
                         if (propagateTypeIntoAstNode(context, node, type->ret_type, type_reason)) {
                             propagateTypes(context, node->parent);
@@ -329,6 +341,9 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
                                 } else {
                                     type_reason = arg_node->type;
                                 }
+                            } else if (type_reason != NULL && type_reason->kind == AST_FN_TYPE) {
+                                AstFnType* fn_node = (AstFnType*)type_reason;
+                                type_reason = fn_node->arguments->nodes[i];
                             }
                             if (propagateTypeIntoAstNode(context, n->arguments->nodes[i], type->arguments[i], type_reason)) {
                                 propagateTypes(context, n->arguments->nodes[i]);
@@ -398,6 +413,13 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
                             AstFn* fn_node = (AstFn*)type_reason;
                             if (fn_node->ret_type == NULL) {
                                 type_reason = (AstNode*)fn_node->name;
+                            } else {
+                                type_reason = fn_node->ret_type;
+                            }
+                        } else if (type_reason != NULL && type_reason->kind == AST_FN_TYPE) {
+                            AstFnType* fn_node = (AstFnType*)type_reason;
+                            if (fn_node->ret_type == NULL) {
+                                type_reason = (AstNode*)fn_node;
                             } else {
                                 type_reason = fn_node->ret_type;
                             }
@@ -507,6 +529,7 @@ static void propagateToVariableReferences(CompilerContext* context, AstVar* node
 static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
+            case AST_FN_TYPE:
             case AST_ARRAY: {
                 UNREACHABLE("should not evaluate");
             }
@@ -790,6 +813,7 @@ static void propagateAllTypes(CompilerContext* context, AstNode* node) {
         propagateTypes(context, node);
         switch (node->kind) {
             case AST_ARRAY:
+            case AST_FN_TYPE:
                 UNREACHABLE("should not evaluate");
             case AST_ERROR:
             case AST_TYPEDEF:
@@ -933,6 +957,7 @@ static void assumeAmbiguousTypes(CompilerContext* context, AssumeAmbiguousPhase 
     if (node != NULL) {
         switch (node->kind) {
             case AST_ARRAY:
+            case AST_FN_TYPE:
                 UNREACHABLE("should not evaluate");
             case AST_ERROR:
             case AST_VAR:
@@ -1132,6 +1157,7 @@ static void checkForUntypedVariables(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
             case AST_ARRAY:
+            case AST_FN_TYPE:
                 UNREACHABLE("should not evaluate");
             case AST_ERROR:
             case AST_TYPEDEF:
@@ -1302,6 +1328,7 @@ static void checkForUntypedNodes(CompilerContext* context, AstNode* node) {
         } else {
             switch (node->kind) {
                 case AST_ARRAY:
+                case AST_FN_TYPE:
                     UNREACHABLE("should not evaluate");
                 case AST_ERROR:
                 case AST_TYPEDEF:
@@ -1441,7 +1468,7 @@ static void raiseLiteralTypeError(CompilerContext* context, AstNode* node, const
         addMessageToContext(
             &context->msgs,
             createMessage(
-                ERROR_UNINFERRED_TYPE, message, 2, error,
+                ERROR_INCOMPATIBLE_TYPE, message, 2, error,
                 createMessageFragment(
                     MESSAGE_NOTE,
                     createFormattedString("note: expecting `%S` because of this", actual_type),
@@ -1451,13 +1478,16 @@ static void raiseLiteralTypeError(CompilerContext* context, AstNode* node, const
         );
     } else {
         addMessageToContext(
-            &context->msgs, createMessage(ERROR_UNINFERRED_TYPE, message, 1, error)
+            &context->msgs, createMessage(ERROR_INCOMPATIBLE_TYPE, message, 1, error)
         );
     }
     freeString(actual_type);
 }
 
-static void raiseOpTypeError(CompilerContext* context, AstNode* node, AstNode* err_node, Type* type, AstNode* reasoning, const char* hint) {
+static void raiseOpTypeErrorWithHelp(
+    CompilerContext* context, AstNode* node, AstNode* err_node, Type* type, AstNode* reasoning,
+    const char* hint, const char* help, Span help_location
+) {
     String type_name = buildTypeName(type);
     String message = createFormattedString(
         "type error, incompatible type `%S` for %s expession%s", type_name, getAstPrintName(node->kind), hint
@@ -1465,24 +1495,39 @@ static void raiseOpTypeError(CompilerContext* context, AstNode* node, AstNode* e
     MessageFragment* error = createMessageFragment(
         MESSAGE_ERROR, createFormattedString("`%S` type not allowed here", type_name), err_node->location
     );
+    MessageFragment* frags[2];
+    size_t frag_count = 0;
     if (reasoning != NULL) {
+        frags[frag_count] = createMessageFragment(
+            MESSAGE_NOTE, createFormattedString("note: type `%S` defined here", type_name), reasoning->location
+        );
+        frag_count++;
+    }
+    if (help != NULL) {
+        frags[frag_count] = createMessageFragment(MESSAGE_HELP, copyFromCString(help), help_location);
+        frag_count++;
+    }
+    if (frag_count == 0) {
         addMessageToContext(
-            &context->msgs,
-            createMessage(
-                ERROR_UNINFERRED_TYPE, message, 2, error,
-                createMessageFragment(
-                    MESSAGE_NOTE,
-                    createFormattedString("note: type `%S` defined here", type_name),
-                    reasoning->location
-                )
-            )
+            &context->msgs, createMessage(ERROR_INCOMPATIBLE_TYPE, message, 1, error)
+        );
+    } else if (frag_count == 1) {
+        addMessageToContext(
+            &context->msgs, createMessage(ERROR_INCOMPATIBLE_TYPE, message, 2, error, frags[0])
         );
     } else {
         addMessageToContext(
-            &context->msgs, createMessage(ERROR_UNINFERRED_TYPE, message, 1, error)
+            &context->msgs,
+            createMessage(ERROR_INCOMPATIBLE_TYPE, message, 3, error, frags[0], frags[1])
         );
     }
     freeString(type_name);
+}
+
+static void raiseOpTypeError(
+    CompilerContext* context, AstNode* node, AstNode* err_node, Type* type, AstNode* reasoning, const char* hint
+) {
+    raiseOpTypeErrorWithHelp(context, node, err_node, type, reasoning, hint, NULL, invalidSpan());
 }
 
 static void raiseArgCountError(CompilerContext* context, TypeFunction* type, AstList* arguments, AstNode* reasoning) {
@@ -1498,7 +1543,7 @@ static void raiseArgCountError(CompilerContext* context, TypeFunction* type, Ast
         addMessageToContext(
             &context->msgs,
             createMessage(
-                ERROR_UNINFERRED_TYPE, message, 2, error,
+                ERROR_ARGUMENT_COUNT, message, 2, error,
                 createMessageFragment(
                     MESSAGE_NOTE,
                     copyFromCString("note: function defined here"),
@@ -1508,7 +1553,7 @@ static void raiseArgCountError(CompilerContext* context, TypeFunction* type, Ast
         );
     } else {
         addMessageToContext(
-            &context->msgs, createMessage(ERROR_UNINFERRED_TYPE, message, 1, error)
+            &context->msgs, createMessage(ERROR_ARGUMENT_COUNT, message, 1, error)
         );
     }
 }
@@ -1641,6 +1686,7 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
             case AST_ARRAY:
+            case AST_FN_TYPE:
                 UNREACHABLE("should not evaluate");
             case AST_ERROR:
             case AST_TYPEDEF:
@@ -1964,7 +2010,19 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                 if (n->function->res_type != NULL && !isErrorType(n->function->res_type)) {
                     TypeFunction* type = isFunctionType(n->function->res_type);
                     if (type == NULL) {
-                        raiseOpTypeError(context, node, n->function, n->function->res_type, n->function->res_type_reasoning, ", must be a function");
+                        TypePointer* ptr_type = isPointerType(n->function->res_type);
+                        if (ptr_type != NULL && isFunctionType(ptr_type->base)) {
+                            raiseOpTypeErrorWithHelp(
+                                context, node, n->function, n->function->res_type,
+                                n->function->res_type_reasoning, ", must be a function",
+                                "help: consider dereferencing before the function call, e.g. `(&_)(..)`", invalidSpan()
+                            );
+                        } else {
+                            raiseOpTypeError(
+                                context, node, n->function, n->function->res_type,
+                                n->function->res_type_reasoning, ", must be a function"
+                            );
+                        }
                     } else if (type->arg_count != n->arguments->count && (!type->vararg || type->arg_count > n->arguments->count)) {
                         raiseArgCountError(context, type, n->arguments, n->function->res_type_reasoning);
                     }
@@ -1991,13 +2049,13 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
 
 static void checkTypes(CompilerContext* context, AstNode* node) {
     if (context->msgs.error_count == 0) {
+        checkTypeConstraints(context, node);
+    }
+    if (context->msgs.error_count == 0) {
         checkForUntypedVariables(context, node);
     }
     if (context->msgs.error_count == 0) {
         checkForUntypedNodes(context, node);
-    }
-    if (context->msgs.error_count == 0) {
-        checkTypeConstraints(context, node);
     }
 }
 

@@ -259,6 +259,7 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
     } else {
         ConstValue res;
         switch (node->kind) {
+            case AST_FN_TYPE:
             case AST_ERROR: {
                 res = createConstError(context);
                 break;

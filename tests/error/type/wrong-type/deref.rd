@@ -1,5 +1,5 @@
 // test: Compiler should find a type conflict
-// stderr: = error[E0011]: 5:9: type error, unable to infer the type of variable `b`\n
+// stderr: = error[E0008]: 5:14: type error, incompatible type `int` for dereference expession, must be a pointer\n
 
 pub fn foo(a: int) {
     let b = &a;

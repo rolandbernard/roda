@@ -1,5 +1,5 @@
 // test: Compiler should find a type conflict
-// stderr: = error[E0011]: 6:13: type error, incompatible type `f64` for binary and expession, must be an integer value\n
+// stderr: = error[E0008]: 6:13: type error, incompatible type `f64` for binary and expession, must be an integer value\n
 
 pub fn foo(a: f64) {
     let b = 5.5;

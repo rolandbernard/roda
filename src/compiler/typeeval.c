@@ -3,6 +3,7 @@
 #include "errors/fatalerror.h"
 #include "errors/msgkind.h"
 #include "text/format.h"
+#include "util/alloc.h"
 
 #include "compiler/typeeval.h"
 
@@ -131,7 +132,23 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
                 }
                 break;
             }
+            case AST_FN_TYPE: {
+                AstFnType* n = (AstFnType*)node;
+                Type** args = ALLOC(Type*, n->arguments->count);
+                for (size_t i = 0; i < n->arguments->count; i++) {
+                    args[i] = evaluateTypeExpr(context, n->arguments->nodes[i]);
+                }
+                Type* ret_type = NULL;
+                if (n->ret_type != NULL) {
+                    ret_type = evaluateTypeExpr(context, n->ret_type);
+                } else {
+                    ret_type = createUnsizedPrimitiveType(&context->types, TYPE_VOID);
+                }
+                n->res_type = createFunctionType(&context->types, ret_type, n->arguments->count, args, n->vararg);
+                break;
+            }
         }
+        node->res_type_reasoning = node;
         return node->res_type;
     }
 }

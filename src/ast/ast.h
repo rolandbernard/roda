@@ -71,6 +71,7 @@ typedef enum {
     AST_BLOCK,
     AST_RETURN,
     AST_ARRAY_LIT,
+    AST_FN_TYPE,
 
     AST_INT,
     AST_CHAR,
@@ -210,6 +211,13 @@ typedef struct {
     AstFn* function;
 } AstReturn;
 
+typedef struct {
+    AST_NODE_BASE
+    AstList* arguments;
+    AstNode* ret_type;
+    bool vararg;
+} AstFnType;
+
 AstNode* createAstSimple(Span loc, AstNodeKind kind);
 
 AstBinary* createAstBinary(Span loc, AstNodeKind kind, AstNode* left, AstNode* right);
@@ -247,6 +255,8 @@ AstTypeDef* createAstTypeDef(Span loc, AstVar* name, AstNode* value);
 AstArgDef* createAstArgDef(Span loc, AstVar* name, AstNode* type);
 
 AstReturn* createAstReturn(Span loc, AstNode* value);
+
+AstFnType* createAstFnType(Span loc, AstList* arguments, AstNode* ret_type, bool vararg);
 
 void freeAstNode(AstNode* node);
 

@@ -67,6 +67,7 @@ static const char* ast_type_names[] = {
     [AST_IF_ELSE] = "if-else",
     [AST_WHILE] = "while",
     [AST_FN] = "function",
+    [AST_FN_TYPE] = "function type",
     [AST_CALL] = "call",
     [AST_INT] = "integer",
     [AST_CHAR] = "character",
@@ -323,6 +324,15 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
                 printAstChildNode(file, n->block, colors, indent, "block", true);
                 break;
             }
+            case AST_FN_TYPE: {
+                AstFnType* n = (AstFnType*)node;
+                fprintf(file, " (vararg = %s)", n->vararg ? "true" : "false");
+                printAstNodeExtraInfo(file, node, colors);
+                fprintf(file, "\n");
+                printAstChildNode(file, (AstNode*)n->arguments, colors, indent, "arguments", false);
+                printAstChildNode(file, n->ret_type, colors, indent, "ret_type", false);
+                break;
+            }
             case AST_FN: {
                 AstFn* n = (AstFn*)node;
                 fprintf(file, " (flags =");
@@ -330,10 +340,13 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
                     fprintf(file, " none");
                 } else {
                     if ((n->flags & AST_FN_FLAG_EXPORT) != 0) {
-                        fprintf(file, " export");
+                        fprintf(file, " public");
                     }
                     if ((n->flags & AST_FN_FLAG_IMPORT) != 0) {
-                        fprintf(file, " import");
+                        fprintf(file, " extern");
+                    }
+                    if ((n->flags & AST_FN_FLAG_VARARG) != 0) {
+                        fprintf(file, " vararg");
                     }
                 }
                 fprintf(file, ")");
