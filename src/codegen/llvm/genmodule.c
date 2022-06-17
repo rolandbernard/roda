@@ -174,6 +174,7 @@ static LLVMValueRef buildLlvmIntrinsicCall(
 static LlvmCodegenValue buildFunctionBody(LlvmCodegenContext* context, LlvmCodegenBodyContext* data, AstNode* node) {
     ASSERT(node != NULL);
     switch (node->kind) {
+        case AST_STRUCT_TYPE:
         case AST_ARRAY:
         case AST_FN_TYPE:
         case AST_ERROR: {
@@ -533,6 +534,7 @@ static void buildFunctionVariables(LlvmCodegenContext* context, LLVMBuilderRef b
     if (node != NULL) {
         switch (node->kind) {
             case AST_FN_TYPE:
+            case AST_STRUCT_TYPE:
             case AST_ARRAY: {
                 UNREACHABLE("should not evaluate");
             }

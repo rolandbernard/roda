@@ -7,6 +7,7 @@
 #include "text/format.h"
 #include "util/alloc.h"
 #include "util/hash.h"
+#include "util/sort.h"
 
 #include "compiler/types.h"
 
@@ -38,6 +39,12 @@ static void freeType(Type* type) {
             case TYPE_FUNCTION: {
                 TypeFunction* t = (TypeFunction*)type;
                 FREE(t->arguments);
+                break;
+            }
+            case TYPE_STRUCT: {
+                TypeStruct* t = (TypeStruct*)type;
+                FREE(t->names);
+                FREE(t->types);
                 break;
             }
         }
@@ -101,6 +108,20 @@ static bool shallowCompareTypes(const Type* a, const Type* b) {
                 TypeReference* tb = (TypeReference*)b;
                 return ta->binding == tb->binding;
             }
+            case TYPE_STRUCT: {
+                TypeStruct* ta = (TypeStruct*)a;
+                TypeStruct* tb = (TypeStruct*)b;
+                if (ta->count != tb->count) {
+                    return false;
+                } else {
+                    for (size_t i = 0; i < ta->count; i++) {
+                        if (ta->names[i] != tb->names[i] || ta->types[i] != tb->types[i]) {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+            }
         }
         UNREACHABLE("unhandled type kind");
     }
@@ -141,6 +162,15 @@ static size_t shallowHashType(const Type* type) {
         case TYPE_REFERENCE: {
             TypeReference* t = (TypeReference*)type;
             return hashCombine(hashInt(t->kind), hashInt((size_t)t->binding));
+        }
+        case TYPE_STRUCT: {
+            TypeStruct* t = (TypeStruct*)type;
+            size_t hash = hashCombine(hashInt(t->kind), hashInt((size_t)t->count));
+            for (size_t i = 0; i < t->count; i++) {
+                hash = hashCombine(hash, hashInt((size_t)t->names[i]));
+                hash = hashCombine(hash, hashInt((size_t)t->types[i]));
+            }
+            return hash;
         }
     }
     UNREACHABLE("unhandled type kind");
@@ -260,6 +290,27 @@ Type* createTypeReference(TypeContext* cxt, struct SymbolType* binding) {
     return createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeReference), NULL);
 }
 
+Type* createTypeStruct(TypeContext* cxt, Symbol* names, Type** types, size_t count) {
+    for (size_t i = 0; i < count; i++) {
+        if (isErrorType(types[i])) {
+            Type* ret = types[i];
+            FREE(names);
+            FREE(types);
+            return ret;
+        }
+    }
+    TypeStruct type = {
+        .kind = TYPE_STRUCT, .names = names, .types = types, .count = count,
+    };
+    bool new;
+    Type* ret = createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeStruct), &new);
+    if (!new) {
+        FREE(names);
+        FREE(types);
+    }
+    return ret;
+}
+
 static void buildTypeNameInto(String* dst, const Type* type) {
     if (type == NULL) {
         *dst = pushToString(*dst, str("_"));
@@ -323,6 +374,20 @@ static void buildTypeNameInto(String* dst, const Type* type) {
             case TYPE_REFERENCE: {
                 TypeReference* t = (TypeReference*)type;
                 *dst = pushToString(*dst, str(t->binding->name));
+                break;
+            }
+            case TYPE_STRUCT: {
+                TypeStruct* t = (TypeStruct*)type;
+                *dst = pushToString(*dst, str("("));
+                for (size_t i = 0; i < t->count; i++) {
+                    if (i != 0) {
+                        *dst = pushToString(*dst, str(", "));
+                    }
+                    *dst = pushToString(*dst, str(t->names[i]));
+                    *dst = pushToString(*dst, str(" = "));
+                    buildTypeNameInto(dst, t->types[i]);
+                }
+                *dst = pushToString(*dst, str(")"));
                 break;
             }
         }
@@ -441,6 +506,10 @@ TypeFunction* isFunctionType(Type* type) {
     return (TypeFunction*)isTypeOfKind(type, TYPE_FUNCTION);
 }
 
+TypeStruct* isStructType(Type* type) {
+    return (TypeStruct*)isTypeOfKind(type, TYPE_STRUCT);
+}
+
 bool isErrorType(Type* type) {
     return type != NULL && type->kind == TYPE_ERROR;
 }
@@ -455,6 +524,14 @@ STRUCTURAL_TYPE_CHECK(
     } else if (type->kind == TYPE_ARRAY) {
         TypeArray* array = (TypeArray*)type;
         return isValidTypeHelper(array->base, stack);
+    } else if (type->kind == TYPE_STRUCT) {
+        TypeStruct* s = (TypeStruct*)type;
+        for (size_t i = 0; i < s->count; i++) {
+            if (!isValidTypeHelper(s->types[i], stack)) {
+                return false;
+            }
+        }
+        return true;
     },
     else { return false; }
 )
@@ -471,13 +548,43 @@ STRUCTURAL_TYPE_CHECK(
     } else if (type->kind == TYPE_ARRAY) {
         TypeArray* array = (TypeArray*)type;
         return array->size == 0 || isEffectivelyVoidTypeHelper(array->base, stack);
+    } else if (type->kind == TYPE_STRUCT) {
+        TypeStruct* s = (TypeStruct*)type;
+        for (size_t i = 0; i < s->count; i++) {
+            if (!isEffectivelyVoidTypeHelper(s->types[i], stack)) {
+                return false;
+            }
+        }
+        return true;
     },
     else { return true; }
 )
 
-bool isSizedType(Type* type) {
-    return !isErrorType(type) && isValidType(type) && isFunctionType(type) == NULL;
-}
+STRUCTURAL_TYPE_CHECK(
+    bool, isSizedType,
+    if (type->kind == TYPE_VOID) {
+        return true;
+    } else if (type->kind == TYPE_FUNCTION) {
+        return false;
+    } else if (
+        type->kind == TYPE_ERROR || type->kind == TYPE_BOOL || type->kind == TYPE_INT
+        || type->kind == TYPE_UINT || type->kind == TYPE_REAL || type->kind == TYPE_POINTER
+    ) {
+        return true;
+    } else if (type->kind == TYPE_ARRAY) {
+        TypeArray* array = (TypeArray*)type;
+        return isSizedTypeHelper(array->base, stack);
+    } else if (type->kind == TYPE_STRUCT) {
+        TypeStruct* s = (TypeStruct*)type;
+        for (size_t i = 0; i < s->count; i++) {
+            if (!isSizedTypeHelper(s->types[i], stack)) {
+                return false;
+            }
+        }
+        return true;
+    },
+    else { return false; }
+)
 
 typedef struct DoubleTypeReferenceStack {
     struct DoubleTypeReferenceStack* last;
@@ -560,6 +667,25 @@ static bool compareStructuralTypesHelper(Type* a, Type* b, DoubleTypeReferenceSt
                 } else {
                     for (size_t i = 0; i < ta->arg_count; i++) {
                         if (!compareStructuralTypesHelper(ta->arguments[i], tb->arguments[i], stack)) {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+            }
+            case TYPE_STRUCT: {
+                TypeStruct* ta = (TypeStruct*)a;
+                TypeStruct* tb = (TypeStruct*)b;
+                if (ta->count != tb->count) {
+                    return false;
+                } else {
+                    for (size_t i = 0; i < ta->count; i++) {
+                        if (ta->names[i] != tb->names[i]) {
+                            return false;
+                        }
+                    }
+                    for (size_t i = 0; i < ta->count; i++) {
+                        if (!compareStructuralTypesHelper(ta->types[i], tb->types[i], stack)) {
                             return false;
                         }
                     }

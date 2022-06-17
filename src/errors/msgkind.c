@@ -23,6 +23,7 @@ static const char* message_kind_strings[] = {
     [ERROR_LINKER] = "linker",
     [ERROR_UNSIZED_TYPE] = "unsized-type",
     [ERROR_ARGUMENT_COUNT] = "argument-mismatch",
+    [ERROR_DUPLICATE_STRUCT_FIELD] = "duplicate-struct-field",
     [WARNING_UNKNOWN] = "unknown",
     [WARNING_CMD_ARGS] = "cmd-line-args",
     [WARNING_LLVM_BACKEND_WARNING] = "llvm-backend-warning",

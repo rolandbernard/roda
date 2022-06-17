@@ -9,6 +9,7 @@ static bool controlFlowEndsWithReturn(CompilerContext* context, AstNode* node) {
         switch (node->kind) {
             case AST_ARRAY:
             case AST_FN_TYPE:
+            case AST_STRUCT_TYPE:
                 UNREACHABLE("should not evaluate");
             case AST_ERROR:
                 return true;

@@ -133,7 +133,7 @@ opt_type : %empty   { $$ = NULL; }
          | ':' type { $$ = $2; }
          ;
 
-arg_defs : %empty                  { $$.list = createAstList(@$, AST_LIST, 0, NULL); $$.flags = AST_FN_FLAG_NONE; }
+arg_defs : %empty                 { $$.list = createAstList(@$, AST_LIST, 0, NULL); $$.flags = AST_FN_FLAG_NONE; }
          | arg_def_list           { $$.list = toStaticAstList($1); $$.flags = AST_FN_FLAG_NONE; }
          | arg_def_list ','       { $$.list = toStaticAstList($1); $$.flags = AST_FN_FLAG_NONE; }
          | arg_def_list ',' ".."  { $$.list = toStaticAstList($1); $$.flags = AST_FN_FLAG_VARARG; }
@@ -190,6 +190,8 @@ assign : expr '=' expr      { $$ = (AstNode*)createAstBinary(@$, AST_ASSIGN, $1,
 
 type    : ident                                 { $$ = (AstNode*)$1; }
         | '(' ')'                               { $$ = createAstSimple(@$, AST_VOID); }
+        | '(' arg_def_list ')'                  { $$ = (AstNode*)toStaticAstList($2); $$->kind = AST_STRUCT_TYPE; $$->location = @$; }
+        | '(' arg_def_list ',' ')'              { $$ = (AstNode*)toStaticAstList($2); $$->kind = AST_STRUCT_TYPE; $$->location = @$; }
         | '*' type          %prec UNARY_PRE     { $$ = (AstNode*)createAstUnary(@$, AST_ADDR, $2); }
         | '[' expr ']' type %prec UNARY_PRE     { $$ = (AstNode*)createAstBinary(@$, AST_ARRAY, $2, $4); }
         | "fn" '(' arg_types ')'                { $$ = (AstNode*)createAstFnType(@$, $3.list, NULL, $3.flags != AST_FN_FLAG_NONE); }

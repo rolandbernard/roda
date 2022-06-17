@@ -254,6 +254,7 @@ void freeAstNode(AstNode* node) {
                 freeAstNode(n->op);
                 break;
             }
+            case AST_STRUCT_TYPE:
             case AST_ARRAY_LIT:
             case AST_LIST: {
                 AstList* n = (AstList*)node;

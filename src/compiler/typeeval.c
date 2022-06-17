@@ -1,11 +1,28 @@
 
+#include <string.h>
+
 #include "compiler/consteval.h"
 #include "errors/fatalerror.h"
 #include "errors/msgkind.h"
 #include "text/format.h"
 #include "util/alloc.h"
+#include "util/sort.h"
 
 #include "compiler/typeeval.h"
+
+static void swapStructFields(size_t i, size_t j, void* cxt) {
+    AstStructField** fields = (AstStructField**)cxt;
+    swap(fields, sizeof(AstStructField*), i, j);
+}
+
+static bool compareStructFieldNames(size_t i, size_t j, void* cxt) {
+    AstStructField** fields = (AstStructField**)cxt;
+    if (fields[i]->name->name != fields[j]->name->name) {
+        return fields[i]->name->name <= fields[j]->name->name;
+    } else {
+        return fields[i]->location.begin.offset <= fields[j]->location.begin.offset;
+    }
+}
 
 Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
     if (node == NULL) {
@@ -145,6 +162,42 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
                     ret_type = createUnsizedPrimitiveType(&context->types, TYPE_VOID);
                 }
                 n->res_type = createFunctionType(&context->types, ret_type, n->arguments->count, args, n->vararg);
+                break;
+            }
+            case AST_STRUCT_TYPE: {
+                AstList* n = (AstList*)node;
+                AstStructField** nodes = ALLOC(AstStructField*, n->count);
+                memcpy(nodes, n->nodes, sizeof(AstNode*) * n->count);
+                heapSort(n->count, swapStructFields, compareStructFieldNames, nodes);
+                bool error = false;
+                for (size_t i = 1; i < n->count; i++) {
+                    if (nodes[i]->name->name == nodes[i - 1]->name->name) {
+                        addMessageToContext(
+                            &context->msgs,
+                            createMessage(ERROR_DUPLICATE_STRUCT_FIELD,
+                                createFormattedString("duplicate definition of struct field named `%s`", nodes[i]->name->name), 2,
+                                createMessageFragment(MESSAGE_ERROR,
+                                    copyFromCString("duplicate field definition"), nodes[i]->name->location
+                                ),
+                                createMessageFragment(MESSAGE_NOTE,
+                                    copyFromCString("note: previously defined here"), nodes[i - 1]->name->location
+                                )
+                            )
+                        );
+                        error = true;
+                        break;
+                    }
+                }
+                if (!error) {
+                    Symbol* names = ALLOC(Symbol, n->count);
+                    Type** types = ALLOC(Type*, n->count);
+                    for (size_t i = 0; i < n->count; i++) {
+                        names[i] = nodes[i]->name->name;
+                        types[i] = evaluateTypeExpr(context, nodes[i]->type);
+                    }
+                    n->res_type = createTypeStruct(&context->types, names, types, n->count);
+                }
+                FREE(nodes);
                 break;
             }
         }

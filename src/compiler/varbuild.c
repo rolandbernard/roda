@@ -107,6 +107,14 @@ static void buildLocalSymbolTables(CompilerContext* context, AstNode* node, Symb
                 buildLocalSymbolTables(context, n->value, scope, type);
                 break;
             }
+            case AST_STRUCT_TYPE: {
+                AstList* n = (AstList*)node;
+                for (size_t i = 0; i < n->count; i++) {
+                    AstStructField* field = (AstStructField*)n->nodes[i];
+                    buildLocalSymbolTables(context, field->type, scope, true);
+                }
+                break;
+            }
             case AST_ARRAY_LIT:
             case AST_LIST: {
                 AstList* n = (AstList*)node;
@@ -264,6 +272,7 @@ void runSymbolResolution(CompilerContext* context) {
 static void buildControlFlowReferences(CompilerContext* context, AstNode* node, AstFn* function) {
     if (node != NULL) {
         switch (node->kind) {
+            case AST_STRUCT_TYPE:
             case AST_ARRAY:
             case AST_FN_TYPE:
                 UNREACHABLE("should not evaluate");

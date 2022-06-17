@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 
+#include "text/symbol.h"
 #include "text/string.h"
 
 typedef enum {
@@ -17,6 +18,7 @@ typedef enum {
     TYPE_ARRAY,
     TYPE_FUNCTION,
     TYPE_REFERENCE,
+    TYPE_STRUCT,
 } TypeKind;
 
 #define TYPE_BASE       \
@@ -57,6 +59,13 @@ typedef struct {
 } TypeReference;
 
 typedef struct {
+    TYPE_BASE
+    Symbol* names;
+    Type** types;
+    size_t count;
+} TypeStruct;
+
+typedef struct {
     Type** types;
     size_t count;
     size_t capacity;
@@ -77,6 +86,8 @@ Type* createArrayType(TypeContext* cxt, Type* base, size_t size);
 Type* createFunctionType(TypeContext* cxt, Type* ret_type, size_t arg_count, Type** arguments, bool vararg);
 
 Type* createTypeReference(TypeContext* cxt, struct SymbolType* binding);
+
+Type* createTypeStruct(TypeContext* cxt, Symbol* name, Type** types, size_t count);
 
 String buildTypeName(const Type* type);
 
@@ -103,6 +114,8 @@ TypePointer* isPointerType(Type* type);
 TypeArray* isArrayType(Type* type);
 
 TypeFunction* isFunctionType(Type* type);
+
+TypeStruct* isStructType(Type* type);
 
 bool isValidType(Type* type);
 

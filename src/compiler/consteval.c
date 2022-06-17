@@ -249,6 +249,13 @@ static void evaluateReferencedTypes(CompilerContext* context, Type* type) {
                 }
                 break;
             }
+            case TYPE_STRUCT: {
+                TypeStruct* t = (TypeStruct*)type;
+                for (size_t i = 0; i < t->count; i++) {
+                    evaluateReferencedTypes(context, t->types[i]);
+                }
+                break;
+            }
         }
     }
 }
@@ -259,7 +266,6 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
     } else {
         ConstValue res;
         switch (node->kind) {
-            case AST_FN_TYPE:
             case AST_ERROR: {
                 res = createConstError(context);
                 break;
@@ -279,10 +285,12 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
             case AST_BAND_ASSIGN:
             case AST_BOR_ASSIGN:
             case AST_BXOR_ASSIGN:
+            case AST_FN_TYPE:
+            case AST_STRUCT_TYPE:
             case AST_ASSIGN:
             case AST_RETURN:
-            case AST_ARRAY:
             case AST_ROOT:
+            case AST_ARRAY:
             case AST_LIST:
             case AST_BLOCK:
             case AST_VARDEF: {

@@ -65,6 +65,7 @@ static bool propagateTypeFromIntoAstNode(CompilerContext* context, AstNode* into
 static void propagateTypes(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
+            case AST_STRUCT_TYPE:
             case AST_FN_TYPE:
             case AST_ARRAY:
                 UNREACHABLE("should not evaluate");
@@ -529,6 +530,7 @@ static void propagateToVariableReferences(CompilerContext* context, AstVar* node
 static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
+            case AST_STRUCT_TYPE:
             case AST_FN_TYPE:
             case AST_ARRAY: {
                 UNREACHABLE("should not evaluate");
@@ -812,6 +814,7 @@ static void propagateAllTypes(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         propagateTypes(context, node);
         switch (node->kind) {
+            case AST_STRUCT_TYPE:
             case AST_ARRAY:
             case AST_FN_TYPE:
                 UNREACHABLE("should not evaluate");
@@ -956,6 +959,7 @@ typedef enum {
 static void assumeAmbiguousTypes(CompilerContext* context, AssumeAmbiguousPhase phase, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
+            case AST_STRUCT_TYPE:
             case AST_ARRAY:
             case AST_FN_TYPE:
                 UNREACHABLE("should not evaluate");
@@ -1156,6 +1160,7 @@ static void assumeAmbiguousTypes(CompilerContext* context, AssumeAmbiguousPhase 
 static void checkForUntypedVariables(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
+            case AST_STRUCT_TYPE:
             case AST_ARRAY:
             case AST_FN_TYPE:
                 UNREACHABLE("should not evaluate");
@@ -1327,6 +1332,7 @@ static void checkForUntypedNodes(CompilerContext* context, AstNode* node) {
             ));
         } else {
             switch (node->kind) {
+                case AST_STRUCT_TYPE:
                 case AST_ARRAY:
                 case AST_FN_TYPE:
                     UNREACHABLE("should not evaluate");
@@ -1685,6 +1691,7 @@ static void checkNodeIsWritable(CompilerContext* context, AstNode* node) {
 static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
+            case AST_STRUCT_TYPE:
             case AST_ARRAY:
             case AST_FN_TYPE:
                 UNREACHABLE("should not evaluate");

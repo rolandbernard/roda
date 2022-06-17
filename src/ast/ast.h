@@ -72,6 +72,7 @@ typedef enum {
     AST_RETURN,
     AST_ARRAY_LIT,
     AST_FN_TYPE,
+    AST_STRUCT_TYPE,
 
     AST_INT,
     AST_CHAR,
@@ -192,6 +193,8 @@ typedef struct {
     AstVar* name;
     AstNode* type;
 } AstArgDef;
+
+typedef AstArgDef AstStructField;
 
 typedef struct {
     AST_NODE_BASE

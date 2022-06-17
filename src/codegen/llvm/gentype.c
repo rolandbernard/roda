@@ -3,8 +3,33 @@
 
 #include "errors/fatalerror.h"
 #include "util/alloc.h"
+#include "util/sort.h"
 
 #include "codegen/llvm/gentype.h"
+
+typedef struct {
+    LlvmCodegenContext* context;
+    TypeStruct* struc;
+    LLVMTypeRef* types;
+} StructSortContext;
+
+static void structSortSwap(size_t i, size_t j, void* cxt) {
+    StructSortContext* s = (StructSortContext*)cxt;
+    swap(s->types, sizeof(LLVMTypeRef), i, j);
+    swap(s->struc->names, sizeof(Symbol), i, j);
+    swap(s->struc->types, sizeof(Type*), i, j);
+}
+
+static bool structSortCompare(size_t i, size_t j, void* cxt) {
+    StructSortContext* s = (StructSortContext*)cxt;
+    size_t size_i = LLVMABISizeOfType(s->context->target_data, s->types[i]);
+    size_t size_j = LLVMABISizeOfType(s->context->target_data, s->types[j]);
+    if (size_i != size_j) {
+        return size_i >= size_j;
+    } else {
+        return s->struc->names[i] <= s->struc->names[j];
+    }
+}
 
 typedef struct TypeReferenceStack {
     struct TypeReferenceStack* last;
@@ -19,6 +44,19 @@ static LLVMTypeRef generateLlvmTypeHelper(LlvmCodegenContext* context, Type* typ
         switch (type->kind) {
             case TYPE_ERROR:
                 UNREACHABLE();
+            case TYPE_STRUCT: {
+                StructSortContext cxt;
+                cxt.context = context;
+                cxt.struc = (TypeStruct*)type;
+                cxt.types = ALLOC(LLVMTypeRef, cxt.struc->count);
+                for (size_t i = 0; i < cxt.struc->count; i++) {
+                    cxt.types[i] = generateLlvmTypeHelper(context, cxt.struc->types[i], stack);
+                }
+                heapSort(cxt.struc->count, structSortSwap, structSortCompare, &cxt);
+                result = LLVMStructTypeInContext(context->llvm_cxt, cxt.types, cxt.struc->count, false);
+                FREE(cxt.types);
+                break;
+            }
             case TYPE_VOID:
                 result = LLVMStructTypeInContext(context->llvm_cxt, NULL, 0, false);
                 break;
