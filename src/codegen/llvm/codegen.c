@@ -137,6 +137,7 @@ static void initLlvmCodegenContext(LlvmCodegenContext* context, CompilerContext*
         addMessageToContext(&context->cxt->msgs,createMessage(ERROR_LLVM_BACKEND_ERROR,
             createFormattedString("failed to get target '%S': %s", context->cxt->settings.target, context->error_msg), 0
         ));
+        LLVMDisposeMessage(context->error_msg);
     }
     if (cxt->msgs.error_count == 0) {
         const char* cpu;
