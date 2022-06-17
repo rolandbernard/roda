@@ -204,6 +204,16 @@ AstFnType* createAstFnType(Span loc, AstList* arguments, AstNode* ret_type, bool
     return node;
 }
 
+AstStructIndex* createAstStructIndex(Span loc, AstNode* strct, AstVar* field) {
+    AstStructIndex* node = NEW(AstStructIndex);
+    initAstNode((AstNode*)node, AST_STRUCT_INDEX, loc);
+    node->strct = strct;
+    node->field = field;
+    SET_PARENT(strct);
+    SET_PARENT(field);
+    return node;
+}
+
 void freeAstNode(AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
@@ -337,6 +347,12 @@ void freeAstNode(AstNode* node) {
             case AST_RETURN: {
                 AstReturn* n = (AstReturn*)node;
                 freeAstNode(n->value);
+                break;
+            }
+            case AST_STRUCT_INDEX: {
+                AstStructIndex* n = (AstStructIndex*)node;
+                freeAstNode(n->strct);
+                freeAstNode((AstNode*)n->field);
                 break;
             }
             case AST_VAR:

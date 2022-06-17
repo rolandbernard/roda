@@ -510,6 +510,15 @@ TypeStruct* isStructType(Type* type) {
     return (TypeStruct*)isTypeOfKind(type, TYPE_STRUCT);
 }
 
+size_t lookupIndexOfStructField(TypeStruct* type, Symbol name) {
+    for (size_t i = 0; i < type->count; i++) {
+        if (type->names[i] == name) {
+            return i;
+        }
+    }
+    return NO_POS;
+}
+
 bool isErrorType(Type* type) {
     return type != NULL && type->kind == TYPE_ERROR;
 }

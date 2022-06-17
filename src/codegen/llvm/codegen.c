@@ -189,6 +189,19 @@ static LLVMModuleRef generateLinkedModule(LlvmCodegenContext* context) {
         File* file = context->cxt->files.files[i];
         if (file->ast != NULL) {
             LLVMModuleRef module = generateSingleModule(context, file);
+#ifdef DEBUG
+    if (LLVMVerifyModule(module, LLVMReturnStatusAction, &context->error_msg)) {
+        trimErrorMessage(context->error_msg);
+        addMessageToContext(
+            &context->cxt->msgs,
+            createMessage(
+                ERROR_LLVM_BACKEND_ERROR,
+                createFormattedString("generated an invalid llvm module: %s", context->error_msg), 0
+            )
+        );
+    }
+    LLVMDisposeMessage(context->error_msg);
+#endif
             if (module != NULL) {
                 if (linked_module != NULL) {
                     if (LLVMLinkModules2(linked_module, module)) {
@@ -319,19 +332,6 @@ static void optimizeUsingLegacyPassManager(LlvmCodegenContext* context, LLVMModu
 
 static LLVMModuleRef generateOptimizedModule(LlvmCodegenContext* context) {
     LLVMModuleRef module = generateLinkedModule(context);
-#ifdef DEBUG
-    if (LLVMVerifyModule(module, LLVMReturnStatusAction, &context->error_msg)) {
-        trimErrorMessage(context->error_msg);
-        addMessageToContext(
-            &context->cxt->msgs,
-            createMessage(
-                ERROR_LLVM_BACKEND_ERROR,
-                createFormattedString("generated an invalid llvm module: %s", context->error_msg), 0
-            )
-        );
-    }
-    LLVMDisposeMessage(context->error_msg);
-#endif
     if (context->cxt->settings.opt_level != COMPILER_OPT_NONE) {
 #if LLVM_VERSION_MAJOR >= 13
         optimizeUsingNewPassManager(context, module);

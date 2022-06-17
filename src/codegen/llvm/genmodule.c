@@ -497,6 +497,10 @@ static LlvmCodegenValue buildFunctionBody(LlvmCodegenContext* context, LlvmCodeg
                         data->builder, generateLlvmType(context, n->left->res_type), array.value, indicies, 2, "index"
                     );
                     return createLlvmCodegenValue(value, true);
+                } else if (LLVMIsConstant(index)) {
+                    size_t idx = LLVMConstIntGetZExtValue(index);
+                    LLVMValueRef value = LLVMBuildExtractValue(data->builder, array.value, idx, "index");
+                    return createLlvmCodegenValue(value, false);
                 } else {
                     LLVMValueRef stack = buildLlvmIntrinsicCall(context, data, "llvm.stacksave", NULL, 0, "stacksave", false);
                     LLVMValueRef tmp = LLVMBuildAlloca(
@@ -521,6 +525,22 @@ static LlvmCodegenValue buildFunctionBody(LlvmCodegenContext* context, LlvmCodeg
             LLVMInsertExistingBasicBlockAfterInsertBlock(data->builder, rest_block);
             LLVMPositionBuilderAtEnd(data->builder, rest_block);
             return createLlvmCodegenValue(NULL, false);
+        }
+        case AST_STRUCT_INDEX: {
+            AstStructIndex* n = (AstStructIndex*)node;
+            TypeStruct* type = isStructType(n->strct->res_type);
+            LLVMTypeRef strct_type = generateLlvmType(context, n->strct->res_type);
+            LlvmCodegenValue strct = buildFunctionBody(context, data, n->strct);
+            size_t idx = lookupIndexOfStructField(type, n->field->name);
+            if (strct.is_reference) {
+                LLVMValueRef value = LLVMBuildStructGEP2(
+                    data->builder, strct_type, strct.value, idx, "index"
+                );
+                return createLlvmCodegenValue(value, true);
+            } else {
+                LLVMValueRef value = LLVMBuildExtractValue(data->builder, strct.value, idx, "index");
+                return createLlvmCodegenValue(value, false);
+            }
         }
         case AST_TYPEDEF:
         case AST_FN:
@@ -671,6 +691,11 @@ static void buildFunctionVariables(LlvmCodegenContext* context, LLVMBuilderRef b
                 SymbolVariable* var = (SymbolVariable*)n->name->binding;
                 LLVMValueRef value = LLVMBuildAlloca(builder, generateLlvmType(context, var->type), var->name);
                 var->codegen = value;
+                break;
+            }
+            case AST_STRUCT_INDEX: {
+                AstStructIndex* n = (AstStructIndex*)node;
+                buildFunctionVariables(context, builder, n->strct);
                 break;
             }
         }

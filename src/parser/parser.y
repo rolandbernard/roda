@@ -106,6 +106,7 @@ extern void yyerror(YYLTYPE* yyllocp, yyscan_t scanner, ParserContext* context, 
 %precedence "as"
 %precedence UNARY_PRE
 %precedence '(' '['
+%precedence '.'
 
 %start program
 
@@ -213,6 +214,7 @@ expr    : ident                         { $$ = (AstNode*)$1; }
         | real                          { $$ = $1; }
         | string                        { $$ = $1; }
         | bool                          { $$ = $1; }
+        | expr '.' ident                { $$ = (AstNode*)createAstStructIndex(@$, $1, $3); }
         | "sizeof" type                 { $$ = (AstNode*)createAstUnary(@$, AST_SIZEOF, $2); }
         | '(' ')'                       { $$ = createAstSimple(@$, AST_VOID); }
         | '[' list ']'                  { $$ = (AstNode*)toStaticAstList($2); $$->kind = AST_ARRAY_LIT; $$->location = @$; }

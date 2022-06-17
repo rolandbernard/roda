@@ -300,6 +300,7 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
             case AST_INDEX: // TODO: constant arrays?
             case AST_VOID:
             case AST_ARRAY_LIT:
+            case AST_STRUCT_INDEX: // TODO: structs in const?
             case AST_CALL: // TODO: constant calls?
             case AST_STR: // TODO: constant strings?
             case AST_SIZEOF: // TODO: would need llvm to make this const?

@@ -117,6 +117,8 @@ TypeFunction* isFunctionType(Type* type);
 
 TypeStruct* isStructType(Type* type);
 
+size_t lookupIndexOfStructField(TypeStruct* type, Symbol name);
+
 bool isValidType(Type* type);
 
 bool isSizedType(Type* type);

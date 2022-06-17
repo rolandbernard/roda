@@ -119,6 +119,10 @@ static bool controlFlowEndsWithReturn(CompilerContext* context, AstNode* node) {
                 return controlFlowEndsWithReturn(context, n->function)
                     || controlFlowEndsWithReturn(context, (AstNode*)n->arguments);
             }
+            case AST_STRUCT_INDEX: {
+                AstStructIndex* n = (AstStructIndex*)node;
+                return controlFlowEndsWithReturn(context, n->strct);
+            }
         }
         UNREACHABLE();
     } else {

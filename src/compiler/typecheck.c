@@ -212,6 +212,11 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
                         if (type_reason != NULL && type_reason->kind == AST_ARRAY) {
                             AstBinary* arr_node = (AstBinary*)type_reason;
                             type_reason = arr_node->right;
+                        } else if (type_reason != NULL && type_reason->kind == AST_ARRAY_LIT) {
+                            AstList* arr_node = (AstList*)type_reason;
+                            if (arr_node->count > 0) {
+                                type_reason = arr_node->nodes[0]->res_type_reasoning;
+                            }
                         }
                         if (propagateTypeIntoAstNode(context, node, arr_type->base, type_reason)) {
                             propagateTypes(context, node->parent);
@@ -373,6 +378,11 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
                         if (type_reason != NULL && type_reason->kind == AST_ARRAY) {
                             AstBinary* arr_node = (AstBinary*)type_reason;
                             type_reason = arr_node->right;
+                        } else if (type_reason != NULL && type_reason->kind == AST_ARRAY_LIT) {
+                            AstList* arr_node = (AstList*)type_reason;
+                            if (arr_node->count > 0) {
+                                type_reason = arr_node->nodes[0]->res_type_reasoning;
+                            }
                         }
                         for (size_t i = 0; i < n->count; i++) {
                             if (propagateTypeIntoAstNode(context, n->nodes[i], type->base, type_reason)) {
@@ -428,6 +438,26 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
                         if (n->value != NULL) {
                             if (propagateTypeIntoAstNode(context, n->value, func->ret_type, type_reason)) {
                                 propagateTypes(context, n->value);
+                            }
+                        }
+                    }
+                }
+                break;
+            }
+            case AST_STRUCT_INDEX: {
+                AstStructIndex* n = (AstStructIndex*)node;
+                if (n->strct->res_type != NULL) {
+                    TypeStruct* type = isStructType(n->strct->res_type);
+                    if (type != NULL) {
+                        size_t idx = lookupIndexOfStructField(type, n->field->name);
+                        if (idx != NO_POS) {
+                            AstNode* type_reason = n->res_type_reasoning;
+                            if (type_reason != NULL && type_reason->kind == AST_STRUCT_TYPE) {
+                                AstList* strct_node = (AstList*)type_reason;
+                                type_reason = strct_node->nodes[idx]->res_type_reasoning;
+                            }
+                            if (propagateTypeIntoAstNode(context, node, type->types[idx], type_reason)) {
+                                propagateTypes(context, node->parent);
                             }
                         }
                     }
@@ -597,6 +627,11 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                 AstBinary* n = (AstBinary*)node;
                 evaluateTypeHints(context, n->left);
                 evaluateTypeHints(context, n->right);
+                break;
+            }
+            case AST_STRUCT_INDEX: {
+                AstStructIndex* n = (AstStructIndex*)node;
+                evaluateTypeHints(context, n->strct);
                 break;
             }
             case AST_OR:
@@ -873,6 +908,11 @@ static void propagateAllTypes(CompilerContext* context, AstNode* node) {
                 propagateAllTypes(context, n->right);
                 break;
             }
+            case AST_STRUCT_INDEX: {
+                AstStructIndex* n = (AstStructIndex*)node;
+                propagateAllTypes(context, n->strct);
+                break;
+            }
             case AST_POS:
             case AST_NEG:
             case AST_ADDR:
@@ -1054,12 +1094,19 @@ static void assumeAmbiguousTypes(CompilerContext* context, AssumeAmbiguousPhase 
             }
             case AST_INDEX: {
                 AstBinary* n = (AstBinary*)node;
+                assumeAmbiguousTypes(context, phase, n->left);
+                assumeAmbiguousTypes(context, phase, n->right);
                 if ((phase & ASSUME_INDEX) != 0 && n->right->res_type == NULL) {
                     Type* type = createSizedPrimitiveType(&context->types, TYPE_UINT, 64);
                     if (propagateTypeIntoAstNode(context, n->right, type, n->right)) {
                         propagateTypes(context, n->right);
                     }
                 }
+                break;
+            }
+            case AST_STRUCT_INDEX: {
+                AstStructIndex* n = (AstStructIndex*)node;
+                assumeAmbiguousTypes(context, phase, n->strct);
                 break;
             }
             case AST_SUB:
@@ -1099,13 +1146,7 @@ static void assumeAmbiguousTypes(CompilerContext* context, AssumeAmbiguousPhase 
                 assumeAmbiguousTypes(context, phase, n->value);
                 break;
             }
-            case AST_ARRAY_LIT: {
-                AstList* n = (AstList*)node;
-                for (size_t i = 0; i < n->count; i++) {
-                    assumeAmbiguousTypes(context, phase, n->nodes[i]);
-                }
-                break;
-            }
+            case AST_ARRAY_LIT:
             case AST_LIST: {
                 AstList* n = (AstList*)node;
                 for (size_t i = 0; i < n->count; i++) {
@@ -1319,6 +1360,11 @@ static void checkForUntypedVariables(CompilerContext* context, AstNode* node) {
                 checkForUntypedVariables(context, n->val);
                 break;
             }
+            case AST_STRUCT_INDEX: {
+                AstStructIndex* n = (AstStructIndex*)node;
+                checkForUntypedVariables(context, n->strct);
+                break;
+            }
         }
     }
 }
@@ -1454,6 +1500,11 @@ static void checkForUntypedNodes(CompilerContext* context, AstNode* node) {
                 case AST_VARDEF: {
                     AstVarDef* n = (AstVarDef*)node;
                     checkForUntypedNodes(context, n->val);
+                    break;
+                }
+                case AST_STRUCT_INDEX: {
+                    AstStructIndex* n = (AstStructIndex*)node;
+                    checkForUntypedNodes(context, n->strct);
                     break;
                 }
             }
@@ -1641,6 +1692,34 @@ static void raiseUnsupportedCast(
     node->res_type_reasoning = NULL;
 }
 
+static void raiseNoSuchFieldError(CompilerContext* context, AstStructIndex* node) {
+    String type_name = buildTypeName(node->strct->res_type);
+    String message = createFormattedString(
+        "no field with name `%s` in struct type `%S`", node->field->name, type_name
+    );
+    MessageFragment* error = createMessageFragment(
+        MESSAGE_ERROR, copyFromCString("no such field exists"), node->field->location
+    );
+    if (node->strct->res_type_reasoning != NULL) {
+        addMessageToContext(
+            &context->msgs,
+            createMessage(
+                ERROR_NO_SUCH_FIELD, message, 2, error,
+                createMessageFragment(
+                    MESSAGE_NOTE,
+                    copyFromCString("note: struct type defined here"),
+                    node->strct->res_type_reasoning->location
+                )
+            )
+        );
+    } else {
+        addMessageToContext(
+            &context->msgs, createMessage(ERROR_NO_SUCH_FIELD, message, 1, error)
+        );
+    }
+    freeString(type_name);
+}
+
 static bool isAddressableValue(AstNode* node) {
     if (node == NULL) {
         return false;
@@ -1653,6 +1732,9 @@ static bool isAddressableValue(AstNode* node) {
         } else {
             return isAddressableValue(n->left);
         }
+    } else if (node->kind == AST_STRUCT_INDEX) {
+        AstStructIndex* n = (AstStructIndex*)node;
+        return isAddressableValue(n->strct);
     } else {
         return false;
     }
@@ -2048,6 +2130,22 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
                 checkTypeConstraints(context, n->val);
+                break;
+            }
+            case AST_STRUCT_INDEX: {
+                AstStructIndex* n = (AstStructIndex*)node;
+                checkTypeConstraints(context, n->strct);
+                if (n->strct->res_type != NULL && !isErrorType(n->strct->res_type)) {
+                    TypeStruct* type = isStructType(n->strct->res_type);
+                    if (type == NULL) {
+                        raiseOpTypeError(
+                            context, node, n->strct, n->strct->res_type,
+                            n->strct->res_type_reasoning, ", must be a struct"
+                        );
+                    } else if (lookupIndexOfStructField(type, n->field->name) == NO_POS) {
+                        raiseNoSuchFieldError(context, n);
+                    }
+                }
                 break;
             }
         }

@@ -34,6 +34,7 @@ static const char* ast_type_names[] = {
     [AST_ASSIGN] = "assign",
     [AST_ARGDEF] = "argument definition",
     [AST_INDEX] = "index",
+    [AST_STRUCT_INDEX] = "struct index",
     [AST_ARRAY] = "array",
     [AST_AS] = "type conversion",
     [AST_ADD_ASSIGN] = "add assign",
@@ -418,6 +419,14 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
                 printAstNodeExtraInfo(file, node, colors);
                 fprintf(file, "\n");
                 printAstChildNode(file, n->value, colors, indent, "value", true);
+                break;
+            }
+            case AST_STRUCT_INDEX: {
+                AstStructIndex* n = (AstStructIndex*)node;
+                printAstNodeExtraInfo(file, node, colors);
+                fprintf(file, "\n");
+                printAstChildNode(file, n->strct, colors, indent, "struct", true);
+                printAstChildNode(file, (AstNode*)n->field, colors, indent, "field", true);
                 break;
             }
         }

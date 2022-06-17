@@ -73,6 +73,7 @@ typedef enum {
     AST_ARRAY_LIT,
     AST_FN_TYPE,
     AST_STRUCT_TYPE,
+    AST_STRUCT_INDEX,
 
     AST_INT,
     AST_CHAR,
@@ -221,6 +222,12 @@ typedef struct {
     bool vararg;
 } AstFnType;
 
+typedef struct {
+    AST_NODE_BASE
+    AstNode* strct;
+    AstVar* field;
+} AstStructIndex;
+
 AstNode* createAstSimple(Span loc, AstNodeKind kind);
 
 AstBinary* createAstBinary(Span loc, AstNodeKind kind, AstNode* left, AstNode* right);
@@ -260,6 +267,8 @@ AstArgDef* createAstArgDef(Span loc, AstVar* name, AstNode* type);
 AstReturn* createAstReturn(Span loc, AstNode* value);
 
 AstFnType* createAstFnType(Span loc, AstList* arguments, AstNode* ret_type, bool vararg);
+
+AstStructIndex* createAstStructIndex(Span loc, AstNode* strct, AstVar* field);
 
 void freeAstNode(AstNode* node);
 
