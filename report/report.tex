@@ -10,6 +10,8 @@
 \usepackage{enumitem}
 \usepackage{multicol}
 \usepackage{graphicx}
+\usepackage{tabularx}
+\usepackage{float}
 \usepackage{cprotect}
 \usepackage[italian]{babel}
 \usepackage[
@@ -39,7 +41,8 @@ roda Compiler
 \begin{list}{}{%
 \setlength{\topsep}{0pt}%
 \setlength{\leftmargin}{#1}%
-\setlength{\rightmargin}{#2}%
+\setlength{\topmargin}{#2}%
+\setlength{\rightmargin}{#1}%
 \setlength{\listparindent}{\parindent}%
 \setlength{\itemindent}{\parindent}%
 \setlength{\parsep}{\parskip}%
@@ -52,7 +55,7 @@ roda Compiler
 
 \section{Introduzione}
 
-Roda è un piccolo linguaggio di programmazione stronly typed e compilato che utilizza una syntax moderna.
+Roda è un piccolo linguaggio di programmazione strongly typed e compilato che utilizza una syntax moderna.
 
 Il linguaggio roda contiene le seguenti caratteristiche:
 \begin{itemize}
@@ -68,7 +71,7 @@ Il linguaggio roda contiene le seguenti caratteristiche:
     \item Alias di tipi
 \end{itemize}
 
-Il compilatore prova a dare messaggi di errore utili e informativi.
+Inoltre, il compilatore prova a dare messaggi di errore utili e informativi.
 
 \section{Linguaggio}
 
@@ -108,20 +111,25 @@ Le altre caratteristiche possono essere utilizzate nel modo seguente:
 \begin{itemize}
 \item Espressioni aritmetiche 
 \begin{verbatim}
+let x = 1 + 2;          // x = 3
 x += 5;                 // x = 8
 // x += 0.5;            // real literals can not be implicitly converted to integers
+x += 0.5 as int;        // x = 8
 let y: f64 = 0.5 + 0.1; // y = 0.6
 // y += 5;              // integer literals can not be implicitly converted to floats
+y += 5 as f64;          // y = 5.6
 \end{verbatim}
 
 \item Puntatori
 \begin{verbatim}
+let a = *b; // take the address of b and store it into a
 let c = &a; // dereference a to store its value into c
 &a = c;     // assign the value in c to the address pointed to by a
 \end{verbatim}
 
 \item Array
 \begin{verbatim}
+let a: [3]int; // create an array of 3 ints
 a[0] = 1;      // assign the value 1 to the first element of a
 a[1] = 2;      // assign the value 2 to the second element of a
 a[2] = a[1];   // assign the value 3 to the third element of a
@@ -129,12 +137,14 @@ a[2] = a[1];   // assign the value 3 to the third element of a
 
 \item Inference di tipi
 \begin{verbatim}
-let b = 2.0;      // b is a floating point number
-let c = "Hello";  // c is a string
-let d = true;     // d is a boolean value
-let e = 'a';      // e is a character
+let a = 1;                  // a is an integer
+let b = 2.0;                // b is a floating point number
+let c = "Hello";            // c is a string
+let d = true;               // d is a boolean value
+let e = 'a';                // e is a character
 let f;
-a += f;           // f is also an integer
+a += f;                     // f is also an integer
+let g = [[1, 2], [3, 4]];   // g is of type [2][2]int;
 \end{verbatim}
 
 \item Alias di tipi
@@ -144,10 +154,47 @@ let a: MyInt = 1;  // a is an integer
 \end{verbatim}
 \end{itemize}
 
-% TODO
-% La tabella seguente mostra la precedenza degli operatori della lingua.
+\begingroup
+\catcode`\%=12
+\begin{table}[H]
+\begin{tabularx}{0.55\textwidth}{|X|l|}
+\hline
+\textbf{Operatori} & \textbf{Associatività} \\
+\hline
+Function calls, array indexing & \\
+\hline
+Unary \verb?+ - * ! &? & \\
+\hline
+\verb?as? & \\
+\hline
+\verb?* / %? & left to right \\
+\hline
+\verb?+ -? & left to right \\
+\hline
+\verb?<< >>? & left to right \\
+\hline
+\verb?&? & left to right \\
+\hline
+\verb?^? & left to right \\
+\hline
+\verb?|? & left to right \\
+\hline
+\verb?== != < > <= >=? & left to right \\
+\hline
+\verb?&&? & left to right \\
+\hline
+\verb?||? & left to right \\
+\hline
+\end{tabularx}
+\end{table}
+\endgroup
+La tabella precedente mostra la precedenza degli operatori del linguaggio, con gli operatori a
+precedenza più alta indicati in alto. 
+La grammatica della lingua viene mostrata nell'ultima pagina ed è una grammatica ambigua che,
+con l'uso delle precedenze di sopra, può essere resa non ambigua.
 
-\section{Implentazione}
+
+\section{Implementazione}
 
 \includegraphics[width=\textwidth]{implementation.png}
 
@@ -166,17 +213,17 @@ Quello che segue sono i passaggi principali che compongono il processo di compil
     creando un'entry di simbolo per ogni tipo, funzione e variabile definita. Questa fase genera e
     utilizza anche le symbol tables, creando un'entry di simbolo per ogni tipo, funzione e variabile
     definita. La tabella dei simboli è implementata come un tree con solo parent-pointer. Ogni nodo
-    dell'albero rappresenta uno scope, implementato con hash tables. La ricerca dei simboli inizia
+    dell'albero rappresenta uno scope, implementato con una hash table. La ricerca dei simboli inizia
     da un nodo e prosegue fino alla root, fino a quando trova il simbolo. I tipi e i simboli
     condividono la stessa hash table, ma sono gestiti in modo diverso.
 
     \item \textbf{Type Inference:}
 
-    In questa fase, il compilatore infonde i tipi delle variabili e
+    In questa fase, il compilatore infonde (infers) i tipi delle variabili e delle
     espressioni nell'abstract syntax tree. Questa
     fase risolve prima tutte le annotazioni di tipo esplicitamente fornite e i
-    constraint impliciti di tipo (ad esempio, le nelle condizioni di if) e
-    poi cerca d'inferire tutti gli altri tipi. L'inferenza dei tipi è
+    constraint impliciti di tipo (ad esempio, le nelle condizioni "if").
+    Poi cerca d'inferire tutti gli altri tipi. L'inferenza dei tipi è
     implementata propagando i tipi usando l'attraversamento del grafo. Il
     compilatore inoltre, se il tipo non può essere altrimenti determinato,
     assume il tipo dei letterali interi e reali. Durante questa fase possono
@@ -209,7 +256,7 @@ Quello che segue sono i passaggi principali che compongono il processo di compil
 
 \newpage
 
-\begin{changemargin}{-1.5cm}{-1.5cm}
+\begin{changemargin}{-1.5cm}{-2.5cm}
 \begin{tabular}{lr}
 $\cprotEnv\begin{aligned}
 \nonterm{Program} \rightarrow& \, \nonterm{RootStatements}
@@ -269,27 +316,52 @@ $\cprotEnv\begin{aligned}
     |& \, \nonterm{Expression} \, \verb?|=? \, \nonterm{Expression} \\
     |& \, \nonterm{Expression} \, \verb?&=? \, \nonterm{Expression} \\
     |& \, \nonterm{Expression} \, \verb?^=? \, \nonterm{Expression}
+\\
+\nonterm{Integer} \rightarrow& \, \, \mathrm{INT} \\
+    |& \, \, \mathrm{CHAR}
+\\
+\nonterm{Real} \rightarrow& \, \, \mathrm{REAL}
+\\
+\nonterm{String} \rightarrow& \, \, \mathrm{STR}
+\\
+\nonterm{Boolean} \rightarrow& \, \, \verb?true? \, \\
+    |& \, \, \verb?false? \, 
+\\
+\nonterm{Identifier} \rightarrow& \, \, \mathrm{ID}
 \end{aligned}$ &
 $\cprotEnv\begin{aligned}
 \nonterm{Type} \rightarrow& \, \nonterm{Identifier} \\
     |& \, \, \verb?(? \, \, \verb?)? \, \\
     |& \, \, \verb?*? \, \nonterm{Type} \\
-    |& \, \, \verb?[? \, \nonterm{Expression} \, \verb?]? \, \nonterm{Type}
+    |& \, \, \verb?[? \, \nonterm{Expression} \, \verb?]? \, \nonterm{Type} \\
+    |& \, \, \verb?fn? \, \, \verb?(? \nonterm{Types} \, \verb?)? \, \\
+    |& \, \, \verb?fn? \, \, \verb?(? \nonterm{Types} \, \verb?)? \, \, \verb?:? \, \nonterm{Type}
+\\
+\nonterm{Types} \rightarrow& \, \epsilon \\
+    |& \, \nonterm{TypeList} \\
+    |& \, \nonterm{TypeList} \, \verb?,? \, \\
+    |& \, \nonterm{TypeList} \, \verb?,? \, \, \verb?..? \,
+\\
+\nonterm{TypeList} \rightarrow& \, \nonterm{Type} \\
+    |& \, \nonterm{TypeList} \, \verb?,? \, \nonterm{Type}
 \\
 \nonterm{Expression} \rightarrow& \, \nonterm{Identifier} \\
     |& \, \nonterm{Integer} \\
     |& \, \nonterm{Real} \\
     |& \, \nonterm{String} \\
     |& \, \nonterm{Boolean} \\
+    |& \, \, \verb?sizeof? \, \nonterm{Type} \\
     |& \, \, \verb?(? \, \, \verb?)? \, \\
+    |& \, \, \verb?[? \, \nonterm{List} \, \verb?]? \, \\
     |& \, \, \verb?(? \, \nonterm{Expression} \, \verb?)? \, \\
     |& \, \, \verb?-? \, \nonterm{Expression} \\
     |& \, \, \verb?+? \, \nonterm{Expression} \\
     |& \, \, \verb?*? \, \nonterm{Expression} \\
     |& \, \, \verb?&? \, \nonterm{Expression} \\
     |& \, \, \verb?!? \, \nonterm{Expression} \\
+    |& \, \nonterm{Expression} \, \verb?as? \, \nonterm{Type} \\
     |& \, \nonterm{Expression} \, \verb?[? \, \nonterm{Expression} \, \verb?]? \, \\
-    |& \, \nonterm{Expression} \, \verb?(? \, \nonterm{Arguments} \, \verb?)? \, \\
+    |& \, \nonterm{Expression} \, \verb?(? \, \nonterm{List} \, \verb?)? \, \\
     |& \, \nonterm{Expression} \, \verb?+? \, \nonterm{Expression} \\
     |& \, \nonterm{Expression} \, \verb?-? \, \nonterm{Expression} \\
     |& \, \nonterm{Expression} \, \verb?*? \, \nonterm{Expression} \\
@@ -309,24 +381,12 @@ $\cprotEnv\begin{aligned}
     |& \, \nonterm{Expression} \, \verb?>? \, \nonterm{Expression} \\
     |& \, \nonterm{Expression} \, \verb?<? \, \nonterm{Expression} 
 \\
-\nonterm{Integer} \rightarrow& \, \, \mathrm{INT} \\
-    |& \, \, \mathrm{CHAR}
+\nonterm{List} \rightarrow& \, \epsilon \\
+    |& \, \nonterm{ListNonEmpty} \\
+    |& \, \nonterm{ListNonEmpty} \, \verb?,? \,
 \\
-\nonterm{Real} \rightarrow& \, \, \mathrm{REAL}
-\\
-\nonterm{String} \rightarrow& \, \, \mathrm{STR}
-\\
-\nonterm{Boolean} \rightarrow& \, \, \verb?true? \, \\
-    |& \, \, \verb?false? \, 
-\\
-\nonterm{Identifier} \rightarrow& \, \, \mathrm{ID}
-\\
-\nonterm{Arguments} \rightarrow& \, \epsilon \\
-    |& \, \nonterm{ArgumentList} \\
-    |& \, \nonterm{ArgumentList} \, \verb?,? \,
-\\
-\nonterm{ArgumentList} \rightarrow& \, \nonterm{Expression} \\
-    |& \, \nonterm{ArgumentList} \, \verb?,? \, \nonterm{Expression}
+\nonterm{ListNonEmpty} \rightarrow& \, \nonterm{Expression} \\
+    |& \, \nonterm{ListNonEmpty} \, \verb?,? \, \nonterm{Expression}
 \end{aligned}$ \\
 \end{tabular}
 \end{changemargin}
