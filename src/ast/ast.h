@@ -47,6 +47,7 @@ typedef enum {
     AST_ASSIGN,
     AST_INDEX,
     AST_ARRAY,
+    AST_AS,
 
     // AstUnary
     AST_POS,

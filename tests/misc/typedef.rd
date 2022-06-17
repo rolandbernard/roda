@@ -1,7 +1,8 @@
-// test: Typedefs should world
+// test: Typedefs should work
 
-type TypeA = [2]int;
+type TypeA = [2 as TypeC]int;
 type TypeB = *TypeB;
+type TypeC = int;
 
 pub fn main(): int {
     let a: TypeA;

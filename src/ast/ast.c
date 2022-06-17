@@ -208,6 +208,7 @@ void freeAstNode(AstNode* node) {
             case AST_BXOR_ASSIGN:
             case AST_ASSIGN:
             case AST_INDEX:
+            case AST_AS:
             case AST_SUB:
             case AST_MUL:
             case AST_DIV:

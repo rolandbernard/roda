@@ -53,7 +53,7 @@ typedef struct {
 
 typedef struct {
     TYPE_BASE
-    const struct SymbolType* binding;
+    struct SymbolType* binding;
 } TypeReference;
 
 typedef struct {

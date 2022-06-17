@@ -6,7 +6,7 @@ fn foo(a: [5]int, b: int, c: int): [5]int {
 }
 
 pub fn main(): int {
-    let x: [0]int = ();
+    let x: [0]int = [];
     let y = [1, 2, 3,];
     let z = [1];
     let a: [5]int = [5, 4, 3, 2, 1];

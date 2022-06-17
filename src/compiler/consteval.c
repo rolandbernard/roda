@@ -2,6 +2,7 @@
 #include "ast/astprinter.h"
 #include "errors/fatalerror.h"
 #include "text/format.h"
+#include "compiler/typeeval.h"
 
 #include "compiler/consteval.h"
 
@@ -11,7 +12,11 @@ ConstValue createConstError(CompilerContext* context) {
 }
 
 static intmax_t wrapSignedInteger(intmax_t value, size_t size) {
-    return (value << (8 * sizeof(value) - size)) >> (8 * sizeof(value) - size);
+    if (size >= 8 * sizeof(value)) {
+        return value;
+    } else {
+        return (value << (8 * sizeof(value) - size)) >> (8 * sizeof(value) - size);
+    }
 }
 
 ConstValue createConstInt(CompilerContext* context, size_t size, intmax_t value) {
@@ -23,7 +28,11 @@ ConstValue createConstInt(CompilerContext* context, size_t size, intmax_t value)
 }
 
 static uintmax_t wrapUnsignedInteger(uintmax_t value, size_t size) {
-    return value & ((1 << size) - 1);
+    if (size >= 8 * sizeof(value)) {
+        return value;
+    } else {
+        return value & ((1 << size) - 1);
+    }
 }
 
 ConstValue createConstUInt(CompilerContext* context, size_t size, uintmax_t value) {
@@ -113,8 +122,8 @@ static ConstValue raiseTypeErrorNotInConst(CompilerContext* context, AstNode* no
         float r = right.f32;                                \
         res = createConstF32(context, ACTION);              \
     } else if (isDoubleType(left.type) != NULL) {           \
-        double l = left.f32;                                \
-        double r = right.f32;                               \
+        double l = left.f64;                                \
+        double r = right.f64;                               \
         res = createConstF64(context, ACTION);              \
     }
 
@@ -173,7 +182,7 @@ static ConstValue raiseTypeErrorNotInConst(CompilerContext* context, AstNode* no
         float o = op.f32;                                   \
         res = createConstF32(context, ACTION);              \
     } else if (isDoubleType(op.type) != NULL) {             \
-        double o = op.f32;                                  \
+        double o = op.f64;                                  \
         res = createConstF64(context, ACTION);              \
     }
 
@@ -201,6 +210,47 @@ static ConstValue raiseTypeErrorNotInConst(CompilerContext* context, AstNode* no
         res = op;                                       \
     } else { ACTION }                                   \
     break;                                              \
+}
+
+static void evaluateReferencedTypes(CompilerContext* context, Type* type) {
+    if (type != NULL) {
+        switch (type->kind) {
+            case TYPE_ERROR:
+            case TYPE_VOID:
+            case TYPE_BOOL:
+            case TYPE_INT:
+            case TYPE_UINT:
+            case TYPE_REAL:
+            case TYPE_POINTER: {
+                TypePointer* t = (TypePointer*)type;
+                evaluateReferencedTypes(context, t->base);
+                break;
+            }
+            case TYPE_ARRAY: {
+                TypeArray* t = (TypeArray*)type;
+                evaluateReferencedTypes(context, t->base);
+                break;
+            }
+            case TYPE_FUNCTION: {
+                TypeFunction* t = (TypeFunction*)type;
+                for (size_t i = 0; i < t->arg_count; i++) {
+                    evaluateReferencedTypes(context, t->arguments[i]);
+                }
+                evaluateReferencedTypes(context, t->ret_type);
+                break;
+            }
+            case TYPE_REFERENCE: {
+                TypeReference* t = (TypeReference*)type;
+                SymbolType* binding = t->binding;
+                if (binding->type == NULL) {
+                    AstTypeDef* def = (AstTypeDef*)binding->def->parent;
+                    binding->type = evaluateTypeExpr(context, def->value);
+                    evaluateReferencedTypes(context, binding->type);
+                }
+                break;
+            }
+        }
+    }
 }
 
 ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
@@ -248,6 +298,80 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
             case AST_DEREF: {
                 // None of these are allowed in constant expressions.
                 res = raiseOpErrorNotInConst(context, node);
+                break;
+            }
+            case AST_AS: {
+                AstBinary* n = (AstBinary*)node;
+                if (n->res_type == NULL) {
+                    n->res_type = evaluateTypeExpr(context, n->right);
+                    evaluateReferencedTypes(context, n->res_type);
+                }
+                ConstValue op = evaluateConstExpr(context, n->left);
+                TypeSizedPrimitive* type = isRealType(n->res_type);
+                if (type != NULL) {
+                    TypeSizedPrimitive* op_type = isRealType(n->left->res_type);
+                    if (op_type != NULL && type->size == op_type->size) {
+                        res = op;
+                        break;
+                    } else if (op_type != NULL && type->size == 32) {
+                        res = createConstF32(context, (float)op.f64);
+                        break;
+                    } else if (op_type != NULL && type->size == 64) {
+                        res = createConstF64(context, (double)op.f32);
+                        break;
+                    } else if (isSignedIntegerType(n->left->res_type) != NULL) {
+                        if (type->size == 32) {
+                            res = createConstF32(context, (float)op.sint);
+                            break;
+                        } else if (type->size == 64) {
+                            res = createConstF64(context, (double)op.sint);
+                            break;
+                        }
+                    } else if (isUnsignedIntegerType(n->left->res_type) != NULL) {
+                        if (type->size == 32) {
+                            res = createConstF32(context, (float)op.uint);
+                            break;
+                        } else if (type->size == 64) {
+                            res = createConstF64(context, (double)op.uint);
+                            break;
+                        }
+                    }
+                }
+                type = isSignedIntegerType(n->res_type);
+                if (type != NULL) {
+                    TypeSizedPrimitive* op_type = isRealType(n->left->res_type);
+                    if (op_type != NULL && op_type->size == 32) {
+                        res = createConstInt(context, type->size, (intmax_t)op.f32);
+                        break;
+                    } else if (op_type != NULL && op_type->size == 64) {
+                        res = createConstInt(context, type->size, (intmax_t)op.f64);
+                        break;
+                    } else if (isSignedIntegerType(n->left->res_type) != NULL) {
+                        res = createConstInt(context, type->size, (intmax_t)op.sint);
+                        break;
+                    } else if (isUnsignedIntegerType(n->left->res_type) != NULL) {
+                        res = createConstInt(context, type->size, (intmax_t)op.uint);
+                        break;
+                    }
+                }
+                type = isUnsignedIntegerType(n->res_type);
+                if (type != NULL) {
+                    TypeSizedPrimitive* op_type = isRealType(n->left->res_type);
+                    if (op_type != NULL && op_type->size == 32) {
+                        res = createConstUInt(context, type->size, (uintmax_t)op.f32);
+                        break;
+                    } else if (op_type != NULL && op_type->size == 64) {
+                        res = createConstUInt(context, type->size, (uintmax_t)op.f64);
+                        break;
+                    } else if (isSignedIntegerType(n->left->res_type) != NULL) {
+                        res = createConstUInt(context, type->size, (uintmax_t)op.sint);
+                        break;
+                    } else if (isUnsignedIntegerType(n->left->res_type) != NULL) {
+                        res = createConstUInt(context, type->size, (uintmax_t)op.uint);
+                        break;
+                    }
+                }
+                res = raiseTypeErrorNotInConst(context, n->left, n->left->res_type);
                 break;
             }
             case AST_ADD: BINARY_OP(BACTION_NUM(l + r))

@@ -52,6 +52,12 @@ static void buildLocalSymbolTables(CompilerContext* context, AstNode* node, Symb
                 buildLocalSymbolTables(context, n->left, scope, type);
                 break;
             }
+            case AST_AS: {
+                AstBinary* n = (AstBinary*)node;
+                buildLocalSymbolTables(context, n->left, scope, type);
+                buildLocalSymbolTables(context, n->right, scope, true);
+                break;
+            }
             case AST_INDEX:
             case AST_SUB:
             case AST_MUL:
@@ -265,6 +271,11 @@ static void buildControlFlowReferences(CompilerContext* context, AstNode* node, 
             case AST_ASSIGN: { // Executed right to left
                 AstBinary* n = (AstBinary*)node;
                 buildControlFlowReferences(context, n->right, function);
+                buildControlFlowReferences(context, n->left, function);
+                break;
+            }
+            case AST_AS: {
+                AstBinary* n = (AstBinary*)node;
                 buildControlFlowReferences(context, n->left, function);
                 break;
             }

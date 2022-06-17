@@ -56,6 +56,7 @@ REAL    [0-9][_0-9]*(\.[0-9][_0-9]*)?([eE][-+]?[0-9][_0-9]*)?
 "extern"        { return EXTERN; }
 "pub"           { return PUB; }
 "sizeof"        { return SIZEOF; }
+"as"            { return AS; }
 
 "=="            { return EQ; }
 "!="            { return NE; }

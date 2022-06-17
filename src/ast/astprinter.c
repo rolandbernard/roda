@@ -35,6 +35,7 @@ static const char* ast_type_names[] = {
     [AST_ARGDEF] = "argument definition",
     [AST_INDEX] = "index",
     [AST_ARRAY] = "array",
+    [AST_AS] = "type conversion",
     [AST_ADD_ASSIGN] = "add assign",
     [AST_SUB_ASSIGN] = "sub assign",
     [AST_MUL_ASSIGN] = "mul assign",
@@ -225,6 +226,7 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
             case AST_BXOR_ASSIGN:
             case AST_ASSIGN:
             case AST_INDEX:
+            case AST_AS:
             case AST_SUB:
             case AST_MUL:
             case AST_DIV:

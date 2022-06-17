@@ -34,6 +34,10 @@ static bool controlFlowEndsWithReturn(CompilerContext* context, AstNode* node) {
                 return controlFlowEndsWithReturn(context, n->right)
                     || controlFlowEndsWithReturn(context, n->left);
             }
+            case AST_AS: {
+                AstBinary* n = (AstBinary*)node;
+                return controlFlowEndsWithReturn(context, n->right);
+            }
             case AST_INDEX:
             case AST_SUB:
             case AST_MUL:

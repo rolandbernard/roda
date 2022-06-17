@@ -194,6 +194,8 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
                 }
                 break;
             }
+            case AST_AS:
+                break;
             case AST_INDEX: {
                 AstBinary* n = (AstBinary*)node;
                 if (n->left->res_type != NULL) {
@@ -431,10 +433,10 @@ static void evaluateTypeDefinitions(CompilerContext* context, AstNode* node) {
             case AST_TYPEDEF: {
                 AstTypeDef* n = (AstTypeDef*)node;
                 SymbolType* type = (SymbolType*)n->name->binding;
-                if (type != NULL) {
+                if (type != NULL && type->type == NULL) {
                     type->type = evaluateTypeExpr(context, n->value);
-                    n->name->res_type = type->type;
                 }
+                n->name->res_type = type->type;
                 break;
             }
             default:
@@ -537,6 +539,25 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                 evaluateTypeHints(context, n->left);
                 break;
             }
+            case AST_AS: {
+                AstBinary* n = (AstBinary*)node;
+                n->right->res_type = evaluateTypeExpr(context, n->right);
+                n->right->res_type_reasoning = n->right;
+                if (!isValidType(n->right->res_type)) {
+                    String type_name = buildTypeName(n->right->res_type);
+                    addMessageToContext(&context->msgs, createMessage(ERROR_INVALID_TYPE,
+                        createFormattedString("type error, cast to invalid type `%S`", type_name), 1,
+                        createMessageFragment(MESSAGE_ERROR, createFormattedString("this type is invalid"), n->right->location)
+                    ));
+                    freeString(type_name);
+                    n->right->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
+                    n->right->res_type_reasoning = NULL;
+                }
+                n->res_type = n->right->res_type;
+                n->res_type_reasoning = n->right->res_type_reasoning;
+                evaluateTypeHints(context, n->left);
+                break;
+            }
             case AST_INDEX:
             case AST_SUB:
             case AST_MUL:
@@ -594,18 +615,18 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                 n->op->res_type_reasoning = n->op;
                 if (!isValidType(n->op->res_type)) {
                     String type_name = buildTypeName(n->op->res_type);
-                    addMessageToContext(&context->msgs, createMessage(ERROR_UNSIZED_TYPE,
-                        createFormattedString("type error, sizeof for unsized type `%S`", type_name), 1,
-                        createMessageFragment(MESSAGE_ERROR, createFormattedString("this type is unsized"), n->op->location)
+                    addMessageToContext(&context->msgs, createMessage(ERROR_INVALID_TYPE,
+                        createFormattedString("type error, sizeof for invalid type `%S`", type_name), 1,
+                        createMessageFragment(MESSAGE_ERROR, createFormattedString("this type is invalid"), n->op->location)
                     ));
                     freeString(type_name);
                     n->op->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
                     n->op->res_type_reasoning = NULL;
                 } else if (!isSizedType(n->op->res_type)) {
                     String type_name = buildTypeName(n->op->res_type);
-                    addMessageToContext(&context->msgs, createMessage(ERROR_INVALID_TYPE,
-                        createFormattedString("type error, sizeof for invalid type `%S`", type_name), 1,
-                        createMessageFragment(MESSAGE_ERROR, createFormattedString("this type is invalid"), n->op->location)
+                    addMessageToContext(&context->msgs, createMessage(ERROR_UNSIZED_TYPE,
+                        createFormattedString("type error, sizeof for unsized type `%S`", type_name), 1,
+                        createMessageFragment(MESSAGE_ERROR, createFormattedString("this type is unsized"), n->op->location)
                     ));
                     freeString(type_name);
                     n->op->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
@@ -796,6 +817,11 @@ static void propagateAllTypes(CompilerContext* context, AstNode* node) {
                 propagateAllTypes(context, n->left);
                 break;
             }
+            case AST_AS: {
+                AstBinary* n = (AstBinary*)node;
+                propagateAllTypes(context, n->left);
+                break;
+            }
             case AST_INDEX:
             case AST_SUB:
             case AST_MUL:
@@ -895,7 +921,15 @@ static void propagateAllTypes(CompilerContext* context, AstNode* node) {
     }
 }
 
-static void assumeAmbiguousTypes(CompilerContext* context, AstNode* node) {
+typedef enum {
+    ASSUME_NONE = 0,
+    ASSUME_CASTS = (1 << 0),
+    ASSUME_LITERALS = (1 << 1),
+    ASSUME_SIZEOF = (1 << 2),
+    ASSUME_INDEX = (1 << 3),
+} AssumeAmbiguousPhase;
+
+static void assumeAmbiguousTypes(CompilerContext* context, AssumeAmbiguousPhase phase, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
             case AST_ARRAY:
@@ -906,7 +940,7 @@ static void assumeAmbiguousTypes(CompilerContext* context, AstNode* node) {
             case AST_ARGDEF:
                 break;
             case AST_STR:
-                if (node->res_type == NULL) {
+                if ((phase & ASSUME_LITERALS) != 0 && node->res_type == NULL) {
                     Type* type = createPointerType(&context->types,
                         createSizedPrimitiveType(&context->types, TYPE_UINT, 8)
                     );
@@ -916,7 +950,7 @@ static void assumeAmbiguousTypes(CompilerContext* context, AstNode* node) {
                 }
                 break;
             case AST_VOID:
-                if (node->res_type == NULL) {
+                if ((phase & ASSUME_LITERALS) != 0 && node->res_type == NULL) {
                     Type* type = createUnsizedPrimitiveType(&context->types, TYPE_VOID);
                     if (propagateTypeIntoAstNode(context, node, type, node)) {
                         propagateTypes(context, node->parent);
@@ -924,7 +958,7 @@ static void assumeAmbiguousTypes(CompilerContext* context, AstNode* node) {
                 }
                 break;
             case AST_CHAR:
-                if (node->res_type == NULL) {
+                if ((phase & ASSUME_LITERALS) != 0 && node->res_type == NULL) {
                     Type* type = createSizedPrimitiveType(&context->types, TYPE_UINT, 8);
                     if (propagateTypeIntoAstNode(context, node, type, node)) {
                         propagateTypes(context, node->parent);
@@ -932,7 +966,7 @@ static void assumeAmbiguousTypes(CompilerContext* context, AstNode* node) {
                 }
                 break;
             case AST_INT:
-                if (node->res_type == NULL) {
+                if ((phase & ASSUME_LITERALS) != 0 && node->res_type == NULL) {
                     Type* type = createSizedPrimitiveType(&context->types, TYPE_INT, 64);
                     if (propagateTypeIntoAstNode(context, node, type, node)) {
                         propagateTypes(context, node->parent);
@@ -940,7 +974,7 @@ static void assumeAmbiguousTypes(CompilerContext* context, AstNode* node) {
                 }
                 break;
             case AST_BOOL:
-                if (node->res_type == NULL) {
+                if ((phase & ASSUME_LITERALS) != 0 && node->res_type == NULL) {
                     Type* type = createUnsizedPrimitiveType(&context->types, TYPE_BOOL);
                     if (propagateTypeIntoAstNode(context, node, type, node)) {
                         propagateTypes(context, node->parent);
@@ -948,7 +982,7 @@ static void assumeAmbiguousTypes(CompilerContext* context, AstNode* node) {
                 }
                 break;
             case AST_REAL:
-                if (node->res_type == NULL) {
+                if ((phase & ASSUME_LITERALS) != 0 && node->res_type == NULL) {
                     Type* type = createSizedPrimitiveType(&context->types, TYPE_REAL, 64);
                     if (propagateTypeIntoAstNode(context, node, type, node)) {
                         propagateTypes(context, node->parent);
@@ -956,7 +990,7 @@ static void assumeAmbiguousTypes(CompilerContext* context, AstNode* node) {
                 }
                 break;
             case AST_SIZEOF:
-                if (node->res_type == NULL) {
+                if ((phase & ASSUME_SIZEOF) != 0 && node->res_type == NULL) {
                     Type* type = createSizedPrimitiveType(&context->types, TYPE_UINT, 64);
                     if (propagateTypeIntoAstNode(context, node, type, node)) {
                         propagateTypes(context, node->parent);
@@ -975,13 +1009,23 @@ static void assumeAmbiguousTypes(CompilerContext* context, AstNode* node) {
             case AST_BXOR_ASSIGN:
             case AST_ASSIGN: {
                 AstBinary* n = (AstBinary*)node;
-                assumeAmbiguousTypes(context, n->right);
-                assumeAmbiguousTypes(context, n->left);
+                assumeAmbiguousTypes(context, phase, n->right);
+                assumeAmbiguousTypes(context, phase, n->left);
+                break;
+            }
+            case AST_AS: {
+                AstBinary* n = (AstBinary*)node;
+                assumeAmbiguousTypes(context, phase, n->left);
+                if ((phase & ASSUME_CASTS) != 0 && n->left->res_type == NULL && n->right->res_type != NULL) {
+                    if (propagateTypeFromIntoAstNode(context, n->left, n->right)) {
+                        propagateTypes(context, n->left);
+                    }
+                }
                 break;
             }
             case AST_INDEX: {
                 AstBinary* n = (AstBinary*)node;
-                if (n->right->res_type == NULL) {
+                if ((phase & ASSUME_INDEX) != 0 && n->right->res_type == NULL) {
                     Type* type = createSizedPrimitiveType(&context->types, TYPE_UINT, 64);
                     if (propagateTypeIntoAstNode(context, n->right, type, n->right)) {
                         propagateTypes(context, n->right);
@@ -1008,8 +1052,8 @@ static void assumeAmbiguousTypes(CompilerContext* context, AstNode* node) {
             case AST_LT:
             case AST_GT: {
                 AstBinary* n = (AstBinary*)node;
-                assumeAmbiguousTypes(context, n->left);
-                assumeAmbiguousTypes(context, n->right);
+                assumeAmbiguousTypes(context, phase, n->left);
+                assumeAmbiguousTypes(context, phase, n->right);
                 break;
             }
             case AST_POS:
@@ -1018,66 +1062,66 @@ static void assumeAmbiguousTypes(CompilerContext* context, AstNode* node) {
             case AST_NOT:
             case AST_DEREF: {
                 AstUnary* n = (AstUnary*)node;
-                assumeAmbiguousTypes(context, n->op);
+                assumeAmbiguousTypes(context, phase, n->op);
                 break;
             }
             case AST_RETURN: {
                 AstReturn* n = (AstReturn*)node;
-                assumeAmbiguousTypes(context, n->value);
+                assumeAmbiguousTypes(context, phase, n->value);
                 break;
             }
             case AST_ARRAY_LIT: {
                 AstList* n = (AstList*)node;
                 for (size_t i = 0; i < n->count; i++) {
-                    assumeAmbiguousTypes(context, n->nodes[i]);
+                    assumeAmbiguousTypes(context, phase, n->nodes[i]);
                 }
                 break;
             }
             case AST_LIST: {
                 AstList* n = (AstList*)node;
                 for (size_t i = 0; i < n->count; i++) {
-                    assumeAmbiguousTypes(context, n->nodes[i]);
+                    assumeAmbiguousTypes(context, phase, n->nodes[i]);
                 }
                 break;
             }
             case AST_ROOT: {
                 AstRoot* n = (AstRoot*)node;
-                assumeAmbiguousTypes(context, (AstNode*)n->nodes);
+                assumeAmbiguousTypes(context, phase, (AstNode*)n->nodes);
                 break;
             }
             case AST_BLOCK: {
                 AstBlock* n = (AstBlock*)node;
-                assumeAmbiguousTypes(context, (AstNode*)n->nodes);
+                assumeAmbiguousTypes(context, phase, (AstNode*)n->nodes);
                 break;
             }
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
-                assumeAmbiguousTypes(context, n->val);
+                assumeAmbiguousTypes(context, phase, n->val);
                 break;
             }
             case AST_IF_ELSE: {
                 AstIfElse* n = (AstIfElse*)node;
-                assumeAmbiguousTypes(context, n->condition);
-                assumeAmbiguousTypes(context, n->if_block);
-                assumeAmbiguousTypes(context, n->else_block);
+                assumeAmbiguousTypes(context, phase, n->condition);
+                assumeAmbiguousTypes(context, phase, n->if_block);
+                assumeAmbiguousTypes(context, phase, n->else_block);
                 break;
             }
             case AST_WHILE: {
                 AstWhile* n = (AstWhile*)node;
-                assumeAmbiguousTypes(context, n->condition);
-                assumeAmbiguousTypes(context, n->block);
+                assumeAmbiguousTypes(context, phase, n->condition);
+                assumeAmbiguousTypes(context, phase, n->block);
                 break;
             }
             case AST_FN: {
                 AstFn* n = (AstFn*)node;
-                assumeAmbiguousTypes(context, (AstNode*)n->arguments);
-                assumeAmbiguousTypes(context, n->body);
+                assumeAmbiguousTypes(context, phase, (AstNode*)n->arguments);
+                assumeAmbiguousTypes(context, phase, n->body);
                 break;
             }
             case AST_CALL: {
                 AstCall* n = (AstCall*)node;
-                assumeAmbiguousTypes(context, n->function);
-                assumeAmbiguousTypes(context, (AstNode*)n->arguments);
+                assumeAmbiguousTypes(context, phase, n->function);
+                assumeAmbiguousTypes(context, phase, (AstNode*)n->arguments);
                 break;
             }
         }
@@ -1112,6 +1156,11 @@ static void checkForUntypedVariables(CompilerContext* context, AstNode* node) {
             case AST_ASSIGN: {
                 AstBinary* n = (AstBinary*)node;
                 checkForUntypedVariables(context, n->right);
+                checkForUntypedVariables(context, n->left);
+                break;
+            }
+            case AST_AS: {
+                AstBinary* n = (AstBinary*)node;
                 checkForUntypedVariables(context, n->left);
                 break;
             }
@@ -1278,6 +1327,11 @@ static void checkForUntypedNodes(CompilerContext* context, AstNode* node) {
                 case AST_ASSIGN: {
                     AstBinary* n = (AstBinary*)node;
                     checkForUntypedNodes(context, n->right);
+                    checkForUntypedNodes(context, n->left);
+                    break;
+                }
+                case AST_AS: {
+                    AstBinary* n = (AstBinary*)node;
                     checkForUntypedNodes(context, n->left);
                     break;
                 }
@@ -1486,6 +1540,56 @@ static void raiseVoidReturnError(CompilerContext* context, AstReturn* node, Type
     freeString(type_name);
 }
 
+static void raiseUnsupportedCast(
+    CompilerContext* context, AstNode* node, Type* from, Type* to, AstNode* from_reason, AstNode* to_reason
+) {
+    String fst_type = buildTypeName(from);
+    String snd_type = buildTypeName(to);
+    String message =
+        createFormattedString("type error, unsupported cast form `%S` to `%S`", fst_type, snd_type);
+    MessageFragment* error = createMessageFragment(
+        MESSAGE_ERROR,
+        createFormattedString(
+            "unsupported cast from `%S` to `%S`", fst_type, snd_type
+        ),
+        node->location
+    );
+    MessageFragment* notes[2];
+    size_t note_count = 0;
+    if (from_reason != NULL) {
+        notes[note_count] = createMessageFragment(
+            MESSAGE_NOTE, createFormattedString("note: expecting `%S` because of this", fst_type),
+            from_reason->location
+        );
+        note_count++;
+    }
+    if (to_reason != NULL) {
+        notes[note_count] = createMessageFragment(
+            MESSAGE_NOTE, createFormattedString("note: expecting `%S` because of this", snd_type),
+            to_reason->location
+        );
+        note_count++;
+    }
+    if (note_count == 0) {
+        addMessageToContext(
+            &context->msgs, createMessage(ERROR_INCOMPATIBLE_TYPE, message, 1, error)
+        );
+    } else if (note_count == 1) {
+        addMessageToContext(
+            &context->msgs, createMessage(ERROR_INCOMPATIBLE_TYPE, message, 2, error, notes[0])
+        );
+    } else {
+        addMessageToContext(
+            &context->msgs,
+            createMessage(ERROR_INCOMPATIBLE_TYPE, message, 3, error, notes[0], notes[1])
+        );
+    }
+    freeString(fst_type);
+    freeString(snd_type);
+    node->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
+    node->res_type_reasoning = NULL;
+}
+
 static bool isAddressableValue(AstNode* node) {
     if (node == NULL) {
         return false;
@@ -1545,9 +1649,7 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                 break;
             case AST_VOID: {
                 if (node->res_type != NULL && !isErrorType(node->res_type)) {
-                    Type* void_type = isVoidType(node->res_type);
-                    TypeArray* arr_type = isArrayType(node->res_type);
-                    if (void_type == NULL && (arr_type == 0 || arr_type->size != 0)) {
+                    if (isVoidType(node->res_type) == NULL) {
                         raiseLiteralTypeError(context, node, "`()`");
                     }
                 }
@@ -1639,6 +1741,44 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                 AstBinary* n = (AstBinary*)node;
                 checkNodeIsWritable(context, n->left);
                 checkTypeConstraints(context, n->right);
+                checkTypeConstraints(context, n->left);
+                break;
+            }
+            case AST_AS: {
+                AstBinary* n = (AstBinary*)node;
+                if (n->left->res_type != NULL && n->res_type != NULL) {
+                    if (isIntegerType(n->res_type) != NULL) {
+                        if (
+                            isIntegerType(n->left->res_type) == NULL
+                            && isPointerType(n->left->res_type) == NULL
+                            && isRealType(n->left->res_type) == NULL
+                        ) {
+                            raiseUnsupportedCast(
+                                context, node, n->left->res_type, n->res_type,
+                                n->left->res_type_reasoning, n->res_type_reasoning
+                            );
+                        }
+                    } else if (isRealType(n->res_type) != NULL) {
+                        if (isRealType(n->left->res_type) == NULL && isIntegerType(n->left->res_type) == NULL) {
+                            raiseUnsupportedCast(
+                                context, node, n->left->res_type, n->res_type,
+                                n->left->res_type_reasoning, n->res_type_reasoning
+                            );
+                        }
+                    } else if (isPointerType(n->res_type) != NULL) {
+                        if (isPointerType(n->left->res_type) == NULL && isIntegerType(n->left->res_type) == NULL) {
+                            raiseUnsupportedCast(
+                                context, node, n->left->res_type, n->res_type,
+                                n->left->res_type_reasoning, n->res_type_reasoning
+                            );
+                        }
+                    } else {
+                        raiseUnsupportedCast(
+                            context, node, n->left->res_type, n->res_type,
+                            n->left->res_type_reasoning, n->res_type_reasoning
+                        );
+                    }
+                }
                 checkTypeConstraints(context, n->left);
                 break;
             }
@@ -1866,6 +2006,8 @@ void runTypeChecking(CompilerContext* context) {
     FOR_ALL_MODULES({ checkTypeDefinitions(context, file->ast); });
     FOR_ALL_MODULES({ evaluateTypeHints(context, file->ast); });
     FOR_ALL_MODULES({ propagateAllTypes(context, file->ast); });
-    FOR_ALL_MODULES({ assumeAmbiguousTypes(context, file->ast); });
+    FOR_ALL_MODULES({ assumeAmbiguousTypes(context, ASSUME_SIZEOF | ASSUME_INDEX, file->ast); });
+    FOR_ALL_MODULES({ assumeAmbiguousTypes(context, ASSUME_LITERALS, file->ast); });
+    FOR_ALL_MODULES({ assumeAmbiguousTypes(context, ASSUME_CASTS, file->ast); });
     FOR_ALL_MODULES({ checkTypes(context, file->ast); });
 }

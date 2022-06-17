@@ -72,6 +72,7 @@ extern void yyerror(YYLTYPE* yyllocp, yyscan_t scanner, ParserContext* context, 
 %token EXTERN           "extern"
 %token PUB              "pub"
 %token SIZEOF           "sizeof"
+%token AS               "as"
 %token EQ               "=="
 %token NE               "!="
 %token LE               "<="
@@ -101,6 +102,7 @@ extern void yyerror(YYLTYPE* yyllocp, yyscan_t scanner, ParserContext* context, 
 %left "<<" ">>"
 %left '-' '+'
 %left '*' '/' '%'
+%precedence "as"
 %precedence UNARY_PRE
 %precedence '(' '['
 
@@ -196,7 +198,7 @@ expr    : ident                         { $$ = (AstNode*)$1; }
         | real                          { $$ = $1; }
         | string                        { $$ = $1; }
         | bool                          { $$ = $1; }
-        | "sizeof" '(' type ')'         { $$ = (AstNode*)createAstUnary(@$, AST_SIZEOF, $3); }
+        | "sizeof" type                 { $$ = (AstNode*)createAstUnary(@$, AST_SIZEOF, $2); }
         | '(' ')'                       { $$ = createAstSimple(@$, AST_VOID); }
         | '[' list ']'                  { $$ = (AstNode*)toStaticAstList($2); $$->kind = AST_ARRAY_LIT; $$->location = @$; }
         | '(' expr ')'                  { $$ = $2; }
@@ -207,6 +209,7 @@ expr    : ident                         { $$ = (AstNode*)$1; }
         | '!' expr %prec UNARY_PRE      { $$ = (AstNode*)createAstUnary(@$, AST_NOT, $2); }
         | expr '[' expr ']'             { $$ = (AstNode*)createAstBinary(@$, AST_INDEX, $1, $3); }
         | expr '(' list ')'             { $$ = (AstNode*)createAstCall(@$, $1, toStaticAstList($3)); }
+        | expr "as" type                { $$ = (AstNode*)createAstBinary(@$, AST_AS, $1, $3); }
         | expr '+' expr                 { $$ = (AstNode*)createAstBinary(@$, AST_ADD, $1, $3); }
         | expr '-' expr                 { $$ = (AstNode*)createAstBinary(@$, AST_SUB, $1, $3); }
         | expr '*' expr                 { $$ = (AstNode*)createAstBinary(@$, AST_MUL, $1, $3); }
