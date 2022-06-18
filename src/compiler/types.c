@@ -35,6 +35,7 @@ static void freeType(Type* type) {
             case TYPE_POINTER:
             case TYPE_ARRAY:
             case TYPE_REFERENCE:
+            case TYPE_UNSURE:
                 break;
             case TYPE_FUNCTION: {
                 TypeFunction* t = (TypeFunction*)type;
@@ -122,6 +123,9 @@ static bool shallowCompareTypes(const Type* a, const Type* b) {
                     return true;
                 }
             }
+            case TYPE_UNSURE: {
+                return a == b; // Note: unsure types are not uniqued
+            }
         }
         UNREACHABLE("unhandled type kind");
     }
@@ -171,6 +175,9 @@ static size_t shallowHashType(const Type* type) {
                 hash = hashCombine(hash, hashInt((size_t)t->types[i]));
             }
             return hash;
+        }
+        case TYPE_UNSURE: {
+            return hashInt((size_t)type); // Note: unsure types are not uniqued
         }
     }
     UNREACHABLE("unhandled type kind");
@@ -311,6 +318,20 @@ Type* createTypeStruct(TypeContext* cxt, Symbol* names, Type** types, size_t cou
     return ret;
 }
 
+Type* createUnsureType(TypeContext* cxt, Type* fallback) {
+    TypeUnsure* type = NEW(TypeUnsure);
+    type->kind = TYPE_UNSURE;
+    type->codegen = NULL;
+    type->fallback = fallback;
+    type->actual = NULL;
+    tryResizingHashTable(cxt);
+    size_t idx = findIndexHashTable(cxt, (Type*)type);
+    ASSERT(!isIndexValid(cxt, idx));
+    cxt->types[idx] = (Type*)type;
+    cxt->count++;
+    return (Type*)type;
+}
+
 static void buildTypeNameInto(String* dst, const Type* type) {
     if (type == NULL) {
         *dst = pushToString(*dst, str("_"));
@@ -390,6 +411,14 @@ static void buildTypeNameInto(String* dst, const Type* type) {
                 *dst = pushToString(*dst, str(")"));
                 break;
             }
+            case TYPE_UNSURE: {
+                TypeUnsure* t = (TypeUnsure*)type;
+                if (t->actual != NULL) {
+                    buildTypeNameInto(dst, t->actual);
+                } else {
+                    buildTypeNameInto(dst, t->fallback);
+                }
+            }
         }
     }
 }
@@ -405,25 +434,32 @@ typedef struct TypeReferenceStack {
     const SymbolType* binding;
 } TypeReferenceStack;
 
-#define STRUCTURAL_TYPE_CHECK(TYPE, NAME, TRUE, DEFAULT)                                \
-    static TYPE NAME ## Helper (Type* type, TypeReferenceStack* stack) {                \
-        TRUE else if (type->kind == TYPE_REFERENCE) {                                   \
-            TypeReference* t = (TypeReference*)type;                                    \
-            TypeReferenceStack elem = {                                                 \
-                .last = stack,                                                          \
-                .binding = t->binding                                                   \
-            };                                                                          \
-            TypeReferenceStack* cur = stack;                                            \
-            while (cur != NULL) {                                                       \
-                if (cur->binding != elem.binding) {                                     \
-                    cur = cur->last;                                                    \
-                } DEFAULT                                                               \
-            }                                                                           \
-            return NAME ## Helper (t->binding->type, &elem);                            \
-        } DEFAULT                                                                       \
-    }                                                                                   \
-    TYPE NAME (Type* type) {                                                            \
-        return NAME ## Helper (type, NULL);                                             \
+#define STRUCTURAL_TYPE_CHECK(TYPE, NAME, TRUE, DEFAULT)                        \
+    static TYPE NAME ## Helper (Type* type, TypeReferenceStack* stack) {        \
+        TRUE else if (type->kind == TYPE_REFERENCE) {                           \
+            TypeReference* t = (TypeReference*)type;                            \
+            TypeReferenceStack elem = {                                         \
+                .last = stack,                                                  \
+                .binding = t->binding                                           \
+            };                                                                  \
+            TypeReferenceStack* cur = stack;                                    \
+            while (cur != NULL) {                                               \
+                if (cur->binding != elem.binding) {                             \
+                    cur = cur->last;                                            \
+                } DEFAULT                                                       \
+            }                                                                   \
+            return NAME ## Helper (t->binding->type, &elem);                    \
+        } else if (type->kind == TYPE_UNSURE) {                                 \
+            TypeUnsure* t = (TypeUnsure*)type;                                  \
+            if (t->actual != NULL) {                                            \
+                return NAME ## Helper (t->actual, stack);                       \
+            } else {                                                            \
+                return NAME ## Helper (t->fallback, stack);                     \
+            }                                                                   \
+        } DEFAULT                                                               \
+    }                                                                           \
+    TYPE NAME (Type* type) {                                                    \
+        return NAME ## Helper (type, NULL);                                     \
     }
 
 static Type* isTypeOfKindHelper(Type* type, TypeKind kind, TypeReferenceStack* stack) {
@@ -441,6 +477,13 @@ static Type* isTypeOfKindHelper(Type* type, TypeKind kind, TypeReferenceStack* s
             }
         }
         return isTypeOfKindHelper(t->binding->type, kind, &elem);
+    } else if (type->kind == TYPE_UNSURE) {
+        TypeUnsure* t = (TypeUnsure*)type;
+        if (t->actual != NULL) {
+            return isTypeOfKindHelper(t->actual, kind, stack);
+        } else {
+            return isTypeOfKindHelper(t->fallback, kind, stack);
+        }
     } else {
         return NULL;
     }
@@ -600,7 +643,7 @@ typedef struct DoubleTypeReferenceStack {
     Type* types[2];
 } DoubleTypeReferenceStack;
 
-static bool compareStructuralTypesHelper(Type* a, Type* b, DoubleTypeReferenceStack* stack) {
+static bool compareStructuralTypesHelper(Type* a, Type* b, bool change, DoubleTypeReferenceStack* stack) {
     if (a == b) {
         return true;
     } else if (a == NULL || b == NULL) {
@@ -622,7 +665,7 @@ static bool compareStructuralTypesHelper(Type* a, Type* b, DoubleTypeReferenceSt
                         return true;
                     }
                 }
-                return compareStructuralTypesHelper(t->binding->type, b, &elem);
+                return compareStructuralTypesHelper(t->binding->type, b, change, &elem);
             }
         } else if (b->kind == TYPE_REFERENCE) {
             TypeReference* t = (TypeReference*)b;
@@ -640,13 +683,56 @@ static bool compareStructuralTypesHelper(Type* a, Type* b, DoubleTypeReferenceSt
                         return true;
                     }
                 }
-                return compareStructuralTypesHelper(a, t->binding->type, &elem);
+                return compareStructuralTypesHelper(a, t->binding->type, change, &elem);
+            }
+        } else if (a->kind == TYPE_UNSURE) {
+            TypeUnsure* t = (TypeUnsure*)a;
+            if (t->actual != NULL) {
+                return compareStructuralTypesHelper(t->actual, b, change, stack);
+            } else if (change) {
+                t->actual = b;
+                return true;
+            } else {
+                return compareStructuralTypesHelper(t->fallback, b, change, stack);
+            }
+        } else if (b->kind == TYPE_UNSURE) {
+            TypeUnsure* t = (TypeUnsure*)b;
+            if (t->actual != NULL) {
+                return compareStructuralTypesHelper(a, t->actual, change, stack);
+            } else if (change) {
+                t->actual = a;
+                return true;
+            } else {
+                return compareStructuralTypesHelper(a, t->fallback, change, stack);
             }
         } else {
             return false;
         }
     } else {
         switch (a->kind) {
+            case TYPE_UNSURE: {
+                TypeUnsure* ta = (TypeUnsure*)a;
+                TypeUnsure* tb = (TypeUnsure*)b;
+                if (ta->actual == NULL) {
+                    if (change) {
+                        ta->actual = b;
+                        return true;
+                    } else if (tb->actual != NULL) {
+                        return compareStructuralTypesHelper(ta->fallback, tb->actual, change, stack);
+                    } else {
+                        return compareStructuralTypesHelper(ta->fallback, tb->fallback, change, stack);
+                    }
+                } else if (tb->actual == NULL) {
+                    if (change) {
+                        tb->actual = a;
+                        return true;
+                    } else {
+                        return compareStructuralTypesHelper(ta->actual, tb->fallback, change, stack);
+                    }
+                } else {
+                    return compareStructuralTypesHelper(ta->actual, tb->actual, change, stack);
+                }
+            }
             case TYPE_ERROR:
             case TYPE_VOID:
             case TYPE_BOOL:
@@ -661,21 +747,21 @@ static bool compareStructuralTypesHelper(Type* a, Type* b, DoubleTypeReferenceSt
             case TYPE_POINTER: {
                 TypePointer* ta = (TypePointer*)a;
                 TypePointer* tb = (TypePointer*)b;
-                return compareStructuralTypesHelper(ta->base, tb->base, stack);
+                return compareStructuralTypesHelper(ta->base, tb->base, change, stack);
             }
             case TYPE_ARRAY: {
                 TypeArray* ta = (TypeArray*)a;
                 TypeArray* tb = (TypeArray*)b;
-                return ta->size == tb->size && compareStructuralTypesHelper(ta->base, tb->base, stack);
+                return ta->size == tb->size && compareStructuralTypesHelper(ta->base, tb->base, change, stack);
             }
             case TYPE_FUNCTION: {
                 TypeFunction* ta = (TypeFunction*)a;
                 TypeFunction* tb = (TypeFunction*)b;
-                if (ta->arg_count != tb->arg_count || ta->vararg != tb->vararg || compareStructuralTypesHelper(ta->ret_type, tb->ret_type, stack)) {
+                if (ta->arg_count != tb->arg_count || ta->vararg != tb->vararg || compareStructuralTypesHelper(ta->ret_type, tb->ret_type, change, stack)) {
                     return false;
                 } else {
                     for (size_t i = 0; i < ta->arg_count; i++) {
-                        if (!compareStructuralTypesHelper(ta->arguments[i], tb->arguments[i], stack)) {
+                        if (!compareStructuralTypesHelper(ta->arguments[i], tb->arguments[i], change, stack)) {
                             return false;
                         }
                     }
@@ -694,7 +780,7 @@ static bool compareStructuralTypesHelper(Type* a, Type* b, DoubleTypeReferenceSt
                         }
                     }
                     for (size_t i = 0; i < ta->count; i++) {
-                        if (!compareStructuralTypesHelper(ta->types[i], tb->types[i], stack)) {
+                        if (!compareStructuralTypesHelper(ta->types[i], tb->types[i], change, stack)) {
                             return false;
                         }
                     }
@@ -718,7 +804,7 @@ static bool compareStructuralTypesHelper(Type* a, Type* b, DoubleTypeReferenceSt
                             return true;
                         }
                     }
-                    return compareStructuralTypesHelper(ta->binding->type, tb->binding->type, &elem);
+                    return compareStructuralTypesHelper(ta->binding->type, tb->binding->type, change, &elem);
                 }
             }
         }
@@ -727,6 +813,10 @@ static bool compareStructuralTypesHelper(Type* a, Type* b, DoubleTypeReferenceSt
 }
 
 bool compareStructuralTypes(Type* a, Type* b) {
-    return compareStructuralTypesHelper(a, b, NULL);
+    return compareStructuralTypesHelper(a, b, false, NULL);
+}
+
+bool assertStructuralTypesEquality(Type* a, Type* b) {
+    return compareStructuralTypesHelper(a, b, true, NULL);
 }
 

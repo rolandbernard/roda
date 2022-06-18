@@ -48,7 +48,7 @@ static bool propagateTypeIntoAstNode(CompilerContext* context, AstNode* node, Ty
         node->res_type = type;
         node->res_type_reasoning = reasoning;
         return true;
-    } else if (!isErrorType(type) && !isErrorType(node->res_type) && !compareStructuralTypes(node->res_type, type)) {
+    } else if (!isErrorType(type) && !isErrorType(node->res_type) && !assertStructuralTypesEquality(node->res_type, type)) {
         raiseConflictingTypes(context, node, type, reasoning);
         node->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
         node->res_type_reasoning = NULL;
@@ -1067,6 +1067,7 @@ static void assumeAmbiguousTypes(CompilerContext* context, AssumeAmbiguousPhase 
                     Type* type = createPointerType(&context->types,
                         createSizedPrimitiveType(&context->types, TYPE_UINT, 8)
                     );
+                    type = createUnsureType(&context->types, type);
                     if (propagateTypeIntoAstNode(context, node, type, node)) {
                         propagateTypes(context, node->parent);
                     }
@@ -1075,6 +1076,7 @@ static void assumeAmbiguousTypes(CompilerContext* context, AssumeAmbiguousPhase 
             case AST_VOID:
                 if ((phase & ASSUME_LITERALS) != 0 && node->res_type == NULL) {
                     Type* type = createUnsizedPrimitiveType(&context->types, TYPE_VOID);
+                    type = createUnsureType(&context->types, type);
                     if (propagateTypeIntoAstNode(context, node, type, node)) {
                         propagateTypes(context, node->parent);
                     }
@@ -1083,6 +1085,7 @@ static void assumeAmbiguousTypes(CompilerContext* context, AssumeAmbiguousPhase 
             case AST_CHAR:
                 if ((phase & ASSUME_LITERALS) != 0 && node->res_type == NULL) {
                     Type* type = createSizedPrimitiveType(&context->types, TYPE_UINT, 8);
+                    type = createUnsureType(&context->types, type);
                     if (propagateTypeIntoAstNode(context, node, type, node)) {
                         propagateTypes(context, node->parent);
                     }
@@ -1091,6 +1094,7 @@ static void assumeAmbiguousTypes(CompilerContext* context, AssumeAmbiguousPhase 
             case AST_INT:
                 if ((phase & ASSUME_LITERALS) != 0 && node->res_type == NULL) {
                     Type* type = createSizedPrimitiveType(&context->types, TYPE_INT, 64);
+                    type = createUnsureType(&context->types, type);
                     if (propagateTypeIntoAstNode(context, node, type, node)) {
                         propagateTypes(context, node->parent);
                     }
@@ -1099,6 +1103,7 @@ static void assumeAmbiguousTypes(CompilerContext* context, AssumeAmbiguousPhase 
             case AST_BOOL:
                 if ((phase & ASSUME_LITERALS) != 0 && node->res_type == NULL) {
                     Type* type = createUnsizedPrimitiveType(&context->types, TYPE_BOOL);
+                    type = createUnsureType(&context->types, type);
                     if (propagateTypeIntoAstNode(context, node, type, node)) {
                         propagateTypes(context, node->parent);
                     }
@@ -1107,6 +1112,7 @@ static void assumeAmbiguousTypes(CompilerContext* context, AssumeAmbiguousPhase 
             case AST_REAL:
                 if ((phase & ASSUME_LITERALS) != 0 && node->res_type == NULL) {
                     Type* type = createSizedPrimitiveType(&context->types, TYPE_REAL, 64);
+                    type = createUnsureType(&context->types, type);
                     if (propagateTypeIntoAstNode(context, node, type, node)) {
                         propagateTypes(context, node->parent);
                     }
@@ -1115,11 +1121,37 @@ static void assumeAmbiguousTypes(CompilerContext* context, AssumeAmbiguousPhase 
             case AST_SIZEOF:
                 if ((phase & ASSUME_SIZEOF) != 0 && node->res_type == NULL) {
                     Type* type = createSizedPrimitiveType(&context->types, TYPE_UINT, 64);
+                    type = createUnsureType(&context->types, type);
                     if (propagateTypeIntoAstNode(context, node, type, node)) {
                         propagateTypes(context, node->parent);
                     }
                 }
                 break;
+            case AST_AS: {
+                AstBinary* n = (AstBinary*)node;
+                assumeAmbiguousTypes(context, phase, n->left);
+                if ((phase & ASSUME_CASTS) != 0 && n->left->res_type == NULL && n->right->res_type != NULL) {
+                    Type* type = n->right->res_type;
+                    type = createUnsureType(&context->types, type);
+                    if (propagateTypeIntoAstNode(context, n->left, type, n->right)) {
+                        propagateTypes(context, n->left);
+                    }
+                }
+                break;
+            }
+            case AST_INDEX: {
+                AstBinary* n = (AstBinary*)node;
+                assumeAmbiguousTypes(context, phase, n->left);
+                assumeAmbiguousTypes(context, phase, n->right);
+                if ((phase & ASSUME_INDEX) != 0 && n->right->res_type == NULL) {
+                    Type* type = createSizedPrimitiveType(&context->types, TYPE_UINT, 64);
+                    type = createUnsureType(&context->types, type);
+                    if (propagateTypeIntoAstNode(context, n->right, type, n->right)) {
+                        propagateTypes(context, n->right);
+                    }
+                }
+                break;
+            }
             case AST_ADD_ASSIGN:
             case AST_SUB_ASSIGN:
             case AST_MUL_ASSIGN:
@@ -1134,28 +1166,6 @@ static void assumeAmbiguousTypes(CompilerContext* context, AssumeAmbiguousPhase 
                 AstBinary* n = (AstBinary*)node;
                 assumeAmbiguousTypes(context, phase, n->right);
                 assumeAmbiguousTypes(context, phase, n->left);
-                break;
-            }
-            case AST_AS: {
-                AstBinary* n = (AstBinary*)node;
-                assumeAmbiguousTypes(context, phase, n->left);
-                if ((phase & ASSUME_CASTS) != 0 && n->left->res_type == NULL && n->right->res_type != NULL) {
-                    if (propagateTypeFromIntoAstNode(context, n->left, n->right)) {
-                        propagateTypes(context, n->left);
-                    }
-                }
-                break;
-            }
-            case AST_INDEX: {
-                AstBinary* n = (AstBinary*)node;
-                assumeAmbiguousTypes(context, phase, n->left);
-                assumeAmbiguousTypes(context, phase, n->right);
-                if ((phase & ASSUME_INDEX) != 0 && n->right->res_type == NULL) {
-                    Type* type = createSizedPrimitiveType(&context->types, TYPE_UINT, 64);
-                    if (propagateTypeIntoAstNode(context, n->right, type, n->right)) {
-                        propagateTypes(context, n->right);
-                    }
-                }
                 break;
             }
             case AST_STRUCT_INDEX: {

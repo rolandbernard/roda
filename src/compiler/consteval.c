@@ -256,6 +256,15 @@ static void evaluateReferencedTypes(CompilerContext* context, Type* type) {
                 }
                 break;
             }
+            case TYPE_UNSURE: {
+                TypeUnsure* t = (TypeUnsure*)type;
+                if (t->actual != NULL) {
+                    evaluateReferencedTypes(context, t->actual);
+                } else {
+                    evaluateReferencedTypes(context, t->fallback);
+                }
+                break;
+            }
         }
     }
 }

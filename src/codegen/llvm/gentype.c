@@ -113,6 +113,15 @@ static LLVMTypeRef generateLlvmTypeHelper(LlvmCodegenContext* context, Type* typ
                 result = generateLlvmTypeHelper(context, t->binding->type, &elem);
                 break;
             }
+            case TYPE_UNSURE: {
+                TypeUnsure* t = (TypeUnsure*)type;
+                if (t->actual != NULL) {
+                    result = generateLlvmTypeHelper(context, t->actual, stack);
+                } else {
+                    result = generateLlvmTypeHelper(context, t->fallback, stack);
+                }
+                break;
+            }
         }
         CODEGEN(type)->type = result;
     }

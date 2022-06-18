@@ -19,6 +19,7 @@ typedef enum {
     TYPE_FUNCTION,
     TYPE_REFERENCE,
     TYPE_STRUCT,
+    TYPE_UNSURE,
 } TypeKind;
 
 #define TYPE_BASE       \
@@ -66,6 +67,12 @@ typedef struct {
 } TypeStruct;
 
 typedef struct {
+    TYPE_BASE
+    Type* fallback;
+    Type* actual;
+} TypeUnsure;
+
+typedef struct {
     Type** types;
     size_t count;
     size_t capacity;
@@ -88,6 +95,8 @@ Type* createFunctionType(TypeContext* cxt, Type* ret_type, size_t arg_count, Typ
 Type* createTypeReference(TypeContext* cxt, struct SymbolType* binding);
 
 Type* createTypeStruct(TypeContext* cxt, Symbol* name, Type** types, size_t count);
+
+Type* createUnsureType(TypeContext* cxt, Type* fallback);
 
 String buildTypeName(const Type* type);
 
@@ -128,5 +137,7 @@ bool isEffectivelyVoidType(Type* type);
 bool isErrorType(Type* type);
 
 bool compareStructuralTypes(Type* a, Type* b);
+
+bool assertStructuralTypesEquality(Type* a, Type* b);
 
 #endif

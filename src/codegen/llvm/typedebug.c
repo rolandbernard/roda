@@ -135,6 +135,15 @@ LLVMMetadataRef generateLlvmTypeDebugInfo(LlvmCodegenContext* context, LlvmCodeg
                 }
                 break;
             }
+            case TYPE_UNSURE: {
+                TypeUnsure* t = (TypeUnsure*)type;
+                if (t->actual != NULL) {
+                    result = generateLlvmTypeDebugInfo(context, data, t->actual, line);
+                } else {
+                    result = generateLlvmTypeDebugInfo(context, data, t->fallback, line);
+                }
+                break;
+            }
         }
         freeString(name);
         CODEGEN(type)->debug = result;
