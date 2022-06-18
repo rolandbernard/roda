@@ -169,6 +169,11 @@ static LLVMValueRef buildLlvmIntrinsicCall(
 
 static LlvmCodegenValue buildFunctionBodyHelper(LlvmCodegenContext* context, LlvmCodegenModuleContext* data, AstNode* node) {
     ASSERT(node != NULL);
+    LLVMMetadataRef loc = LLVMDIBuilderCreateDebugLocation(
+        context->llvm_cxt, node->location.begin.line + 1, node->location.begin.column + 1,
+        data->scope_metadata, NULL
+    );
+    LLVMSetCurrentDebugLocation2(data->builder, loc);
     switch (node->kind) {
         case AST_STRUCT_TYPE:
         case AST_ARRAY:
@@ -570,14 +575,8 @@ static LlvmCodegenValue buildFunctionBodyHelper(LlvmCodegenContext* context, Llv
 
 static LlvmCodegenValue buildFunctionBody(LlvmCodegenContext* context, LlvmCodegenModuleContext* data, AstNode* node) {
     if (context->cxt->settings.emit_debug) {
-        LLVMMetadataRef prev = LLVMGetCurrentDebugLocation2(data->builder);
-        LLVMMetadataRef loc = LLVMDIBuilderCreateDebugLocation(
-            LLVMGetGlobalContext(), node->location.begin.line + 1, node->location.begin.column + 1,
-            data->scope_metadata, NULL
-        );
-        LLVMSetCurrentDebugLocation2(data->builder, loc);
         LlvmCodegenValue result = buildFunctionBodyHelper(context, data, node);
-        LLVMSetCurrentDebugLocation2(data->builder, prev);
+        LLVMSetCurrentDebugLocation2(data->builder, NULL);
         return result;
     } else {
         return buildFunctionBodyHelper(context, data, node);
@@ -910,7 +909,7 @@ LLVMModuleRef generateSingleModule(LlvmCodegenContext* context, File* file) {
     if (context->cxt->settings.emit_debug) {
         data.debug_bulder = LLVMCreateDIBuilder(data.module);
         data.file_metadata = LLVMDIBuilderCreateFile(
-            data.debug_bulder, file->absolute_path.data, file->absolute_path.length,
+            data.debug_bulder, file->name.data, file->name.length,
             file->directory.data, file->directory.length
         );
         data.scope_metadata = data.file_metadata;

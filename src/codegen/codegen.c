@@ -28,6 +28,9 @@ void raiseNoBackendError(CompilerContext* context, const char* kind) {
 
 static String getLinkerCommand(CompilerContext* context) {
     String command = copyFromCString("cc");
+    if (context->settings.emit_debug) {
+        pushFormattedString(&command, " -g");
+    }
     if (context->settings.link_type == COMPILER_LINK_STATIC) {
         pushFormattedString(&command, " -static");
     } else if (context->settings.link_type == COMPILER_LINK_SHARED) {
