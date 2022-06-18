@@ -62,6 +62,75 @@ static bool propagateTypeFromIntoAstNode(CompilerContext* context, AstNode* into
     return propagateTypeIntoAstNode(context, into, from->res_type, from->res_type_reasoning);
 }
 
+static AstNode* getStructFieldReasoning(AstNode* type_reason, Symbol name) {
+    if (type_reason != NULL && (type_reason->kind == AST_STRUCT_TYPE || type_reason->kind == AST_STRUCT_LIT)) {
+        AstList* strct_node = (AstList*)type_reason;
+        for (size_t i = 0; i < strct_node->count; i++) {
+            AstStructField* field = (AstStructField*)strct_node->nodes[i];
+            if (field->name->name == name) {
+                return field->type->res_type_reasoning;
+            }
+        }
+    }
+    return type_reason;
+}
+
+static AstNode* getArrayElementReasoning(AstNode* type_reason) {
+    if (type_reason != NULL && type_reason->kind == AST_ARRAY) {
+        AstBinary* arr_node = (AstBinary*)type_reason;
+        return arr_node->right;
+    } else if (type_reason != NULL && type_reason->kind == AST_ARRAY_LIT) {
+        AstList* arr_node = (AstList*)type_reason;
+        if (arr_node->count > 0) {
+            return arr_node->nodes[0]->res_type_reasoning;
+        }
+    }
+    return type_reason;
+}
+
+static AstNode* getPointerElementReasoning(AstNode* type_reason) {
+    if (type_reason != NULL && type_reason->kind == AST_ADDR) {
+        AstUnary* addr_node = (AstUnary*)type_reason;
+        return addr_node->op->res_type_reasoning;
+    }
+    return type_reason;
+}
+
+static AstNode* getFunctionReturnReasoning(AstNode* type_reason) {
+    if (type_reason != NULL && type_reason->kind == AST_FN) {
+        AstFn* fn_node = (AstFn*)type_reason;
+        if (fn_node->ret_type == NULL) {
+            return (AstNode*)fn_node->name;
+        } else {
+            return fn_node->ret_type;
+        }
+    } else if (type_reason != NULL && type_reason->kind == AST_FN_TYPE) {
+        AstFnType* fn_node = (AstFnType*)type_reason;
+        if (fn_node->ret_type == NULL) {
+            return (AstNode*)fn_node;
+        } else {
+            return fn_node->ret_type;
+        }
+    }
+    return type_reason;
+}
+
+static AstNode* getFunctionParamReasoning(AstNode* type_reason, size_t i) {
+    if (type_reason != NULL && type_reason->kind == AST_FN) {
+        AstFn* fn_node = (AstFn*)type_reason;
+        AstArgDef* arg_node = (AstArgDef*)fn_node->arguments->nodes[i];
+        if (arg_node->type == NULL) {
+            return (AstNode*)arg_node;
+        } else {
+            return arg_node->type;
+        }
+    } else if (type_reason != NULL && type_reason->kind == AST_FN_TYPE) {
+        AstFnType* fn_node = (AstFnType*)type_reason;
+        return fn_node->arguments->nodes[i];
+    }
+    return type_reason;
+}
+
 static void propagateTypes(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
@@ -210,25 +279,12 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
                     TypeArray* arr_type = isArrayType(n->left->res_type);
                     TypePointer* ptr_type = isPointerType(n->left->res_type);
                     if (arr_type != NULL) {
-                        AstNode* type_reason = n->left->res_type_reasoning;
-                        if (type_reason != NULL && type_reason->kind == AST_ARRAY) {
-                            AstBinary* arr_node = (AstBinary*)type_reason;
-                            type_reason = arr_node->right;
-                        } else if (type_reason != NULL && type_reason->kind == AST_ARRAY_LIT) {
-                            AstList* arr_node = (AstList*)type_reason;
-                            if (arr_node->count > 0) {
-                                type_reason = arr_node->nodes[0]->res_type_reasoning;
-                            }
-                        }
+                        AstNode* type_reason = getArrayElementReasoning(n->left->res_type_reasoning);
                         if (propagateTypeIntoAstNode(context, node, arr_type->base, type_reason)) {
                             propagateTypes(context, node->parent);
                         }
                     } else if (ptr_type != NULL) {
-                        AstNode* type_reason = n->left->res_type_reasoning;
-                        if (type_reason != NULL && type_reason->kind == AST_ADDR) {
-                            AstUnary* addr_node = (AstUnary*)type_reason;
-                            type_reason = addr_node->op->res_type_reasoning;
-                        }
+                        AstNode* type_reason = getPointerElementReasoning(n->left->res_type_reasoning);
                         if (propagateTypeIntoAstNode(context, node, ptr_type->base, type_reason)) {
                             propagateTypes(context, node->parent);
                         }
@@ -269,11 +325,7 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
                 } else if (n->res_type != NULL) {
                     TypePointer* type = isPointerType(n->res_type);
                     if (type != NULL) {
-                        AstNode* type_reason = node->res_type_reasoning;
-                        if (type_reason != NULL && type_reason->kind == AST_ADDR) {
-                            AstUnary* addr_node = (AstUnary*)type_reason;
-                            type_reason = addr_node->op->res_type_reasoning;
-                        }
+                        AstNode* type_reason = getPointerElementReasoning(n->res_type_reasoning);
                         if (propagateTypeIntoAstNode(context, n->op, type->base, type_reason)) {
                             propagateTypes(context, n->op);
                         }
@@ -294,11 +346,7 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
                 } else if (n->op->res_type != NULL) {
                     TypePointer* type = isPointerType(n->op->res_type);
                     if (type != NULL) {
-                        AstNode* type_reason = n->op->res_type_reasoning;
-                        if (type_reason != NULL && type_reason->kind == AST_ADDR) {
-                            AstUnary* addr_node = (AstUnary*)type_reason;
-                            type_reason = addr_node->op->res_type_reasoning;
-                        }
+                        AstNode* type_reason = getPointerElementReasoning(n->op->res_type_reasoning);
                         if (propagateTypeIntoAstNode(context, node, type->base, type_reason)) {
                             propagateTypes(context, node->parent);
                         }
@@ -320,39 +368,12 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
                             || (type->vararg && type->arg_count < n->arguments->count)
                         )
                     ) {
-                        AstNode* type_reason = n->function->res_type_reasoning;
-                        if (type_reason != NULL && type_reason->kind == AST_FN) {
-                            AstFn* fn_node = (AstFn*)type_reason;
-                            if (fn_node->ret_type == NULL) {
-                                type_reason = (AstNode*)fn_node->name;
-                            } else {
-                                type_reason = fn_node->ret_type;
-                            }
-                        } else if (type_reason != NULL && type_reason->kind == AST_FN_TYPE) {
-                            AstFnType* fn_node = (AstFnType*)type_reason;
-                            if (fn_node->ret_type == NULL) {
-                                type_reason = (AstNode*)fn_node;
-                            } else {
-                                type_reason = fn_node->ret_type;
-                            }
-                        }
+                        AstNode* type_reason = getFunctionReturnReasoning(n->function->res_type_reasoning);
                         if (propagateTypeIntoAstNode(context, node, type->ret_type, type_reason)) {
                             propagateTypes(context, node->parent);
                         }
                         for (size_t i = 0; i < type->arg_count; i++) {
-                            type_reason = n->function->res_type_reasoning;
-                            if (type_reason != NULL && type_reason->kind == AST_FN) {
-                                AstFn* fn_node = (AstFn*)type_reason;
-                                AstArgDef* arg_node = (AstArgDef*)fn_node->arguments->nodes[i];
-                                if (arg_node->type == NULL) {
-                                    type_reason = (AstNode*)arg_node;
-                                } else {
-                                    type_reason = arg_node->type;
-                                }
-                            } else if (type_reason != NULL && type_reason->kind == AST_FN_TYPE) {
-                                AstFnType* fn_node = (AstFnType*)type_reason;
-                                type_reason = fn_node->arguments->nodes[i];
-                            }
+                            type_reason = getFunctionParamReasoning(n->function->res_type_reasoning, i);
                             if (propagateTypeIntoAstNode(context, n->arguments->nodes[i], type->arguments[i], type_reason)) {
                                 propagateTypes(context, n->arguments->nodes[i]);
                             }
@@ -380,8 +401,7 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
                             AstStructField* field = (AstStructField*)n->nodes[i];
                             size_t idx = lookupIndexOfStructField(type, field->name->name);
                             if (idx != NO_POS) {
-                                // TODO: NOW
-                                AstNode* type_reason = n->res_type_reasoning;
+                                AstNode* type_reason = getStructFieldReasoning(n->res_type_reasoning, field->name->name);
                                 if (propagateTypeIntoAstNode(context, field->field_value, type->types[idx], type_reason)) {
                                     propagateTypes(context, field->field_value);
                                 }
@@ -420,16 +440,7 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
                 if (n->res_type != NULL) {
                     TypeArray* type = isArrayType(n->res_type);
                     if (type != NULL) {
-                        AstNode* type_reason = n->res_type_reasoning;
-                        if (type_reason != NULL && type_reason->kind == AST_ARRAY) {
-                            AstBinary* arr_node = (AstBinary*)type_reason;
-                            type_reason = arr_node->right;
-                        } else if (type_reason != NULL && type_reason->kind == AST_ARRAY_LIT) {
-                            AstList* arr_node = (AstList*)type_reason;
-                            if (arr_node->count > 0) {
-                                type_reason = arr_node->nodes[0]->res_type_reasoning;
-                            }
-                        }
+                        AstNode* type_reason = getArrayElementReasoning(n->res_type_reasoning);
                         for (size_t i = 0; i < n->count; i++) {
                             if (propagateTypeIntoAstNode(context, n->nodes[i], type->base, type_reason)) {
                                 propagateTypes(context, n->nodes[i]);
@@ -465,23 +476,8 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
                 if (n->function->name->res_type != NULL) {
                     TypeFunction* func = isFunctionType(n->function->name->res_type);
                     if (func != NULL) {
-                        AstNode* type_reason = n->function->name->res_type_reasoning;
-                        if (type_reason != NULL && type_reason->kind == AST_FN) {
-                            AstFn* fn_node = (AstFn*)type_reason;
-                            if (fn_node->ret_type == NULL) {
-                                type_reason = (AstNode*)fn_node->name;
-                            } else {
-                                type_reason = fn_node->ret_type;
-                            }
-                        } else if (type_reason != NULL && type_reason->kind == AST_FN_TYPE) {
-                            AstFnType* fn_node = (AstFnType*)type_reason;
-                            if (fn_node->ret_type == NULL) {
-                                type_reason = (AstNode*)fn_node;
-                            } else {
-                                type_reason = fn_node->ret_type;
-                            }
-                        }
                         if (n->value != NULL) {
+                            AstNode* type_reason = getFunctionReturnReasoning(n->function->name->res_type_reasoning);
                             if (propagateTypeIntoAstNode(context, n->value, func->ret_type, type_reason)) {
                                 propagateTypes(context, n->value);
                             }
@@ -497,12 +493,7 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
                     if (type != NULL) {
                         size_t idx = lookupIndexOfStructField(type, n->field->name);
                         if (idx != NO_POS) {
-                            // TODO: NOW:
-                            AstNode* type_reason = n->res_type_reasoning;
-                            if (type_reason != NULL && type_reason->kind == AST_STRUCT_TYPE) {
-                                AstList* strct_node = (AstList*)type_reason;
-                                type_reason = strct_node->nodes[idx]->res_type_reasoning;
-                            }
+                            AstNode* type_reason = getStructFieldReasoning(n->strct->res_type_reasoning, n->field->name);
                             if (propagateTypeIntoAstNode(context, node, type->types[idx], type_reason)) {
                                 propagateTypes(context, node->parent);
                             }
@@ -1808,7 +1799,7 @@ static void raiseNoSuchFieldError(CompilerContext* context, AstStructIndex* node
 }
 
 void raiseStructFieldMismatchError(CompilerContext* context, AstNode* node) {
-    // TODO: say what is different!
+    // TODO: say what is different?
     String type_name = buildTypeName(node->res_type);
     String message = createFormattedString(
         "inconsistent fields in struct literal, expected literal of type `%S`", type_name
@@ -2025,7 +2016,7 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             }
             case AST_AS: {
                 AstBinary* n = (AstBinary*)node;
-                if (n->left->res_type != NULL && n->res_type != NULL) {
+                if (n->left->res_type != NULL && n->res_type != NULL && !compareStructuralTypes(n->left->res_type, n->res_type)) {
                     if (isIntegerType(n->res_type) != NULL) {
                         if (
                             isIntegerType(n->left->res_type) == NULL

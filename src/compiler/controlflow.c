@@ -38,7 +38,7 @@ static bool controlFlowEndsWithReturn(CompilerContext* context, AstNode* node) {
             }
             case AST_AS: {
                 AstBinary* n = (AstBinary*)node;
-                return controlFlowEndsWithReturn(context, n->right);
+                return controlFlowEndsWithReturn(context, n->left);
             }
             case AST_INDEX:
             case AST_SUB:
@@ -80,6 +80,7 @@ static bool controlFlowEndsWithReturn(CompilerContext* context, AstNode* node) {
                 for (size_t i = 0; i < n->count; i++) {
                     AstStructField* field = (AstStructField*)n->nodes[i];
                     if (controlFlowEndsWithReturn(context, field->field_value)) {
+                        // TODO: warning about dead code?
                         return true;
                     }
                 }
@@ -174,5 +175,6 @@ static void checkControlFlowConstraints(CompilerContext* context, AstNode* node)
 
 void runControlFlowChecking(CompilerContext* context) {
     FOR_ALL_MODULES({ checkControlFlowConstraints(context, file->ast); });
+    // TODO: Check no use of uninitialized?
 }
 

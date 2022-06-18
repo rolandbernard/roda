@@ -296,7 +296,7 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
             case AST_VARDEF: {
                 UNREACHABLE("should not evaluate");
             }
-            case AST_VAR: // TODO: constant variables? (We need a scope!)
+            case AST_VAR: // TODO: constant variables?
             case AST_INDEX: // TODO: constant arrays?
             case AST_VOID:
             case AST_ARRAY_LIT:
