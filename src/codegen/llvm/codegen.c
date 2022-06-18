@@ -95,87 +95,6 @@ void deinitLlvmBackend(CompilerContext* context) {
     DEBUG_LOG(context, "shutdown LLVM backend");
 }
 
-static LLVMCodeGenOptLevel getLlvmCodeGenOptLevel(LlvmCodegenContext* context) {
-    switch (context->cxt->settings.opt_level) {
-        case COMPILER_OPT_DEFAULT:
-            return LLVMCodeGenLevelDefault;
-        case COMPILER_OPT_NONE:
-            return LLVMCodeGenLevelNone;
-        case COMPILER_OPT_SOME:
-            return LLVMCodeGenLevelDefault;
-        case COMPILER_OPT_FAST:
-        case COMPILER_OPT_FASTER:
-        case COMPILER_OPT_SMALL:
-        case COMPILER_OPT_SMALLER:
-            return LLVMCodeGenLevelAggressive;
-    }
-    UNREACHABLE();
-}
-
-static LLVMRelocMode getLlvmRelocMode(LlvmCodegenContext* context) {
-    if (context->cxt->settings.pie == COMPILER_PIE_NO) {
-        return LLVMRelocStatic;
-    } else {
-        return LLVMRelocPIC;
-    }
-}
-
-static void initLlvmCodegenContext(LlvmCodegenContext* context, CompilerContext* cxt) {
-    memset(context, 0, sizeof(LlvmCodegenContext));
-    context->cxt = cxt;
-    context->llvm_cxt = LLVMGetGlobalContext();
-    context->error_msg = NULL;
-    const char* target;
-    char* llvm_target = NULL;
-    if (cxt->settings.target.data == NULL || compareStrings(tocnstr(cxt->settings.target), str("native")) == 0) {
-        llvm_target = LLVMGetDefaultTargetTriple();
-        target = llvm_target;
-    } else {
-        target = cstr(cxt->settings.target);
-    }
-    if (LLVMGetTargetFromTriple(target, &context->target, &context->error_msg)) {
-        addMessageToContext(&context->cxt->msgs,createMessage(ERROR_LLVM_BACKEND_ERROR,
-            createFormattedString("failed to get target '%S': %s", context->cxt->settings.target, context->error_msg), 0
-        ));
-        LLVMDisposeMessage(context->error_msg);
-    }
-    if (cxt->msgs.error_count == 0) {
-        const char* cpu;
-        char* llvm_cpu = NULL;
-        if (cxt->settings.cpu.data == NULL) {
-            cpu = NULL;
-        } else if(compareStrings(tocnstr(cxt->settings.cpu), str("native")) == 0) {
-            llvm_cpu = LLVMGetHostCPUName();
-            cpu = llvm_cpu;
-        } else {
-            cpu = cstr(cxt->settings.cpu);
-        }
-        const char* features;
-        char* llvm_features = NULL;
-        if (cxt->settings.features.data == NULL) {
-            features = NULL;
-        } else if(compareStrings(tocnstr(cxt->settings.features), str("native")) == 0) {
-            llvm_features = LLVMGetHostCPUFeatures();
-            features = llvm_features;
-        } else {
-            features = cstr(cxt->settings.features);
-        }
-        context->target_machine = LLVMCreateTargetMachine(
-            context->target, target, cpu, features, getLlvmCodeGenOptLevel(context),
-            getLlvmRelocMode(context), LLVMCodeModelDefault
-        );
-        LLVMDisposeMessage(llvm_cpu);
-        LLVMDisposeMessage(llvm_features);
-        context->target_data = LLVMCreateTargetDataLayout(context->target_machine);
-    }
-    LLVMDisposeMessage(llvm_target);
-}
-
-static void deinitLlvmCodegenContext(LlvmCodegenContext* context) {
-    LLVMDisposeTargetData(context->target_data);
-    LLVMDisposeTargetMachine(context->target_machine);
-}
-
 static LLVMModuleRef generateLinkedModule(LlvmCodegenContext* context) {
     LLVMModuleRef linked_module = NULL;
     String name = createEmptyString();
@@ -203,20 +122,20 @@ static LLVMModuleRef generateLinkedModule(LlvmCodegenContext* context) {
     LLVMDisposeMessage(context->error_msg);
 #endif
             if (module != NULL) {
-                if (linked_module != NULL) {
-                    if (LLVMLinkModules2(linked_module, module)) {
-                        addMessageToContext(
-                            &context->cxt->msgs,
-                            createMessage(
-                                ERROR_LLVM_BACKEND_ERROR, createFormattedString(
-                                    "failed to link in module '%S'", file->original_path
-                                ), 0
-                            )
-                        );
-                    }
-                } else {
+                /* if (linked_module != NULL) { */
+                /*     if (LLVMLinkModules2(linked_module, module)) { */
+                /*         addMessageToContext( */
+                /*             &context->cxt->msgs, */
+                /*             createMessage( */
+                /*                 ERROR_LLVM_BACKEND_ERROR, createFormattedString( */
+                /*                     "failed to link in module '%S'", file->original_path */
+                /*                 ), 0 */
+                /*             ) */
+                /*         ); */
+                /*     } */
+                /* } else { */
                     linked_module = module;
-                }
+                /* } */
             }
         }
     }
@@ -227,7 +146,7 @@ static LLVMModuleRef generateLinkedModule(LlvmCodegenContext* context) {
 static const char* getLlvmPassPipeline(LlvmCodegenContext* context) {
     switch (context->cxt->settings.opt_level) {
         case COMPILER_OPT_DEFAULT:
-            return "default<O2>";
+            return context->cxt->settings.emit_debug ? "default<O0>" : "default<O2>";
         case COMPILER_OPT_NONE:
             return "default<O0>";
         case COMPILER_OPT_SOME:
@@ -264,7 +183,7 @@ static void optimizeUsingNewPassManager(LlvmCodegenContext* context, LLVMModuleR
 static int getLlvmPassInlineThreshold(LlvmCodegenContext* context) {
     switch (context->cxt->settings.opt_level) {
         case COMPILER_OPT_DEFAULT:
-            return 200;
+            return context->cxt->settings.emit_debug ? 0 : 200;
         case COMPILER_OPT_NONE:
             return 0;
         case COMPILER_OPT_SOME:
@@ -284,7 +203,7 @@ static int getLlvmPassInlineThreshold(LlvmCodegenContext* context) {
 static int getLlvmOptLevel(LlvmCodegenContext* context) {
     switch (context->cxt->settings.opt_level) {
         case COMPILER_OPT_DEFAULT:
-            return 2;
+            return context->cxt->settings.emit_debug ? 0 : 2;
         case COMPILER_OPT_NONE:
             return 0;
         case COMPILER_OPT_SOME:

@@ -5,7 +5,7 @@
 
 #include "ast/ast.h"
 
-#define SET_PARENT(NODE) if (NODE != NULL) { NODE->parent = (AstNode*)node;}
+#define SET_PARENT(NODE, IDX) if (NODE != NULL) { NODE->parent = (AstNode*)node; NODE->parent_idx = IDX; }
 
 void initAstNode(AstNode* node, AstNodeKind kind, Span loc) {
     node->kind = kind;
@@ -13,6 +13,7 @@ void initAstNode(AstNode* node, AstNodeKind kind, Span loc) {
     node->location = loc;
     node->res_type = NULL;
     node->res_type_reasoning = NULL;
+    node->codegen = NULL;
 }
 
 AstBinary* createAstBinary(Span loc, AstNodeKind kind, AstNode* left, AstNode* right) {
@@ -20,8 +21,8 @@ AstBinary* createAstBinary(Span loc, AstNodeKind kind, AstNode* left, AstNode* r
     initAstNode((AstNode*)node, kind, loc);
     node->left = left;
     node->right = right;
-    SET_PARENT(left);
-    SET_PARENT(right);
+    SET_PARENT(left, 0);
+    SET_PARENT(right, 1);
     return node;
 }
 
@@ -29,7 +30,7 @@ AstUnary* createAstUnary(Span loc, AstNodeKind kind, AstNode* operand) {
     AstUnary* node = NEW(AstUnary);
     initAstNode((AstNode*)node, kind, loc);
     node->op = operand;
-    SET_PARENT(operand);
+    SET_PARENT(operand, 0);
     return node;
 }
 
@@ -39,7 +40,7 @@ AstList* createAstList(Span loc, AstNodeKind kind, size_t count, AstNode** nodes
     node->count = count;
     node->nodes = nodes;
     for (size_t i = 0; i < count; i++) {
-        SET_PARENT(nodes[i]);
+        SET_PARENT(nodes[i], i);
     }
     return node;
 }
@@ -50,9 +51,9 @@ AstIfElse* createAstIfElse(Span loc, AstNode* cond, AstNode* if_block, AstNode* 
     node->condition = cond; 
     node->if_block = if_block;
     node->else_block = else_block;
-    SET_PARENT(cond);
-    SET_PARENT(if_block);
-    SET_PARENT(else_block);
+    SET_PARENT(cond, 0);
+    SET_PARENT(if_block, 1);
+    SET_PARENT(else_block, 2);
     return node;
 }
 
@@ -70,9 +71,9 @@ AstVarDef* createAstVarDef(Span loc, AstVar* name, AstNode* type, AstNode* val) 
     node->name = name;
     node->type = type;
     node->val = val;
-    SET_PARENT(name);
-    SET_PARENT(type);
-    SET_PARENT(val);
+    SET_PARENT(name, 0);
+    SET_PARENT(type, 1);
+    SET_PARENT(val, 2);
     return node;
 }
 
@@ -81,8 +82,8 @@ AstWhile* createAstWhile(Span loc, AstNode* cond, AstNode* block) {
     initAstNode((AstNode*)node, AST_WHILE, loc);
     node->condition = cond;
     node->block = block;
-    SET_PARENT(cond);
-    SET_PARENT(block);
+    SET_PARENT(cond, 0);
+    SET_PARENT(block, 1);
     return node;
 }
 
@@ -95,10 +96,10 @@ AstFn* createAstFn(Span loc, AstVar* name, AstList* arguments, AstNode* ret_type
     node->body = body;
     node->flags = flags;
     initSymbolTable(&node->vars, NULL);
-    SET_PARENT(name);
-    SET_PARENT(arguments);
-    SET_PARENT(ret_type);
-    SET_PARENT(body);
+    SET_PARENT(name, 0);
+    SET_PARENT(arguments, 1);
+    SET_PARENT(ret_type, 2);
+    SET_PARENT(body, 3);
     return node;
 }
 
@@ -107,8 +108,8 @@ AstCall* createAstCall(Span loc, AstNode* func, AstList* arguments) {
     initAstNode((AstNode*)node, AST_CALL, loc);
     node->function = func;
     node->arguments = arguments;
-    SET_PARENT(func);
-    SET_PARENT(arguments);
+    SET_PARENT(func, 0);
+    SET_PARENT(arguments, 1);
     return node;
 }
 
@@ -145,8 +146,8 @@ AstTypeDef* createAstTypeDef(Span loc, AstVar* name, AstNode* value) {
     initAstNode((AstNode*)node, AST_TYPEDEF, loc);
     node->name = name;
     node->value = value;
-    SET_PARENT(name);
-    SET_PARENT(value);
+    SET_PARENT(name, 0);
+    SET_PARENT(value, 1);
     return node;
 }
 
@@ -155,8 +156,8 @@ AstArgDef* createAstArgDef(Span loc, AstVar* name, AstNode* type) {
     initAstNode((AstNode*)node, AST_ARGDEF, loc);
     node->name = name;
     node->type = type;
-    SET_PARENT(name);
-    SET_PARENT(type);
+    SET_PARENT(name, 0);
+    SET_PARENT(type, 1);
     return node;
 }
 
@@ -165,7 +166,7 @@ AstRoot* createAstRoot(Span loc, AstList* nodes) {
     initAstNode((AstNode*)node, AST_ROOT, loc);
     initSymbolTable(&node->vars, NULL);
     node->nodes = nodes;
-    SET_PARENT(nodes);
+    SET_PARENT(nodes, 0);
     return node;
 }
 
@@ -174,7 +175,7 @@ AstBlock* createAstBlock(Span loc, AstList* nodes) {
     initAstNode((AstNode*)node, AST_BLOCK, loc);
     initSymbolTable(&node->vars, NULL);
     node->nodes = nodes;
-    SET_PARENT(nodes);
+    SET_PARENT(nodes, 0);
     return node;
 }
 
@@ -188,7 +189,7 @@ AstReturn* createAstReturn(Span loc, AstNode* value) {
     AstReturn* node = NEW(AstReturn);
     initAstNode((AstNode*)node, AST_RETURN, loc);
     node->value = value;
-    SET_PARENT(value);
+    SET_PARENT(value, 0);
     node->function = NULL;
     return node;
 }
@@ -199,8 +200,8 @@ AstFnType* createAstFnType(Span loc, AstList* arguments, AstNode* ret_type, bool
     node->arguments = arguments;
     node->ret_type = ret_type;
     node->vararg = vararg;
-    SET_PARENT(arguments);
-    SET_PARENT(ret_type);
+    SET_PARENT(arguments, 0);
+    SET_PARENT(ret_type, 1);
     return node;
 }
 
@@ -209,8 +210,8 @@ AstStructIndex* createAstStructIndex(Span loc, AstNode* strct, AstVar* field) {
     initAstNode((AstNode*)node, AST_STRUCT_INDEX, loc);
     node->strct = strct;
     node->field = field;
-    SET_PARENT(strct);
-    SET_PARENT(field);
+    SET_PARENT(strct, 0);
+    SET_PARENT(field, 1);
     return node;
 }
 

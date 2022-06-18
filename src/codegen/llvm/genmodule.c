@@ -1,9 +1,12 @@
 
+#include <llvm-c/DebugInfo.h>
 #include <stdbool.h>
 #include <string.h>
 
 #include "codegen/llvm/gentype.h"
+#include "codegen/llvm/typedebug.h"
 #include "errors/fatalerror.h"
+#include "rodac/version.h"
 #include "util/alloc.h"
 
 #include "codegen/llvm/genmodule.h"
@@ -18,17 +21,10 @@ static LlvmCodegenValue createLlvmCodegenValue(LLVMValueRef value, bool is_refer
     return ret;
 }
 
-typedef struct {
-    LLVMModuleRef module;
-    LLVMValueRef ret_value;
-    LLVMBasicBlockRef exit;
-    LLVMBuilderRef builder;
-} LlvmCodegenBodyContext;
+static LlvmCodegenValue buildFunctionBodyHelper(LlvmCodegenContext* context, LlvmCodegenModuleContext* data, AstNode* node);
 
-static LlvmCodegenValue buildFunctionBody(LlvmCodegenContext* context, LlvmCodegenBodyContext* data, AstNode* node);
-
-static LLVMValueRef getCodegenValue(LlvmCodegenContext* context, LlvmCodegenBodyContext* data, AstNode* node) {
-    LlvmCodegenValue value = buildFunctionBody(context, data, node);
+static LLVMValueRef getCodegenValue(LlvmCodegenContext* context, LlvmCodegenModuleContext* data, AstNode* node) {
+    LlvmCodegenValue value = buildFunctionBodyHelper(context, data, node);
     if (value.is_reference) {
         return LLVMBuildLoad2(data->builder, generateLlvmType(context, node->res_type), value.value, "tmp");
     } else {
@@ -36,8 +32,8 @@ static LLVMValueRef getCodegenValue(LlvmCodegenContext* context, LlvmCodegenBody
     }
 }
 
-static LLVMValueRef getCodegenReference(LlvmCodegenContext* context, LlvmCodegenBodyContext* data, AstNode* node) {
-    LlvmCodegenValue value = buildFunctionBody(context, data, node);
+static LLVMValueRef getCodegenReference(LlvmCodegenContext* context, LlvmCodegenModuleContext* data, AstNode* node) {
+    LlvmCodegenValue value = buildFunctionBodyHelper(context, data, node);
     ASSERT(value.is_reference);
     return value.value;
 }
@@ -150,7 +146,7 @@ static LLVMValueRef buildRealComparison(LLVMBuilderRef builder, LLVMValueRef lhs
 }
 
 static LLVMValueRef buildLlvmIntrinsicCall(
-    LlvmCodegenContext* context, LlvmCodegenBodyContext* data, const char* name,
+    LlvmCodegenContext* context, LlvmCodegenModuleContext* data, const char* name,
     LLVMValueRef* params, size_t param_count, const char* val_name, bool overloaded
 ) {
     size_t id = LLVMLookupIntrinsicID(name, strlen(name));
@@ -171,7 +167,7 @@ static LLVMValueRef buildLlvmIntrinsicCall(
     return LLVMBuildCall2(data->builder, type, func, params, param_count, val_name);
 }
 
-static LlvmCodegenValue buildFunctionBody(LlvmCodegenContext* context, LlvmCodegenBodyContext* data, AstNode* node) {
+static LlvmCodegenValue buildFunctionBodyHelper(LlvmCodegenContext* context, LlvmCodegenModuleContext* data, AstNode* node) {
     ASSERT(node != NULL);
     switch (node->kind) {
         case AST_STRUCT_TYPE:
@@ -219,24 +215,27 @@ static LlvmCodegenValue buildFunctionBody(LlvmCodegenContext* context, LlvmCodeg
         case AST_LIST: {
             AstList* n = (AstList*)node;
             for (size_t i = 0; i < n->count; i++) {
-                buildFunctionBody(context, data, n->nodes[i]);
+                buildFunctionBodyHelper(context, data, n->nodes[i]);
             }
             return createLlvmCodegenValue(NULL, false);
         }
         case AST_ROOT: {
             AstRoot* n = (AstRoot*)node;
-            buildFunctionBody(context, data, (AstNode*)n->nodes);
+            buildFunctionBodyHelper(context, data, (AstNode*)n->nodes);
             return createLlvmCodegenValue(NULL, false);
         }
         case AST_BLOCK: {
             AstBlock* n = (AstBlock*)node;
-            buildFunctionBody(context, data, (AstNode*)n->nodes);
+            LLVMMetadataRef old_scope = data->scope_metadata;
+            data->scope_metadata = CODEGEN(n)->debug;
+            buildFunctionBodyHelper(context, data, (AstNode*)n->nodes);
+            data->scope_metadata = old_scope;
             return createLlvmCodegenValue(NULL, false);
         }
         case AST_VAR: {
             AstVar* n = (AstVar*)node;
             SymbolVariable* var = (SymbolVariable*)n->binding;
-            return createLlvmCodegenValue(var->codegen, true);
+            return createLlvmCodegenValue(CODEGEN(var)->value, true);
         }
         case AST_VOID: {
             LLVMValueRef value = LLVMGetUndef(generateLlvmType(context, node->res_type));
@@ -358,7 +357,7 @@ static LlvmCodegenValue buildFunctionBody(LlvmCodegenContext* context, LlvmCodeg
         }
         case AST_POS: {
             AstUnary* n = (AstUnary*)node;
-            return buildFunctionBody(context, data, n->op);
+            return buildFunctionBodyHelper(context, data, n->op);
         }
         case AST_NEG: {
             AstUnary* n = (AstUnary*)node;
@@ -416,12 +415,12 @@ static LlvmCodegenValue buildFunctionBody(LlvmCodegenContext* context, LlvmCodeg
             LLVMBuildCondBr(data->builder, cond, if_block, else_block);
             LLVMInsertExistingBasicBlockAfterInsertBlock(data->builder, if_block);
             LLVMPositionBuilderAtEnd(data->builder, if_block);
-            buildFunctionBody(context, data, n->if_block);
+            buildFunctionBodyHelper(context, data, n->if_block);
             LLVMBuildBr(data->builder, rest_block);
             if (n->else_block != NULL) {
                 LLVMInsertExistingBasicBlockAfterInsertBlock(data->builder, else_block);
                 LLVMPositionBuilderAtEnd(data->builder, else_block);
-                buildFunctionBody(context, data, n->else_block);
+                buildFunctionBodyHelper(context, data, n->else_block);
                 LLVMBuildBr(data->builder, rest_block);
             }
             LLVMInsertExistingBasicBlockAfterInsertBlock(data->builder, rest_block);
@@ -440,7 +439,7 @@ static LlvmCodegenValue buildFunctionBody(LlvmCodegenContext* context, LlvmCodeg
             LLVMBuildCondBr(data->builder, cond, while_block, rest_block);
             LLVMInsertExistingBasicBlockAfterInsertBlock(data->builder, while_block);
             LLVMPositionBuilderAtEnd(data->builder, while_block);
-            buildFunctionBody(context, data, n->block);
+            buildFunctionBodyHelper(context, data, n->block);
             LLVMBuildBr(data->builder, cond_block);
             LLVMInsertExistingBasicBlockAfterInsertBlock(data->builder, rest_block);
             LLVMPositionBuilderAtEnd(data->builder, rest_block);
@@ -506,7 +505,7 @@ static LlvmCodegenValue buildFunctionBody(LlvmCodegenContext* context, LlvmCodeg
                 LLVMValueRef value = LLVMBuildGEP2(data->builder, generateLlvmType(context, n->res_type), pointer, &index, 1, "index");
                 return createLlvmCodegenValue(value, true);
             } else {
-                LlvmCodegenValue array = buildFunctionBody(context, data, n->left);
+                LlvmCodegenValue array = buildFunctionBodyHelper(context, data, n->left);
                 LLVMValueRef index = getCodegenValue(context, data, n->right);
                 LLVMValueRef indicies[2] = {
                     LLVMConstInt(LLVMIntPtrTypeInContext(context->llvm_cxt, context->target_data), 0, false), index
@@ -549,7 +548,7 @@ static LlvmCodegenValue buildFunctionBody(LlvmCodegenContext* context, LlvmCodeg
             AstStructIndex* n = (AstStructIndex*)node;
             TypeStruct* type = isStructType(n->strct->res_type);
             LLVMTypeRef strct_type = generateLlvmType(context, n->strct->res_type);
-            LlvmCodegenValue strct = buildFunctionBody(context, data, n->strct);
+            LlvmCodegenValue strct = buildFunctionBodyHelper(context, data, n->strct);
             size_t idx = lookupIndexOfStructField(type, n->field->name);
             if (strct.is_reference) {
                 LLVMValueRef value = LLVMBuildStructGEP2(
@@ -569,7 +568,23 @@ static LlvmCodegenValue buildFunctionBody(LlvmCodegenContext* context, LlvmCodeg
     UNREACHABLE();
 }
 
-static void buildFunctionVariables(LlvmCodegenContext* context, LLVMBuilderRef builder, AstNode* node) {
+static LlvmCodegenValue buildFunctionBody(LlvmCodegenContext* context, LlvmCodegenModuleContext* data, AstNode* node) {
+    if (context->cxt->settings.emit_debug) {
+        LLVMMetadataRef prev = LLVMGetCurrentDebugLocation2(data->builder);
+        LLVMMetadataRef loc = LLVMDIBuilderCreateDebugLocation(
+            LLVMGetGlobalContext(), node->location.begin.line + 1, node->location.begin.column + 1,
+            data->scope_metadata, NULL
+        );
+        LLVMSetCurrentDebugLocation2(data->builder, loc);
+        LlvmCodegenValue result = buildFunctionBodyHelper(context, data, node);
+        LLVMSetCurrentDebugLocation2(data->builder, prev);
+        return result;
+    } else {
+        return buildFunctionBodyHelper(context, data, node);
+    }
+}
+
+static void buildFunctionVariables(LlvmCodegenContext* context, LlvmCodegenModuleContext* data, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
             case AST_FN_TYPE:
@@ -598,13 +613,13 @@ static void buildFunctionVariables(LlvmCodegenContext* context, LLVMBuilderRef b
             case AST_BXOR_ASSIGN:
             case AST_ASSIGN: {
                 AstBinary* n = (AstBinary*)node;
-                buildFunctionVariables(context, builder, n->right);
-                buildFunctionVariables(context, builder, n->left);
+                buildFunctionVariables(context, data, n->right);
+                buildFunctionVariables(context, data, n->left);
                 break;
             }
             case AST_AS: {
                 AstBinary* n = (AstBinary*)node;
-                buildFunctionVariables(context, builder, n->left);
+                buildFunctionVariables(context, data, n->left);
                 break;
             }
             case AST_INDEX:
@@ -619,15 +634,15 @@ static void buildFunctionVariables(LlvmCodegenContext* context, LLVMBuilderRef b
             case AST_BXOR:
             case AST_ADD: {
                 AstBinary* n = (AstBinary*)node;
-                buildFunctionVariables(context, builder, n->left);
-                buildFunctionVariables(context, builder, n->right);
+                buildFunctionVariables(context, data, n->left);
+                buildFunctionVariables(context, data, n->right);
                 break;
             }
             case AST_OR:
             case AST_AND: {
                 AstBinary* n = (AstBinary*)node;
-                buildFunctionVariables(context, builder, n->left);
-                buildFunctionVariables(context, builder, n->right);
+                buildFunctionVariables(context, data, n->left);
+                buildFunctionVariables(context, data, n->right);
                 break;
             }
             case AST_EQ:
@@ -637,8 +652,8 @@ static void buildFunctionVariables(LlvmCodegenContext* context, LLVMBuilderRef b
             case AST_LT:
             case AST_GT: {
                 AstBinary* n = (AstBinary*)node;
-                buildFunctionVariables(context, builder, n->left);
-                buildFunctionVariables(context, builder, n->right);
+                buildFunctionVariables(context, data, n->left);
+                buildFunctionVariables(context, data, n->right);
                 break;
             }
             case AST_SIZEOF:
@@ -649,19 +664,19 @@ static void buildFunctionVariables(LlvmCodegenContext* context, LLVMBuilderRef b
             case AST_NOT:
             case AST_DEREF: {
                 AstUnary* n = (AstUnary*)node;
-                buildFunctionVariables(context, builder, n->op);
+                buildFunctionVariables(context, data, n->op);
                 break;
             }
             case AST_RETURN: {
                 AstReturn* n = (AstReturn*)node;
-                buildFunctionVariables(context, builder, n->value);
+                buildFunctionVariables(context, data, n->value);
                 break;
             }
             case AST_STRUCT_LIT: {
                 AstList* n = (AstList*)node;
                 for (size_t i = 0; i < n->count; i++) {
                     AstStructField* field = (AstStructField*)n->nodes[i];
-                    buildFunctionVariables(context, builder, field->field_value);
+                    buildFunctionVariables(context, data, field->field_value);
                 }
                 break;
             }
@@ -669,45 +684,75 @@ static void buildFunctionVariables(LlvmCodegenContext* context, LLVMBuilderRef b
             case AST_LIST: {
                 AstList* n = (AstList*)node;
                 for (size_t i = 0; i < n->count; i++) {
-                    buildFunctionVariables(context, builder, n->nodes[i]);
+                    buildFunctionVariables(context, data, n->nodes[i]);
                 }
                 break;
             }
             case AST_ROOT: {
                 AstRoot* n = (AstRoot*)node;
-                buildFunctionVariables(context, builder, (AstNode*)n->nodes);
+                buildFunctionVariables(context, data, (AstNode*)n->nodes);
                 break;
             }
             case AST_BLOCK: {
                 AstBlock* n = (AstBlock*)node;
-                buildFunctionVariables(context, builder, (AstNode*)n->nodes);
+                LLVMMetadataRef old_scope = data->scope_metadata;
+                if (context->cxt->settings.emit_debug) {
+                    data->scope_metadata = LLVMDIBuilderCreateLexicalBlock(
+                        data->debug_bulder, data->scope_metadata, data->file_metadata,
+                        n->location.begin.line + 1, n->location.begin.column + 1
+                    );
+                    CODEGEN(n)->debug = data->scope_metadata;
+                }
+                buildFunctionVariables(context, data, (AstNode*)n->nodes);
+                if (context->cxt->settings.emit_debug) {
+                    data->scope_metadata = old_scope;
+                }
                 break;
             }
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
                 SymbolVariable* var = (SymbolVariable*)n->name->binding;
-                LLVMValueRef value = LLVMBuildAlloca(builder, generateLlvmType(context, var->type), var->name);
-                var->codegen = value;
-                buildFunctionVariables(context, builder, n->val);
+                LLVMTypeRef type = generateLlvmType(context, var->type);
+                LLVMValueRef value = LLVMBuildAlloca(data->builder, type, var->name);
+                CODEGEN(var)->value = value;
+                if (context->cxt->settings.emit_debug) {
+                    LLVMMetadataRef type_meta = generateLlvmTypeDebugInfo(context, data, var->type, n->location.begin.line + 1);
+                    LLVMMetadataRef param_meta = LLVMDIBuilderCreateAutoVariable(
+                        data->debug_bulder, data->scope_metadata, var->name, strlen(var->name),
+                        data->file_metadata, n->location.begin.line + 1, type_meta, false, 0,
+                        8 * LLVMABIAlignmentOfType(context->target_data, type)
+                    );
+                    CODEGEN(var)->debug = param_meta;
+                    LLVMMetadataRef param_loc = LLVMDIBuilderCreateDebugLocation(
+                        context->llvm_cxt, n->location.begin.line + 1,
+                        n->location.begin.column + 1, data->scope_metadata, NULL
+                    );
+                    LLVMDIBuilderInsertDeclareAtEnd(
+                        data->debug_bulder, value, param_meta,
+                        LLVMDIBuilderCreateExpression(data->debug_bulder, NULL, 0), param_loc,
+                        LLVMGetInsertBlock(data->builder)
+                    );
+                }
+                buildFunctionVariables(context, data, n->val);
                 break;
             }
             case AST_IF_ELSE: {
                 AstIfElse* n = (AstIfElse*)node;
-                buildFunctionVariables(context, builder, n->condition);
-                buildFunctionVariables(context, builder, n->if_block);
-                buildFunctionVariables(context, builder, n->else_block);
+                buildFunctionVariables(context, data, n->condition);
+                buildFunctionVariables(context, data, n->if_block);
+                buildFunctionVariables(context, data, n->else_block);
                 break;
             }
             case AST_WHILE: {
                 AstWhile* n = (AstWhile*)node;
-                buildFunctionVariables(context, builder, n->condition);
-                buildFunctionVariables(context, builder, n->block);
+                buildFunctionVariables(context, data, n->condition);
+                buildFunctionVariables(context, data, n->block);
                 break;
             }
             case AST_CALL: {
                 AstCall* n = (AstCall*)node;
-                buildFunctionVariables(context, builder, n->function);
-                buildFunctionVariables(context, builder, (AstNode*)n->arguments);
+                buildFunctionVariables(context, data, n->function);
+                buildFunctionVariables(context, data, (AstNode*)n->arguments);
                 break;
             }
             case AST_TYPEDEF:
@@ -716,32 +761,50 @@ static void buildFunctionVariables(LlvmCodegenContext* context, LLVMBuilderRef b
             case AST_ARGDEF: {
                 AstArgDef* n = (AstArgDef*)node;
                 SymbolVariable* var = (SymbolVariable*)n->name->binding;
-                LLVMValueRef value = LLVMBuildAlloca(builder, generateLlvmType(context, var->type), var->name);
-                var->codegen = value;
+                LLVMValueRef value = LLVMBuildAlloca(data->builder, generateLlvmType(context, var->type), var->name);
+                CODEGEN(var)->value = value;
+                if (context->cxt->settings.emit_debug) {
+                    LLVMMetadataRef type_meta = generateLlvmTypeDebugInfo(context, data, var->type, n->location.begin.line + 1);
+                    LLVMMetadataRef param_meta = LLVMDIBuilderCreateParameterVariable(
+                        data->debug_bulder, data->scope_metadata, var->name, strlen(var->name),
+                        n->parent_idx, data->file_metadata, n->location.begin.line + 1, type_meta,
+                        false, 0
+                    );
+                    CODEGEN(var)->debug = param_meta;
+                    LLVMMetadataRef param_loc = LLVMDIBuilderCreateDebugLocation(
+                        context->llvm_cxt, n->location.begin.line + 1,
+                        n->location.begin.column + 1, data->scope_metadata, NULL
+                    );
+                    LLVMDIBuilderInsertDeclareAtEnd(
+                        data->debug_bulder, value, param_meta,
+                        LLVMDIBuilderCreateExpression(data->debug_bulder, NULL, 0), param_loc,
+                        LLVMGetInsertBlock(data->builder)
+                    );
+                }
                 break;
             }
             case AST_STRUCT_INDEX: {
                 AstStructIndex* n = (AstStructIndex*)node;
-                buildFunctionVariables(context, builder, n->strct);
+                buildFunctionVariables(context, data, n->strct);
                 break;
             }
         }
     }
 }
 
-static void buildFunctionBodies(LlvmCodegenContext* context, LLVMModuleRef module, AstNode* node) {
+static void buildFunctionBodies(LlvmCodegenContext* context, LlvmCodegenModuleContext* data, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
             case AST_LIST: {
                 AstList* n = (AstList*)node;
                 for (size_t i = 0; i < n->count; i++) {
-                    buildFunctionBodies(context, module, n->nodes[i]);
+                    buildFunctionBodies(context, data, n->nodes[i]);
                 }
                 break;
             }
             case AST_ROOT: {
                 AstRoot* n = (AstRoot*)node;
-                buildFunctionBodies(context, module, (AstNode*)n->nodes);
+                buildFunctionBodies(context, data, (AstNode*)n->nodes);
                 break;
             }
             case AST_FN: {
@@ -749,32 +812,34 @@ static void buildFunctionBodies(LlvmCodegenContext* context, LLVMModuleRef modul
                 if (n->body != NULL) {
                     SymbolVariable* func = (SymbolVariable*)n->name->binding;
                     TypeFunction* type = (TypeFunction*)func->type;
-                    LLVMValueRef function = func->codegen;
+                    LLVMMetadataRef old_scope = data->scope_metadata;
+                    data->scope_metadata  = CODEGEN(func)->debug;
+                    LLVMValueRef function = CODEGEN(func)->value;
                     LLVMBasicBlockRef entry = LLVMAppendBasicBlockInContext(context->llvm_cxt, function, "entry");
                     LLVMBasicBlockRef body = LLVMAppendBasicBlockInContext(context->llvm_cxt, function, "body");
-                    LLVMBasicBlockRef exit = LLVMAppendBasicBlockInContext(context->llvm_cxt, function, "exit");
-                    LLVMBuilderRef builder = LLVMCreateBuilderInContext(context->llvm_cxt);
-                    LLVMPositionBuilderAtEnd(builder, entry);
-                    LLVMValueRef ret_value = NULL;
-                    ret_value = LLVMBuildAlloca(builder, generateLlvmType(context, type->ret_type), "ret_value");
-                    buildFunctionVariables(context, builder, (AstNode*)n->arguments);
-                    buildFunctionVariables(context, builder, n->body);
+                    data->exit = LLVMAppendBasicBlockInContext(context->llvm_cxt, function, "exit");
+                    LLVMPositionBuilderAtEnd(data->builder, entry);
+                    data->ret_value = LLVMBuildAlloca(data->builder, generateLlvmType(context, type->ret_type), "ret_value");
+                    buildFunctionVariables(context, data, (AstNode*)n->arguments);
+                    buildFunctionVariables(context, data, n->body);
                     for (size_t i = 0; i < n->arguments->count; i++) {
+                        AstArgDef* def = (AstArgDef*)n->arguments->nodes[i];
                         LLVMValueRef arg_value = LLVMGetParam(function, i);
-                        LLVMBuildStore(builder, arg_value, ((AstArgDef*)n->arguments->nodes[i])->name->binding->codegen);
+                        LLVMBuildStore(data->builder, arg_value, CODEGEN(def->name->binding)->value);
                     }
-                    LLVMBuildBr(builder, body);
-                    LLVMPositionBuilderAtEnd(builder, body);
-                    LlvmCodegenBodyContext data = {
-                        .module = module, .ret_value = ret_value,
-                        .exit = exit, .builder = builder,
-                    };
-                    buildFunctionBody(context, &data, n->body);
-                    LLVMBuildBr(builder, exit);
-                    LLVMPositionBuilderAtEnd(builder, exit);
-                    LLVMValueRef ret = LLVMBuildLoad2(builder, generateLlvmType(context, type->ret_type), ret_value, "ret");
-                    LLVMBuildRet(builder, ret);
-                    LLVMDisposeBuilder(builder);
+                    LLVMBuildBr(data->builder, body);
+                    LLVMPositionBuilderAtEnd(data->builder, body);
+                    buildFunctionBody(context, data, n->body);
+                    LLVMBuildBr(data->builder, data->exit);
+                    LLVMPositionBuilderAtEnd(data->builder, data->exit);
+                    LLVMValueRef ret = LLVMBuildLoad2(
+                        data->builder, generateLlvmType(context, type->ret_type), data->ret_value, "ret"
+                    );
+                    LLVMBuildRet(data->builder, ret);
+                    if (context->cxt->settings.emit_debug) {
+                        LLVMDIBuilderFinalizeSubprogram(data->debug_bulder, CODEGEN(func)->debug);
+                    }
+                    data->scope_metadata = old_scope;
                 }
                 break;
             }
@@ -785,33 +850,48 @@ static void buildFunctionBodies(LlvmCodegenContext* context, LLVMModuleRef modul
     }
 }
 
-static void buildFunctionStubs(LlvmCodegenContext* context, LLVMModuleRef module, AstNode* node) {
+static void buildFunctionStubs(LlvmCodegenContext* context, LlvmCodegenModuleContext* data, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
             case AST_LIST: {
                 AstList* n = (AstList*)node;
                 for (size_t i = 0; i < n->count; i++) {
-                    buildFunctionStubs(context, module, n->nodes[i]);
+                    buildFunctionStubs(context, data, n->nodes[i]);
                 }
                 break;
             }
             case AST_ROOT: {
                 AstRoot* n = (AstRoot*)node;
-                buildFunctionStubs(context, module, (AstNode*)n->nodes);
+                buildFunctionStubs(context, data, (AstNode*)n->nodes);
                 break;
             }
             case AST_FN: {
                 AstFn* n = (AstFn*)node;
                 SymbolVariable* func = (SymbolVariable*)n->name->binding;
-                LLVMValueRef value = LLVMAddFunction(module, n->name->name, generateLlvmType(context, func->type));
+                LLVMValueRef value = LLVMAddFunction(data->module, func->name, generateLlvmType(context, func->type));
+                bool local = false;
                 if ((n->flags & AST_FN_FLAG_IMPORT) == 0) {
                     if ((n->flags & AST_FN_FLAG_EXPORT) != 0) {
                         LLVMSetLinkage(value, LLVMExternalLinkage);
                     } else {
                         LLVMSetLinkage(value, LLVMInternalLinkage);
+                        local = true;
                     }
                 }
-                func->codegen = value;
+                if (context->cxt->settings.emit_debug && n->body != NULL) {
+                    LLVMMetadataRef type = generateLlvmTypeDebugInfo(context, data, func->type, n->location.begin.line + 1);
+                    LLVMMetadataRef debug_func = LLVMDIBuilderCreateFunction(
+                        data->debug_bulder, data->scope_metadata, func->name, strlen(func->name),
+                        func->name, strlen(func->name), data->file_metadata,
+                        n->location.begin.line + 1, type, local, true,
+                        n->location.begin.line + 1, 0,
+                        context->cxt->settings.opt_level != COMPILER_OPT_NONE
+                            && context->cxt->settings.opt_level != COMPILER_OPT_DEFAULT
+                    );
+                    CODEGEN(func)->debug = debug_func;
+                    LLVMSetSubprogram(value, debug_func);
+                }
+                CODEGEN(func)->value = value;
                 break;
             }
             default:
@@ -822,12 +902,37 @@ static void buildFunctionStubs(LlvmCodegenContext* context, LLVMModuleRef module
 }
 
 LLVMModuleRef generateSingleModule(LlvmCodegenContext* context, File* file) {
-    // TODO: emit debug information
-    LLVMModuleRef module = LLVMModuleCreateWithNameInContext(cstr(file->original_path), context->llvm_cxt);
-    LLVMSetModuleDataLayout(module, context->target_data);
-    LLVMSetSourceFileName(module, cstr(file->original_path), file->original_path.length);
-    buildFunctionStubs(context, module, file->ast);
-    buildFunctionBodies(context, module, file->ast);
-    return module;
+    LlvmCodegenModuleContext data;
+    data.module = LLVMModuleCreateWithNameInContext(cstr(file->original_path), context->llvm_cxt);
+    LLVMSetModuleDataLayout(data.module, context->target_data);
+    LLVMSetSourceFileName(data.module, cstr(file->original_path), file->original_path.length);
+    data.builder = LLVMCreateBuilderInContext(context->llvm_cxt);
+    if (context->cxt->settings.emit_debug) {
+        data.debug_bulder = LLVMCreateDIBuilder(data.module);
+        data.file_metadata = LLVMDIBuilderCreateFile(
+            data.debug_bulder, file->absolute_path.data, file->absolute_path.length,
+            file->directory.data, file->directory.length
+        );
+        data.scope_metadata = data.file_metadata;
+        LLVMDIBuilderCreateCompileUnit(
+            data.debug_bulder, LLVMDWARFSourceLanguageC, data.file_metadata, PROGRAM_NAME " v" VERSION_STRING_BUILD,
+            strlen(PROGRAM_NAME " v" VERSION_STRING_BUILD),
+            context->cxt->settings.opt_level != COMPILER_OPT_NONE
+                && context->cxt->settings.opt_level != COMPILER_OPT_DEFAULT,
+            NULL, 0, 0, NULL, 0, LLVMDWARFEmissionFull, 0, false, false, NULL, 0, NULL, 0
+        );
+        LLVMAddModuleFlag(
+            data.module, LLVMModuleFlagBehaviorWarning, "Debug Info Version", 18,
+            LLVMValueAsMetadata(LLVMConstInt(LLVMIntType(32), LLVMDebugMetadataVersion(), 0))
+        );
+    }
+    buildFunctionStubs(context, &data, file->ast);
+    buildFunctionBodies(context, &data, file->ast);
+    if (context->cxt->settings.emit_debug) {
+        LLVMDIBuilderFinalize(data.debug_bulder);
+        LLVMDisposeDIBuilder(data.debug_bulder);
+    }
+    LLVMDisposeBuilder(data.builder);
+    return data.module;
 }
 

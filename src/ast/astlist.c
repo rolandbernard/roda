@@ -47,8 +47,9 @@ void addToDynamicAstList(DynamicAstList* list, AstNode* node) {
         list->nodes = REALLOC(AstNode*, list->nodes, list->capacity);
     }
     list->nodes[list->count] = node;
-    list->count++;
     node->parent = (AstNode*)list;
+    node->parent_idx = list->count;
+    list->count++;
 }
 
 void resizeDynamicAstList(DynamicAstList* list, size_t size) {
@@ -68,6 +69,7 @@ AstList* toStaticAstList(DynamicAstList* list) {
     AstList* ret = REALLOC(AstList, list, 1);
     for (size_t i = 0; i < ret->count; i++) {
         ret->nodes[i]->parent = (AstNode*)ret;
+        ret->nodes[i]->parent_idx = i;
     }
     return ret;
 }

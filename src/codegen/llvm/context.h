@@ -7,6 +7,13 @@
 
 #include "compiler/context.h"
 
+typedef struct LlvmCodegenTypeData {
+    struct LlvmCodegenTypeData* next;
+    LLVMTypeRef type;
+    LLVMValueRef value;
+    LLVMMetadataRef debug;
+} LlvmCodegenData;
+
 typedef struct {
     CompilerContext* cxt;
     char* error_msg;
@@ -14,6 +21,25 @@ typedef struct {
     LLVMTargetRef target;
     LLVMTargetDataRef target_data;
     LLVMTargetMachineRef target_machine;
+    LlvmCodegenData* type_data;
 } LlvmCodegenContext;
+
+typedef struct {
+    LLVMModuleRef module;
+    LLVMValueRef ret_value;
+    LLVMBasicBlockRef exit;
+    LLVMBuilderRef builder;
+    LLVMDIBuilderRef debug_bulder;
+    LLVMMetadataRef file_metadata;
+    LLVMMetadataRef scope_metadata;
+} LlvmCodegenModuleContext;
+
+void initLlvmCodegenContext(LlvmCodegenContext* context, CompilerContext* cxt);
+
+void deinitLlvmCodegenContext(LlvmCodegenContext* context);
+
+LlvmCodegenData* createLlvmCodegenData(LlvmCodegenContext* context);
+
+#define CODEGEN(X) ((LlvmCodegenData*)((X)->codegen == NULL ? ((X)->codegen = createLlvmCodegenData(context)) : (X)->codegen))
 
 #endif

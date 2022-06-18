@@ -75,6 +75,8 @@ $(YACC_C): $(YACC_SRC)
 
 # == Tetsing
 test: build
+	@$(ECHO) "Starting tests with --debug"
+	TEST_ARGS=--debug tested -j12 $(BASE_DIR)/tests
 	@$(ECHO) "Starting tests with -O0"
 	TEST_ARGS=-O0 tested -j12 $(BASE_DIR)/tests
 	@$(ECHO) "Starting tests with -O2"

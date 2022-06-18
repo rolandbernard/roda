@@ -37,9 +37,7 @@ typedef struct TypeReferenceStack {
 } TypeReferenceStack;
 
 static LLVMTypeRef generateLlvmTypeHelper(LlvmCodegenContext* context, Type* type, TypeReferenceStack* stack) {
-    if (type->codegen != NULL) {
-        return type->codegen;
-    } else {
+    if (CODEGEN(type)->type == NULL) {
         LLVMTypeRef result = NULL;
         switch (type->kind) {
             case TYPE_ERROR:
@@ -116,9 +114,9 @@ static LLVMTypeRef generateLlvmTypeHelper(LlvmCodegenContext* context, Type* typ
                 break;
             }
         }
-        type->codegen = result;
-        return result;
+        CODEGEN(type)->type = result;
     }
+    return CODEGEN(type)->type;
 }
 
 LLVMTypeRef generateLlvmType(LlvmCodegenContext* context, Type* type) {
