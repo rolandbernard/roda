@@ -14,6 +14,7 @@ The roda language contains the following features:
 * Binary operations on integers
 * Boolean expressions
 * Arrays
+* Structs
 * Basic type inference
 * Type aliases
 
@@ -73,7 +74,14 @@ The rest of the features can be used in the following way:
     let a: [3]int; // create an array of 3 ints
     a[0] = 1;      // assign the value 1 to the first element of a
     a[1] = 2;      // assign the value 2 to the second element of a
-    a[2] = a[1];   // assign the value 3 to the third element of a
+    a[2] = a[1];   // assign the value in the second element of a to the third element of a
+    ```
+* Structs:
+    ```rust
+    let a: (a: int, b: f64);
+    a.a = 1;
+    a.b = 2;
+    a = (a = 5, b = 5.5);
     ```
 * Basic type inference:
     ```rust
