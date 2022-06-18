@@ -2,7 +2,7 @@ build: ./build/$BUILD/bin/rodac % -o=%.out $TEST_ARGS
 run: %.out
 cleanup: rm %.out
 
-buildtime: < 1s
+buildtime: < 10s
 time: < 1s
 exit: = 0
 stderr: = 

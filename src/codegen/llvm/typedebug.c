@@ -35,7 +35,7 @@ LLVMMetadataRef generateLlvmTypeDebugInfo(LlvmCodegenContext* context, LlvmCodeg
                     );
                 }
                 result = LLVMDIBuilderCreateStructType(
-                    data->debug_bulder, data->scope_metadata, name.data, name.length,
+                    data->debug_bulder, data->file_metadata, name.data, name.length,
                     data->file_metadata, line,
                     8 * LLVMABISizeOfType(context->target_data, llvm_type),
                     8 * LLVMABIAlignmentOfType(context->target_data, llvm_type), 0, NULL, fields,
@@ -47,7 +47,7 @@ LLVMMetadataRef generateLlvmTypeDebugInfo(LlvmCodegenContext* context, LlvmCodeg
             }
             case TYPE_VOID:
                 result = LLVMDIBuilderCreateStructType(
-                    data->debug_bulder, data->scope_metadata, name.data, name.length,
+                    data->debug_bulder, data->file_metadata, name.data, name.length,
                     data->file_metadata, line,
                     8 * LLVMABISizeOfType(context->target_data, llvm_type),
                     8 * LLVMABIAlignmentOfType(context->target_data, llvm_type), 0, NULL, NULL, 0,
@@ -119,13 +119,17 @@ LLVMMetadataRef generateLlvmTypeDebugInfo(LlvmCodegenContext* context, LlvmCodeg
                     AstTypeDef* n = (AstTypeDef*)type->def;
                     LLVMMetadataRef tmp = LLVMTemporaryMDNode(context->llvm_cxt, NULL, 0);
                     type->codegen = tmp;
-                    result = LLVMDIBuilderCreateTypedef(
-                        data->debug_bulder,
-                        generateLlvmTypeDebugInfo(context, data, type->type, line), type->name,
-                        strlen(type->name), data->file_metadata, n != NULL ? n->location.begin.line + 1 : 0,
-                        data->scope_metadata,
-                        8 * LLVMABIAlignmentOfType(context->target_data, llvm_type)
-                    );
+                    if (n != NULL) {
+                        result = LLVMDIBuilderCreateTypedef(
+                            data->debug_bulder,
+                            generateLlvmTypeDebugInfo(context, data, type->type, line), type->name,
+                            strlen(type->name), data->file_metadata, n->location.begin.line + 1,
+                            data->file_metadata,
+                            8 * LLVMABIAlignmentOfType(context->target_data, llvm_type)
+                        );
+                    } else {
+                        result = generateLlvmTypeDebugInfo(context, data, type->type, line);
+                    }
                     LLVMMetadataReplaceAllUsesWith(tmp, result);
                     type->codegen = result;
                 }

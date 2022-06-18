@@ -1,5 +1,4 @@
-// test: Test loads and stores to arrays (Slow when run with debug information)
-// buildtime: < 10s
+// test: Test loads and stores to arrays
 
 pub fn foo(): [512]int {
     let a;
