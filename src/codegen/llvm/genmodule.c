@@ -325,12 +325,13 @@ static LlvmCodegenValue buildFunctionBody(LlvmCodegenContext* context, LlvmCodeg
             LLVMInsertExistingBasicBlockAfterInsertBlock(data->builder, right_block);
             LLVMPositionBuilderAtEnd(data->builder, right_block);
             LLVMValueRef right = getCodegenValue(context, data, n->right);
+            LLVMBasicBlockRef other_block = LLVMGetInsertBlock(data->builder);
             LLVMBuildBr(data->builder, rest_block);
             LLVMInsertExistingBasicBlockAfterInsertBlock(data->builder, rest_block);
             LLVMPositionBuilderAtEnd(data->builder, rest_block);
             LLVMValueRef value = LLVMBuildPhi(data->builder, generateLlvmType(context, n->res_type), "lazy-res");
             LLVMValueRef incoming_val[2] = { left, right };
-            LLVMBasicBlockRef incoming_blk[2] = { start_block, right_block };
+            LLVMBasicBlockRef incoming_blk[2] = { start_block, other_block };
             LLVMAddIncoming(value, incoming_val, incoming_blk, 2);
             return createLlvmCodegenValue(value, false);
         }

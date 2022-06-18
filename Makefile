@@ -75,8 +75,10 @@ $(YACC_C): $(YACC_SRC)
 
 # == Tetsing
 test: build
-	@$(ECHO) "Starting tests"
-	tested -j12 $(BASE_DIR)/tests
+	@$(ECHO) "Starting tests with -O0"
+	TEST_ARGS=-O0 tested -j12 $(BASE_DIR)/tests
+	@$(ECHO) "Starting tests with -O2"
+	TEST_ARGS=-O2 tested -j12 $(BASE_DIR)/tests
 	@$(ECHO) "Finished tests"
 # ==
 
