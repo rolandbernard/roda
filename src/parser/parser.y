@@ -53,7 +53,7 @@ extern void yyerror(YYLTYPE* yyllocp, yyscan_t scanner, ParserContext* context, 
 %type <ident> ident
 %type <arg_defs> arg_defs arg_types
 %type <dynlist> arg_def_list stmts root_stmts list
-%type <dynlist> type_list_nonempty list_nonempty field_vals
+%type <dynlist> type_list_nonempty list_nonempty field_vals arg_type_list
 
 %token <lexeme> ID      "identifier"
 %token <lexeme> STR     "string"
@@ -203,11 +203,18 @@ arg_types : %empty                          { $$.list = createAstList(@$, AST_LI
           | type_list_nonempty              { $$.list = toStaticAstList($1); $$.flags = AST_FN_FLAG_NONE; }
           | type_list_nonempty ','          { $$.list = toStaticAstList($1); $$.flags = AST_FN_FLAG_NONE; }
           | type_list_nonempty ',' ".."     { $$.list = toStaticAstList($1); $$.flags = AST_FN_FLAG_VARARG; }
+          | arg_type_list                   { $$.list = toStaticAstList($1); $$.flags = AST_FN_FLAG_NONE; }
+          | arg_type_list ','               { $$.list = toStaticAstList($1); $$.flags = AST_FN_FLAG_NONE; }
+          | arg_type_list ',' ".."          { $$.list = toStaticAstList($1); $$.flags = AST_FN_FLAG_VARARG; }
           ;
 
 type_list_nonempty  : type                          { $$ = createDynamicAstList(); addToDynamicAstList($$, $1); $$->location = @$; }
                     | type_list_nonempty ',' type   { $$ = $1; addToDynamicAstList($1, $3); $$->location = @$; }
                     ;
+
+arg_type_list   : ident ':' type                       { $$ = createDynamicAstList(); addToDynamicAstList($$, $3); $$->location = @$; freeAstNode((AstNode*)$1); }
+                | arg_type_list ',' ident ':' type     { $$ = $1; addToDynamicAstList($1, $5); $$->location = @$; freeAstNode((AstNode*)$3); }
+                ;
 
 expr    : ident                         { $$ = (AstNode*)$1; }
         | integer                       { $$ = $1; }

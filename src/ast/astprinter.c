@@ -335,7 +335,7 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
                 printAstNodeExtraInfo(file, node, colors);
                 fprintf(file, "\n");
                 printAstChildNode(file, (AstNode*)n->arguments, colors, indent, "arguments", false);
-                printAstChildNode(file, n->ret_type, colors, indent, "ret_type", false);
+                printAstChildNode(file, n->ret_type, colors, indent, "ret_type", true);
                 break;
             }
             case AST_FN: {
@@ -427,7 +427,7 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
                 AstStructIndex* n = (AstStructIndex*)node;
                 printAstNodeExtraInfo(file, node, colors);
                 fprintf(file, "\n");
-                printAstChildNode(file, n->strct, colors, indent, "struct", true);
+                printAstChildNode(file, n->strct, colors, indent, "struct", false);
                 printAstChildNode(file, (AstNode*)n->field, colors, indent, "field", true);
                 break;
             }

@@ -30,7 +30,7 @@ pub fn main(): int {
     if (&e[2])(33, 4) != 8 {
         return 3;
     }
-    let f: *fn (*u8, ..) = *printf;
+    let f: *fn (fmt: *u8, ..) = *printf;
     (&f)("test %li", 42);
     return 0;
 }
