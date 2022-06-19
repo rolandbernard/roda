@@ -4,7 +4,7 @@
 extern fn printf(fmt: *u8, ..);
 
 pub fn main(): int {
-    printf("Hello world! %li\n", 42);
+    printf("Hello world! %i\n", 42 as i32);
     return 0;
 }
 

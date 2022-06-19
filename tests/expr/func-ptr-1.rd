@@ -31,6 +31,6 @@ pub fn main(): int {
         return 3;
     }
     let f: *fn (fmt: *u8, ..) = *printf;
-    (&f)("test %li", 42);
+    (&f)("test %i", 42 as i32);
     return 0;
 }

@@ -161,7 +161,7 @@ pub fn main(): int {
             let node = parse_expr(*scan);
             if peek_token(*scan) == '\n' && node != 0 as *Node {
                 next_token(*scan);
-                printf(" = %li\n", eval_node(node));
+                printf(" = %lli\n", eval_node(node));
                 free_node(node);
             } else {
                 free_node(node);

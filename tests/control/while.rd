@@ -8,6 +8,6 @@ pub fn main(): bool {
     while i < 10 {
         i += 1;
     }
-    printf("%li", i);
+    printf("%i", i as i32);
     return i != 10;
 }
