@@ -165,8 +165,8 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
                         &context->msgs,
                         createMessage(
                             ERROR_INCOMPATIBLE_TYPE,
-                            createFormattedString("array length with non integer type `%S`", idx_type), 1,
-                            createMessageFragment(MESSAGE_ERROR, createFormattedString("type `%S` is not an integer type", idx_type), n->left->location)
+                            createFormattedString("array length with non integer type `%s`", cstr(idx_type)), 1,
+                            createMessageFragment(MESSAGE_ERROR, createFormattedString("type `%s` is not an integer type", cstr(idx_type)), n->left->location)
                         )
                     );
                     freeString(idx_type);

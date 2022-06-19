@@ -8,50 +8,14 @@
 
 #include "util/alloc.h"
 
-static size_t formatCustomString(char* output, const char* format, va_list args) {
-    size_t size = 0;
-    for (size_t i = 0; format[i] != 0; i++) {
-        if (format[i] == '%') {
-            if (format[i + 1] == 'S') {
-                i++;
-                ConstString value = va_arg(args, ConstString);
-                if (output != NULL) {
-                    memcpy(output + size, value.data, value.length);
-                }
-                size += value.length;
-            } else {
-                size_t end = i + 1;
-                while (format[end] != 0 && format[end] != '%') {
-                    end++;
-                }
-                char tmp[end - i + 1];
-                memcpy(tmp, format + i, end - i + 1);
-                tmp[end - i] = 0;
-                if (output != NULL) {
-                    size += vsprintf(output + size, tmp, args);
-                } else {
-                    size += vsnprintf(NULL, 0, tmp, args);
-                }
-                i = end - 1;
-            }
-        } else {
-            if (output != NULL) {
-                output[size] = format[i];
-            }
-            size++;
-        }
-    }
-    return size;
-}
-
 String createFormattedString(const char* format, ...) {
     va_list args;
     va_start(args, format);
-    size_t size = formatCustomString(NULL, format, args);
+    size_t size = vsnprintf(NULL, 0, format, args);
     va_end(args);
     char* data = ALLOC(char, size + 1);
     va_start(args, format);
-    formatCustomString(data, format, args);
+    vsnprintf(data, size + 1, format, args);
     va_end(args);
     data[size] = 0;
     return createString(data, size);
@@ -60,11 +24,11 @@ String createFormattedString(const char* format, ...) {
 void pushFormattedString(String* dst, const char* format, ...) {
     va_list args;
     va_start(args, format);
-    size_t size = formatCustomString(NULL, format, args);
+    size_t size = vsnprintf(NULL, 0, format, args);
     va_end(args);
     char* data = ALLOC(char, size + 1);
     va_start(args, format);
-    formatCustomString(data, format, args);
+    vsnprintf(data, size + 1, format, args);
     va_end(args);
     data[size] = 0;
     *dst = pushToString(*dst, createConstString(data, size));

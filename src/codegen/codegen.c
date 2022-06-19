@@ -42,7 +42,7 @@ static String getLinkerCommand(CompilerContext* context) {
         pushFormattedString(&command, " -no-pie");
     }
     if (context->settings.linker.data != NULL) {
-        pushFormattedString(&command, " -fuse-ld=%S", context->settings.linker);
+        pushFormattedString(&command, " -fuse-ld=%s", cstr(context->settings.linker));
     }
     if (context->settings.export_dynamic) {
         pushFormattedString(&command, " -rdynamic");
@@ -54,14 +54,14 @@ static String getLinkerCommand(CompilerContext* context) {
         pushFormattedString(&command, " -nostartfiles");
     }
     for (size_t i = 0; i < context->settings.lib_dirs.count; i++) {
-        pushFormattedString(&command, " -L%S", context->settings.lib_dirs.strings[i]);
+        pushFormattedString(&command, " -L%s", cstr(context->settings.lib_dirs.strings[i]));
     }
-    pushFormattedString(&command, " -o %S", context->settings.output_file);
+    pushFormattedString(&command, " -o %s", cstr(context->settings.output_file));
     for (size_t i = 0; i < context->settings.objects.count; i++) {
-        pushFormattedString(&command, " %S", context->settings.objects.strings[i]);
+        pushFormattedString(&command, " %s", cstr(context->settings.objects.strings[i]));
     }
     for (size_t i = 0; i < context->settings.libs.count; i++) {
-        pushFormattedString(&command, " -l%S", context->settings.libs.strings[i]);
+        pushFormattedString(&command, " -l%s", cstr(context->settings.libs.strings[i]));
     }
     return command;
 }
@@ -115,8 +115,8 @@ void runCodeGeneration(CompilerContext* context) {
                     createMessage(
                         ERROR_CANT_OPEN_FILE,
                         createFormattedString(
-                            "failed to open file '%S': %s",
-                            context->settings.output_file, strerror(errno)
+                            "failed to open file '%s': %s",
+                            cstr(context->settings.output_file), strerror(errno)
                         ), 0
                     )
                 );

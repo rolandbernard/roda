@@ -12,22 +12,22 @@
 static void raiseConflictingTypes(CompilerContext* context, AstNode* node, Type* other, AstNode* other_reason) {
     String fst_type = buildTypeName(node->res_type);
     String snd_type = buildTypeName(other);
-    String message = createFormattedString("type error, conflicting types `%S` and `%S`", fst_type, snd_type);
+    String message = createFormattedString("type error, conflicting types `%s` and `%s`", cstr(fst_type), cstr(snd_type));
     MessageFragment* error = createMessageFragment(MESSAGE_ERROR,
-        createFormattedString("conflicting types `%S` and `%S` for this expression", fst_type, snd_type), node->location
+        createFormattedString("conflicting types `%s` and `%s` for this expression", cstr(fst_type), cstr(snd_type)), node->location
     );
     MessageFragment* notes[2];
     size_t note_count = 0;
     if (node->res_type_reasoning != NULL) {
         notes[note_count] = createMessageFragment(MESSAGE_NOTE,
-            createFormattedString("note: expecting `%S` because of this", fst_type),
+            createFormattedString("note: expecting `%s` because of this", cstr(fst_type)),
             node->res_type_reasoning->location
         );
         note_count++;
     }
     if (other_reason != NULL) {
         notes[note_count] = createMessageFragment(MESSAGE_NOTE,
-            createFormattedString("note: expecting `%S` because of this", snd_type),
+            createFormattedString("note: expecting `%s` because of this", cstr(snd_type)),
             other_reason->location
         );
         note_count++;
@@ -557,7 +557,7 @@ static void checkTypeDefinitions(CompilerContext* context, AstNode* node) {
                     if (!isValidType(type->type)) {
                         String type_name = buildTypeName(n->name->res_type);
                         addMessageToContext(&context->msgs, createMessage(ERROR_INVALID_TYPE,
-                            createFormattedString("type error, definition of invalid type `%S`", type_name), 1,
+                            createFormattedString("type error, definition of invalid type `%s`", cstr(type_name)), 1,
                             createMessageFragment(MESSAGE_ERROR, createFormattedString("this type is invalid"), n->value->location)
                         ));
                         freeString(type_name);
@@ -632,7 +632,7 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                 if (!isValidType(n->right->res_type)) {
                     String type_name = buildTypeName(n->right->res_type);
                     addMessageToContext(&context->msgs, createMessage(ERROR_INVALID_TYPE,
-                        createFormattedString("type error, cast to invalid type `%S`", type_name), 1,
+                        createFormattedString("type error, cast to invalid type `%s`", cstr(type_name)), 1,
                         createMessageFragment(MESSAGE_ERROR, createFormattedString("this type is invalid"), n->right->location)
                     ));
                     freeString(type_name);
@@ -707,7 +707,7 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                 if (!isValidType(n->op->res_type)) {
                     String type_name = buildTypeName(n->op->res_type);
                     addMessageToContext(&context->msgs, createMessage(ERROR_INVALID_TYPE,
-                        createFormattedString("type error, sizeof for invalid type `%S`", type_name), 1,
+                        createFormattedString("type error, sizeof for invalid type `%s`", cstr(type_name)), 1,
                         createMessageFragment(MESSAGE_ERROR, createFormattedString("this type is invalid"), n->op->location)
                     ));
                     freeString(type_name);
@@ -716,7 +716,7 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                 } else if (!isSizedType(n->op->res_type)) {
                     String type_name = buildTypeName(n->op->res_type);
                     addMessageToContext(&context->msgs, createMessage(ERROR_UNSIZED_TYPE,
-                        createFormattedString("type error, sizeof for unsized type `%S`", type_name), 1,
+                        createFormattedString("type error, sizeof for unsized type `%s`", cstr(type_name)), 1,
                         createMessageFragment(MESSAGE_ERROR, createFormattedString("this type is unsized"), n->op->location)
                     ));
                     freeString(type_name);
@@ -775,7 +775,7 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                     if (!isValidType(n->name->res_type)) {
                         String type_name = buildTypeName(n->name->res_type);
                         addMessageToContext(&context->msgs, createMessage(ERROR_INVALID_TYPE,
-                            createFormattedString("type error, variable has invalid type `%S`", type_name), 1,
+                            createFormattedString("type error, variable has invalid type `%s`", cstr(type_name)), 1,
                             createMessageFragment(MESSAGE_ERROR, createFormattedString("this type is invalid"), n->type->location)
                         ));
                         freeString(type_name);
@@ -839,7 +839,7 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                 if (!isValidType(ret_type)) {
                     String type_name = buildTypeName(ret_type);
                     addMessageToContext(&context->msgs, createMessage(ERROR_INVALID_TYPE,
-                        createFormattedString("type error, invalid function return type `%S`", type_name), 1,
+                        createFormattedString("type error, invalid function return type `%s`", cstr(type_name)), 1,
                         createMessageFragment(MESSAGE_ERROR, createFormattedString("this type is invalid"), n->ret_type->location)
                     ));
                     freeString(type_name);
@@ -859,7 +859,7 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                     if (!isValidType(n->name->res_type)) {
                         String type_name = buildTypeName(n->name->res_type);
                         addMessageToContext(&context->msgs, createMessage(ERROR_INVALID_TYPE,
-                            createFormattedString("type error, variable has invalid type `%S`", type_name), 1,
+                            createFormattedString("type error, variable has invalid type `%s`", cstr(type_name)), 1,
                             createMessageFragment(MESSAGE_ERROR, createFormattedString("this type is invalid"), n->type->location)
                         ));
                         freeString(type_name);
@@ -1595,10 +1595,10 @@ static void checkForUntypedNodes(CompilerContext* context, AstNode* node) {
 static void raiseLiteralTypeError(CompilerContext* context, AstNode* node, const char* kind) {
     String actual_type = buildTypeName(node->res_type);
     String message = createFormattedString(
-        "type error, expecting expression of type `%S` but found %s", actual_type, kind
+        "type error, expecting expression of type `%s` but found %s", cstr(actual_type), kind
     );
     MessageFragment* error = createMessageFragment(
-        MESSAGE_ERROR, createFormattedString("%ss are not of type `%S`", kind, actual_type),
+        MESSAGE_ERROR, createFormattedString("%ss are not of type `%s`", kind, cstr(actual_type)),
         node->location
     );
     if (node->res_type_reasoning != NULL) {
@@ -1608,7 +1608,7 @@ static void raiseLiteralTypeError(CompilerContext* context, AstNode* node, const
                 ERROR_INCOMPATIBLE_TYPE, message, 2, error,
                 createMessageFragment(
                     MESSAGE_NOTE,
-                    createFormattedString("note: expecting `%S` because of this", actual_type),
+                    createFormattedString("note: expecting `%s` because of this", cstr(actual_type)),
                     node->res_type_reasoning->location
                 )
             )
@@ -1627,16 +1627,16 @@ static void raiseOpTypeErrorWithHelp(
 ) {
     String type_name = buildTypeName(type);
     String message = createFormattedString(
-        "type error, incompatible type `%S` for %s expession%s", type_name, getAstPrintName(node->kind), hint
+        "type error, incompatible type `%s` for %s expession%s", cstr(type_name), getAstPrintName(node->kind), hint
     );
     MessageFragment* error = createMessageFragment(
-        MESSAGE_ERROR, createFormattedString("`%S` type not allowed here", type_name), err_node->location
+        MESSAGE_ERROR, createFormattedString("`%s` type not allowed here", cstr(type_name)), err_node->location
     );
     MessageFragment* frags[2];
     size_t frag_count = 0;
     if (reasoning != NULL) {
         frags[frag_count] = createMessageFragment(
-            MESSAGE_NOTE, createFormattedString("note: type `%S` defined here", type_name), reasoning->location
+            MESSAGE_NOTE, createFormattedString("note: type `%s` defined here", cstr(type_name)), reasoning->location
         );
         frag_count++;
     }
@@ -1697,9 +1697,9 @@ static void raiseArgCountError(CompilerContext* context, TypeFunction* type, Ast
 
 static void raiseVoidReturnError(CompilerContext* context, AstReturn* node, Type* type, AstNode* reasoning) {
     String type_name = buildTypeName(type);
-    String message = createFormattedString("type error, expected a return value of type `%S`", type_name);
+    String message = createFormattedString("type error, expected a return value of type `%s`", cstr(type_name));
     MessageFragment* error = createMessageFragment(
-        MESSAGE_ERROR, createFormattedString("should return value of type `%S`", type_name),
+        MESSAGE_ERROR, createFormattedString("should return value of type `%s`", cstr(type_name)),
         node->location
     );
     if (reasoning != NULL) {
@@ -1709,7 +1709,7 @@ static void raiseVoidReturnError(CompilerContext* context, AstReturn* node, Type
                 ERROR_INCOMPATIBLE_TYPE, message, 2, error,
                 createMessageFragment(
                     MESSAGE_NOTE,
-                    createFormattedString("note: expecting `%S` because of this", type_name),
+                    createFormattedString("note: expecting `%s` because of this", cstr(type_name)),
                     reasoning->location
                 )
             )
@@ -1728,11 +1728,11 @@ static void raiseUnsupportedCast(
     String fst_type = buildTypeName(from);
     String snd_type = buildTypeName(to);
     String message =
-        createFormattedString("type error, unsupported cast form `%S` to `%S`", fst_type, snd_type);
+        createFormattedString("type error, unsupported cast form `%s` to `%s`", cstr(fst_type), cstr(snd_type));
     MessageFragment* error = createMessageFragment(
         MESSAGE_ERROR,
         createFormattedString(
-            "unsupported cast from `%S` to `%S`", fst_type, snd_type
+            "unsupported cast from `%s` to `%s`", cstr(fst_type), cstr(snd_type)
         ),
         node->location
     );
@@ -1740,14 +1740,14 @@ static void raiseUnsupportedCast(
     size_t note_count = 0;
     if (from_reason != NULL) {
         notes[note_count] = createMessageFragment(
-            MESSAGE_NOTE, createFormattedString("note: expecting `%S` because of this", fst_type),
+            MESSAGE_NOTE, createFormattedString("note: expecting `%s` because of this", cstr(fst_type)),
             from_reason->location
         );
         note_count++;
     }
     if (to_reason != NULL) {
         notes[note_count] = createMessageFragment(
-            MESSAGE_NOTE, createFormattedString("note: expecting `%S` because of this", snd_type),
+            MESSAGE_NOTE, createFormattedString("note: expecting `%s` because of this", cstr(snd_type)),
             to_reason->location
         );
         note_count++;
@@ -1775,7 +1775,7 @@ static void raiseUnsupportedCast(
 static void raiseNoSuchFieldError(CompilerContext* context, AstStructIndex* node) {
     String type_name = buildTypeName(node->strct->res_type);
     String message = createFormattedString(
-        "no field with name `%s` in struct type `%S`", node->field->name, type_name
+        "no field with name `%s` in struct type `%s`", node->field->name, cstr(type_name)
     );
     MessageFragment* error = createMessageFragment(
         MESSAGE_ERROR, copyFromCString("no such field exists"), node->field->location
@@ -1804,7 +1804,7 @@ void raiseStructFieldMismatchError(CompilerContext* context, AstNode* node) {
     // TODO: say what is different?
     String type_name = buildTypeName(node->res_type);
     String message = createFormattedString(
-        "inconsistent fields in struct literal, expected literal of type `%S`", type_name
+        "inconsistent fields in struct literal, expected literal of type `%s`", cstr(type_name)
     );
     MessageFragment* error = createMessageFragment(
         MESSAGE_ERROR, copyFromCString("mismatch in struct fields"), node->location
@@ -1832,7 +1832,7 @@ void raiseStructFieldMismatchError(CompilerContext* context, AstNode* node) {
 void raiseArrayLengthMismatchError(CompilerContext* context, AstNode* node) {
     String type_name = buildTypeName(node->res_type);
     String message = createFormattedString(
-        "inconsistent length of array literal, expected literal of type `%S`", type_name
+        "inconsistent length of array literal, expected literal of type `%s`", cstr(type_name)
     );
     MessageFragment* error = createMessageFragment(
         MESSAGE_ERROR, copyFromCString("mismatch in array lengths"), node->location
@@ -2305,7 +2305,7 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                 if (n->name->res_type != NULL && !isErrorType(n->name->res_type) && !isSizedType(n->name->res_type)) {
                     String type_name = buildTypeName(n->name->res_type);
                     addMessageToContext(&context->msgs, createMessage(ERROR_INVALID_TYPE,
-                        createFormattedString("type error, unsized type `%S` for variable `%s`", type_name, n->name->name), 1,
+                        createFormattedString("type error, unsized type `%s` for variable `%s`", cstr(type_name), n->name->name), 1,
                         createMessageFragment(MESSAGE_ERROR, copyFromCString("variable with unsized type"), n->name->location)
                     ));
                     freeString(type_name);
@@ -2318,7 +2318,7 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                 if (n->name->res_type != NULL && !isErrorType(n->name->res_type) && !isSizedType(n->name->res_type)) {
                     String type_name = buildTypeName(n->name->res_type);
                     addMessageToContext(&context->msgs, createMessage(ERROR_INVALID_TYPE,
-                        createFormattedString("type error, unsized type `%S` for variable `%s`", type_name, n->name->name), 1,
+                        createFormattedString("type error, unsized type `%s` for variable `%s`", cstr(type_name), n->name->name), 1,
                         createMessageFragment(MESSAGE_ERROR, copyFromCString("variable with unsized type"), n->name->location)
                     ));
                     freeString(type_name);

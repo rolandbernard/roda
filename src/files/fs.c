@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "errors/fatalerror.h"
 #include "text/format.h"
 #include "util/alloc.h"
 
@@ -62,10 +63,10 @@ FILE* openPath(ConstPath path, const char* flags) {
     return fopen(toCString(path), flags);
 }
 
-Path getTemporaryFilePath(const char* extension) {
-    for (;;) {
+Path getTemporaryFilePathInDir(const char* dir, const char* extension) {
+    for (size_t i = 0; i <= 10; i++) {
         size_t random = rand();
-        Path path = createFormattedString("/tmp/rodac_%08x.%s", random, extension);
+        Path path = createFormattedString("%s/.rodac_%08x.%s", dir, random, extension);
         FILE* file = fopen(cstr(path), "wx");
         if (file != NULL) {
             fclose(file);
@@ -73,6 +74,19 @@ Path getTemporaryFilePath(const char* extension) {
         }
         freePath(path);
     }
+    return createString(NULL, 0);
+}
+
+Path getTemporaryFilePath(const char* extension) {
+    Path path = getTemporaryFilePathInDir("/tmp", extension);
+    if (path.data != NULL) {
+        return path;
+    }
+    path = getTemporaryFilePathInDir(".", extension);
+    if (path.data != NULL) {
+        return path;
+    }
+    fatalError(str("failed to open temporary file"));
 }
 
 

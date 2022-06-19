@@ -46,7 +46,7 @@ void initLlvmCodegenContext(LlvmCodegenContext* context, CompilerContext* cxt) {
     }
     if (LLVMGetTargetFromTriple(target, &context->target, &context->error_msg)) {
         addMessageToContext(&context->cxt->msgs,createMessage(ERROR_LLVM_BACKEND_ERROR,
-            createFormattedString("failed to get target '%S': %s", context->cxt->settings.target, context->error_msg), 0
+            createFormattedString("failed to get target '%s': %s", cstr(context->cxt->settings.target), context->error_msg), 0
         ));
         LLVMDisposeMessage(context->error_msg);
     }
