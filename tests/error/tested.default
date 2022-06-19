@@ -1,5 +1,6 @@
 build:
-run: ./build/$BUILD/bin/rodac % --messages=minimal
+run: LLVM_PROFILE_FILE="profile/tests/%%p.profraw" ./build/$BUILD/bin/rodac % --messages=minimal
+cleanup: 
 
 buildtime: < 1s
 time: < 1s

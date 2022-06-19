@@ -6,7 +6,7 @@
 
 #include "util/macro.h"
 
-#define CONSOLE_ESC "\e"
+#define CONSOLE_ESC "\x1B"
 #define CONSOLE_CSI CONSOLE_ESC "["
 
 #define CONSOLE_CUU(N) CONSOLE_CSI STRINGIFY(N) "A"

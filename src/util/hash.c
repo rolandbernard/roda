@@ -5,7 +5,7 @@
 #define BYTES_HASH_START_PRIME 7919
 #define BYTES_HASH_MUL_PRIME   293
 
-size_t hashBytes(const void* mem, size_t size) {
+size_t hashBytes(const char* mem, size_t size) {
     size_t hash = BYTES_HASH_START_PRIME;
     while (size > 0) {
         hash *= BYTES_HASH_MUL_PRIME;

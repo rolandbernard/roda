@@ -2,6 +2,7 @@
 tmp.*
 compile_flags.txt*
 
+profile/
 build/
 .vscode
 .idea/

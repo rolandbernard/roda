@@ -28,12 +28,20 @@ WARNINGS := -Wall -Wextra -Wno-unused-parameter
 
 CFLAGS.debug    += -O0 -g -fsanitize=$(SANITIZE) -DDEBUG
 LDFLAGS.debug   += -O0 -g -fsanitize=$(SANITIZE)
-CFLAGS.gdb      += -O0 -g -DDEBUG
-LDFLAGS.gdb     += -O0 -g
-CFLAGS.profile  += -O3 -g
-LDFLAGS.profile += -O3 -g
 CFLAGS.release  += -O3
 LDFLAGS.release += -O3
+
+CFLAGS.gdb       += -O0 -g -DDEBUG
+LDFLAGS.gdb      += -O0 -g
+CFLAGS.profile   += -O3 -g
+LDFLAGS.profile  += -O3 -g
+CFLAGS.coverage  += -O0 -g -fprofile-instr-generate -fcoverage-mapping
+LDFLAGS.coverage += -O0 -g -fprofile-instr-generate -fcoverage-mapping
+
+ifeq ($(BUILD),coverage)
+CC := clang
+LD := clang++
+endif
 
 CFLAGS  += $(CFLAGS.$(BUILD)) $(WARNINGS) -MMD -MP -I$(SOURCE_DIR)
 CFLAGS  += $(foreach SWITCH, $(SWITCHES), -D$(shell echo $(SWITCH) | tr '[:lower:]' '[:upper:]'))

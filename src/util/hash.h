@@ -3,7 +3,7 @@
 
 #include "text/string.h"
 
-size_t hashBytes(const void* mem, size_t size);
+size_t hashBytes(const char* mem, size_t size);
 
 size_t hashInt(size_t value);
 

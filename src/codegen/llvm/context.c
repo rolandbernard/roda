@@ -34,7 +34,7 @@ static LLVMRelocMode getLlvmRelocMode(LlvmCodegenContext* context) {
 void initLlvmCodegenContext(LlvmCodegenContext* context, CompilerContext* cxt) {
     memset(context, 0, sizeof(LlvmCodegenContext));
     context->cxt = cxt;
-    context->llvm_cxt = LLVMGetGlobalContext();
+    context->llvm_cxt = LLVMContextCreate();
     context->error_msg = NULL;
     const char* target;
     char* llvm_target = NULL;
@@ -90,6 +90,7 @@ void deinitLlvmCodegenContext(LlvmCodegenContext* context) {
         FREE(context->type_data);
         context->type_data = next;
     }
+    LLVMContextDispose(context->llvm_cxt);
 }
 
 LlvmCodegenData* createLlvmCodegenData(LlvmCodegenContext* context) {

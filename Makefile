@@ -58,7 +58,7 @@ YACC_C := $(SOURCE_DIR)/parser/parser.tab.c
 YACC_H := $(SOURCE_DIR)/parser/parser.tab.h
 
 GEN_SOURCES += $(LEX_C) $(YACC_C)
-TO_CLEAN += $(LEX_C) $(LEX_H) $(YACC_C) $(YACC_H)
+TO_CLEAN += $(LEX_C) $(LEX_H) $(YACC_C) $(YACC_H) $(BASE_DIR)/profile
 # ==
 
 include build.mk
@@ -82,5 +82,12 @@ test: build
 	@$(ECHO) "Starting tests with -O2"
 	TEST_ARGS=-O2 tested -j12 $(BASE_DIR)/tests
 	@$(ECHO) "Finished tests"
+
+coverage:
+	$(RM) -r $(BASE_DIR)/profile/
+	$(MAKE) BUILD=coverage test
+	llvm-profdata merge $(BASE_DIR)/profile/tests/*.profraw -o $(BASE_DIR)/profile/combined.profdata
+	llvm-cov show $(BUILD_DIR)/coverage/bin/rodac -instr-profile=$(BASE_DIR)/profile/combined.profdata -o $(BASE_DIR)/profile/report
+	llvm-cov report $(BUILD_DIR)/coverage/bin/rodac -instr-profile=$(BASE_DIR)/profile/combined.profdata
 # ==
 
