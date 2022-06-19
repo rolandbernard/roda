@@ -101,7 +101,7 @@ static LLVMModuleRef generateLinkedModule(LlvmCodegenContext* context) {
     for (size_t i = 0; i < context->cxt->files.file_count; i++) {
         pushFormattedString(&name, "%s;", cstr(context->cxt->files.files[i]->original_path));
     }
-    linked_module = LLVMModuleCreateWithName(cstr(name));
+    linked_module = LLVMModuleCreateWithNameInContext(cstr(name), context->llvm_cxt);
     freeString(name);
     LLVMSetModuleDataLayout(linked_module, context->target_data);
     for (size_t i = 0; i < context->cxt->files.file_count; i++) {
@@ -109,17 +109,17 @@ static LLVMModuleRef generateLinkedModule(LlvmCodegenContext* context) {
         if (file->ast != NULL) {
             LLVMModuleRef module = generateSingleModule(context, file);
 #ifdef DEBUG
-    if (LLVMVerifyModule(module, LLVMReturnStatusAction, &context->error_msg)) {
-        trimErrorMessage(context->error_msg);
-        addMessageToContext(
-            &context->cxt->msgs,
-            createMessage(
-                ERROR_LLVM_BACKEND_ERROR,
-                createFormattedString("generated an invalid llvm module: %s", context->error_msg), 0
-            )
-        );
-    }
-    LLVMDisposeMessage(context->error_msg);
+            if (LLVMVerifyModule(module, LLVMReturnStatusAction, &context->error_msg)) {
+                trimErrorMessage(context->error_msg);
+                addMessageToContext(
+                    &context->cxt->msgs,
+                    createMessage(
+                        ERROR_LLVM_BACKEND_ERROR,
+                        createFormattedString("generated an invalid llvm module: %s", context->error_msg), 0
+                    )
+                );
+            }
+            LLVMDisposeMessage(context->error_msg);
 #endif
             if (module != NULL) {
                 if (linked_module != NULL) {
@@ -139,6 +139,20 @@ static LLVMModuleRef generateLinkedModule(LlvmCodegenContext* context) {
             }
         }
     }
+#ifdef DEBUG
+    if (LLVMVerifyModule(linked_module, LLVMReturnStatusAction, &context->error_msg)) {
+        trimErrorMessage(context->error_msg);
+        addMessageToContext(
+            &context->cxt->msgs,
+            createMessage(
+                ERROR_LLVM_BACKEND_ERROR,
+                createFormattedString("generated an invalid llvm module: %s", context->error_msg), 0
+            )
+        );
+    }
+    LLVMDisposeMessage(context->error_msg);
+#endif
+    printAndClearMessages(context->cxt, stderr);
     return linked_module;
 }
 

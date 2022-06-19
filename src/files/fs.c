@@ -64,7 +64,7 @@ FILE* openPath(ConstPath path, const char* flags) {
 }
 
 Path getTemporaryFilePathInDir(const char* dir, const char* extension) {
-    for (size_t i = 0; i <= 10; i++) {
+    for (size_t i = 0; i < 10; i++) {
         size_t random = rand();
         Path path = createFormattedString("%s/.rodac_%08x.%s", dir, random, extension);
         FILE* file = fopen(cstr(path), "wx");

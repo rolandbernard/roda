@@ -3,6 +3,8 @@ tmp.*
 compile_flags.txt*
 
 profile/
+*.profdata
+*.profraw
 build/
 .vscode
 .idea/
