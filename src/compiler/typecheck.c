@@ -1151,11 +1151,11 @@ static void assumeAmbiguousTypes(CompilerContext* context, AssumeAmbiguousPhase 
                 assumeAmbiguousTypes(context, phase, n->val, changed);
                 if ((phase & ASSUME_VARS) != 0 && n->name->res_type == NULL) {
                     Type* type = createUnsureType(&context->types, NULL);
-                    if (propagateTypeIntoAstNode(context, (AstNode*)n->name, type, (AstNode*)n->name, changed)) {
+                    if (propagateTypeIntoAstNode(context, (AstNode*)n->name, type, NULL, changed)) {
                         propagateTypes(context, (AstNode*)n->name, changed);
                     }
                     if (n->val != NULL) {
-                        if (propagateTypeIntoAstNode(context, n->val, type, (AstNode*)n->name, changed)) {
+                        if (propagateTypeIntoAstNode(context, n->val, type, NULL, changed)) {
                             propagateTypes(context, n->val, changed);
                         }
                     }
