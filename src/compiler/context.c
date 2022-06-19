@@ -112,7 +112,7 @@ static void deinitCompilerSettings(CompilerSettings* settings) {
     deinitStringList(&settings->objects);
 }
 
-void initCompilerContext(CompilerContext* context) {
+static void initCompilerContext(CompilerContext* context) {
     initCompilerSettings(&context->settings);
     initMessageFilter(&context->msgfilter);
     initFileSet(&context->files);
@@ -123,13 +123,24 @@ void initCompilerContext(CompilerContext* context) {
     addPrimitiveTypes(context);
 }
 
-void deinitCompilerContext(CompilerContext* context) {
+static void deinitCompilerContext(CompilerContext* context) {
     deinitCompilerSettings(&context->settings);
     deinitFileSet(&context->files);
     deinitMessageContext(&context->msgs);
     deinitSymbolContext(&context->syms);
     deinitTypeContext(&context->types);
     deinitSymbolTable(&context->buildins);
+}
+
+CompilerContext* createCompilerContext() {
+    CompilerContext* context = NEW(CompilerContext);
+    initCompilerContext(context);
+    return context;
+}
+
+void freeCompilerContext(CompilerContext* context) {
+    deinitCompilerContext(context);
+    FREE(context);
 }
 
 static MessageStyle getMessageStyle(CompilerContext* context) {

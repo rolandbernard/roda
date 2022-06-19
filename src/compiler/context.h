@@ -101,9 +101,9 @@ typedef struct {
         if (file->ast != NULL) ACTION                           \
     }
 
-void initCompilerContext(CompilerContext* context);
+CompilerContext* createCompilerContext();
 
-void deinitCompilerContext(CompilerContext* context);
+void freeCompilerContext(CompilerContext* context);
 
 void addStringToList(StringList* list, String string);
 

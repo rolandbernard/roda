@@ -24,6 +24,7 @@ typedef enum {
 
 #define TYPE_BASE       \
     TypeKind kind;      \
+    struct Type* equiv; \
     void* codegen;
 
 typedef struct Type {
@@ -126,7 +127,15 @@ TypeFunction* isFunctionType(Type* type);
 
 TypeStruct* isStructType(Type* type);
 
+TypeReference* isTypeReference(Type* type);
+
+TypeUnsure* isUnsureType(Type* type);
+
 size_t lookupIndexOfStructField(TypeStruct* type, Symbol name);
+
+bool isPartialType(Type* type);
+
+void fillPartialType(Type* type, Type* with);
 
 bool isValidType(Type* type);
 
@@ -136,8 +145,10 @@ bool isEffectivelyVoidType(Type* type);
 
 bool isErrorType(Type* type);
 
+bool containsErrorType(Type* type);
+
 bool compareStructuralTypes(Type* a, Type* b);
 
-bool assertStructuralTypesEquality(Type* a, Type* b);
+bool assertStructuralTypesEquality(Type* a, Type* b, bool* changed);
 
 #endif

@@ -3,7 +3,7 @@
 
 pub fn foo(a: int): int {
     let a;
-    let b = a;
-    let c = b;
+    let b;
+    let c;
     return 0;
 }
