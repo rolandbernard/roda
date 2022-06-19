@@ -64,7 +64,11 @@ static LLVMTypeRef generateLlvmTypeHelper(LlvmCodegenContext* context, Type* typ
             case TYPE_INT:
             case TYPE_UINT: {
                 TypeSizedPrimitive* t = (TypeSizedPrimitive*)type;
-                result = LLVMIntTypeInContext(context->llvm_cxt, t->size);
+                if (t->size != SIZE_SIZE) {
+                    result = LLVMIntTypeInContext(context->llvm_cxt, t->size);
+                } else {
+                    result = LLVMIntPtrTypeInContext(context->llvm_cxt, context->target_data);
+                }
                 break;
             }
             case TYPE_REAL: {

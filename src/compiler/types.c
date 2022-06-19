@@ -353,12 +353,20 @@ static void buildTypeNameInto(String* dst, const Type* type) {
             }
             case TYPE_INT: {
                 TypeSizedPrimitive* t = (TypeSizedPrimitive*)type;
-                pushFormattedString(dst, "i%zi", t->size);
+                if (t->size != SIZE_SIZE) {
+                    pushFormattedString(dst, "i%zi", t->size);
+                } else {
+                    pushFormattedString(dst, "isize", t->size);
+                }
                 break;
             }
             case TYPE_UINT: {
                 TypeSizedPrimitive* t = (TypeSizedPrimitive*)type;
-                pushFormattedString(dst, "u%zi", t->size);
+                if (t->size != SIZE_SIZE) {
+                    pushFormattedString(dst, "u%zi", t->size);
+                } else {
+                    pushFormattedString(dst, "usize", t->size);
+                }
                 break;
             }
             case TYPE_REAL: {

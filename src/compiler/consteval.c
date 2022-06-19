@@ -12,7 +12,7 @@ ConstValue createConstError(CompilerContext* context) {
 }
 
 static intmax_t wrapSignedInteger(intmax_t value, size_t size) {
-    if (size >= 8 * sizeof(value)) {
+    if (size == SIZE_SIZE || size >= 8 * sizeof(value)) {
         return value;
     } else {
         return (value << (8 * sizeof(value) - size)) >> (8 * sizeof(value) - size);
@@ -28,7 +28,7 @@ ConstValue createConstInt(CompilerContext* context, size_t size, intmax_t value)
 }
 
 static uintmax_t wrapUnsignedInteger(uintmax_t value, size_t size) {
-    if (size >= 8 * sizeof(value)) {
+    if (size == SIZE_SIZE || size >= 8 * sizeof(value)) {
         return value;
     } else {
         return value & ((1 << size) - 1);

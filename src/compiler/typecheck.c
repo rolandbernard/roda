@@ -574,7 +574,7 @@ static void checkTypeDefinitions(CompilerContext* context, AstNode* node) {
     }
 }
 
-static void propagateToVariableReferences(CompilerContext* context, AstVar* node) {
+static void propagateToVariableReferences(AstVar* node) {
     SymbolVariable* var = (SymbolVariable*)node->binding;
     if (var != NULL) {
         var->type = node->res_type;
@@ -782,7 +782,7 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                         n->name->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
                         n->name->res_type_reasoning = NULL;
                     }
-                    propagateToVariableReferences(context, n->name);
+                    propagateToVariableReferences(n->name);
                 }
                 evaluateTypeHints(context, n->val);
                 break;
@@ -846,7 +846,7 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                     n->name->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
                     n->name->res_type_reasoning = NULL;
                 }
-                propagateToVariableReferences(context, n->name);
+                propagateToVariableReferences(n->name);
                 evaluateTypeHints(context, n->body);
                 break;
             }
@@ -866,7 +866,7 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                         n->name->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
                         n->name->res_type_reasoning = NULL;
                     }
-                    propagateToVariableReferences(context, n->name);
+                    propagateToVariableReferences(n->name);
                 }
                 break;
             }
@@ -1114,7 +1114,7 @@ static void assumeAmbiguousTypes(CompilerContext* context, AssumeAmbiguousPhase 
                 break;
             case AST_SIZEOF:
                 if ((phase & ASSUME_SIZEOF) != 0 && node->res_type == NULL) {
-                    Type* type = createSizedPrimitiveType(&context->types, TYPE_UINT, 64);
+                    Type* type = createSizedPrimitiveType(&context->types, TYPE_UINT, SIZE_SIZE);
                     type = createUnsureType(&context->types, type);
                     if (propagateTypeIntoAstNode(context, node, type, node, changed)) {
                         propagateTypes(context, node->parent, changed);
@@ -1138,7 +1138,7 @@ static void assumeAmbiguousTypes(CompilerContext* context, AssumeAmbiguousPhase 
                 assumeAmbiguousTypes(context, phase, n->left, changed);
                 assumeAmbiguousTypes(context, phase, n->right, changed);
                 if ((phase & ASSUME_INDEX) != 0 && n->right->res_type == NULL) {
-                    Type* type = createSizedPrimitiveType(&context->types, TYPE_UINT, 64);
+                    Type* type = createSizedPrimitiveType(&context->types, TYPE_UINT, SIZE_SIZE);
                     type = createUnsureType(&context->types, type);
                     if (propagateTypeIntoAstNode(context, n->right, type, n->right, changed)) {
                         propagateTypes(context, n->right, changed);

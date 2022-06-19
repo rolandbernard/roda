@@ -7,6 +7,8 @@
 #include "text/symbol.h"
 #include "text/string.h"
 
+#define SIZE_SIZE ((size_t)-1)
+
 typedef enum {
     TYPE_ERROR,
     TYPE_VOID,

@@ -69,12 +69,11 @@ static void addPrimitiveTypes(CompilerContext* context) {
     addSymbolToTable(&context->buildins, (SymbolEntry*)createTypeSymbolWithType(
         getSymbol(&context->syms, str("uint")), NULL, createSizedPrimitiveType(&context->types, TYPE_UINT, 64)
     ));
-    // TODO: isize and usize should be different basic types (because they are target dependent)
     addSymbolToTable(&context->buildins, (SymbolEntry*)createTypeSymbolWithType(
-        getSymbol(&context->syms, str("isize")), NULL, createSizedPrimitiveType(&context->types, TYPE_INT, 64)
+        getSymbol(&context->syms, str("isize")), NULL, createSizedPrimitiveType(&context->types, TYPE_INT, SIZE_SIZE)
     ));
     addSymbolToTable(&context->buildins, (SymbolEntry*)createTypeSymbolWithType(
-        getSymbol(&context->syms, str("usize")), NULL, createSizedPrimitiveType(&context->types, TYPE_UINT, 64)
+        getSymbol(&context->syms, str("usize")), NULL, createSizedPrimitiveType(&context->types, TYPE_UINT, SIZE_SIZE)
     ));
 }
 
