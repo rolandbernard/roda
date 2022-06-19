@@ -954,6 +954,7 @@ LLVMModuleRef generateSingleModule(LlvmCodegenContext* context, File* file) {
             file->directory.data, file->directory.length
         );
         data.scope_metadata = data.file_metadata;
+#if LLVM_VERSION_MAJOR >= 11
         LLVMDIBuilderCreateCompileUnit(
             data.debug_bulder, LLVMDWARFSourceLanguageC, data.file_metadata, PROGRAM_NAME " v" VERSION_STRING_BUILD,
             strlen(PROGRAM_NAME " v" VERSION_STRING_BUILD),
@@ -961,6 +962,15 @@ LLVMModuleRef generateSingleModule(LlvmCodegenContext* context, File* file) {
                 && context->cxt->settings.opt_level != COMPILER_OPT_DEFAULT,
             NULL, 0, 0, NULL, 0, LLVMDWARFEmissionFull, 0, false, false, NULL, 0, NULL, 0
         );
+#else
+        LLVMDIBuilderCreateCompileUnit(
+            data.debug_bulder, LLVMDWARFSourceLanguageC, data.file_metadata, PROGRAM_NAME " v" VERSION_STRING_BUILD,
+            strlen(PROGRAM_NAME " v" VERSION_STRING_BUILD),
+            context->cxt->settings.opt_level != COMPILER_OPT_NONE
+                && context->cxt->settings.opt_level != COMPILER_OPT_DEFAULT,
+            NULL, 0, 0, NULL, 0, LLVMDWARFEmissionFull, 0, false, false
+        );
+#endif
         LLVMAddModuleFlag(
             data.module, LLVMModuleFlagBehaviorWarning, "Debug Info Version", 18,
             LLVMValueAsMetadata(LLVMConstInt(LLVMIntType(32), LLVMDebugMetadataVersion(), 0))
