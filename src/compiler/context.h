@@ -1,5 +1,5 @@
-#ifndef _COMPILER_CONTEXT_H_
-#define _COMPILER_CONTEXT_H_
+#ifndef _RODA_COMPILER_CONTEXT_H_
+#define _RODA_COMPILER_CONTEXT_H_
 
 #include "compiler/symboltable.h"
 #include "compiler/types.h"

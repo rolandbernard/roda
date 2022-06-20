@@ -1,5 +1,5 @@
-#ifndef _COMPILER_TYPEEVAL_H_
-#define _COMPILER_TYPEEVAL_H_
+#ifndef _RODA_COMPILER_TYPEEVAL_H_
+#define _RODA_COMPILER_TYPEEVAL_H_
 
 #include "ast/ast.h"
 #include "compiler/types.h"

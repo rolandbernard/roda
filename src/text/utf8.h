@@ -1,5 +1,5 @@
-#ifndef _UTF8_H_
-#define _UTF8_H_
+#ifndef _RODA_TEXT_UTF8_H_
+#define _RODA_TEXT_UTF8_H_
 
 #include <stdint.h>
 #include <stdio.h>

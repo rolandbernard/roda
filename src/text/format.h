@@ -1,5 +1,5 @@
-#ifndef _FORMAT_H_
-#define _FORMAT_H_
+#ifndef _RODA_TEXT_FORMAT_H_
+#define _RODA_TEXT_FORMAT_H_
 
 #include "text/string.h"
 

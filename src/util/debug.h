@@ -1,5 +1,5 @@
-#ifndef _UTIL_DEBUG_
-#define _UTIL_DEBUG_
+#ifndef _RODA_UTIL_DEBUG_
+#define _RODA_UTIL_DEBUG_
 
 #ifdef DEBUG
 #include "util/console.h"

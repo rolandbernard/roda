@@ -1,5 +1,5 @@
-#ifndef _TEXT_SYMBOL_H_
-#define _TEXT_SYMBOL_H_
+#ifndef _RODA_TEXT_SYMBOL_H_
+#define _RODA_TEXT_SYMBOL_H_
 
 #include "text/string.h"
 

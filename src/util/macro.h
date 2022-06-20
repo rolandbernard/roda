@@ -1,5 +1,5 @@
-#ifndef _MACRO_H_
-#define _MACRO_H_
+#ifndef _RODA_UTIL_MACRO_H_
+#define _RODA_UTIL_MACRO_H_
 
 #define STRINGIFY(X) # X
 #define XSTRINGIFY(X) STRINGIFY(X)

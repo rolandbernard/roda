@@ -1,5 +1,5 @@
-#ifndef _CONSOLE_H_
-#define _CONSOLE_H_
+#ifndef _RODA_UTIL_CONSOLE_H_
+#define _RODA_UTIL_CONSOLE_H_
 
 #include <stdbool.h>
 #include <stdio.h>

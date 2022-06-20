@@ -1,5 +1,5 @@
-#ifndef _COMPILER_TYPECHECK_H_
-#define _COMPILER_TYPECHECK_H_
+#ifndef _RODA_COMPILER_TYPECHECK_H_
+#define _RODA_COMPILER_TYPECHECK_H_
 
 #include "compiler/context.h"
 

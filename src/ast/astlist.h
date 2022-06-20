@@ -1,5 +1,5 @@
-#ifndef _AST_ASTLIST_H_
-#define _AST_ASTLIST_H_
+#ifndef _RODA_AST_ASTLIST_H_
+#define _RODA_AST_ASTLIST_H_
 
 #include "ast/ast.h"
 

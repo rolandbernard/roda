@@ -444,37 +444,39 @@ typedef struct TypeReferenceStack {
     const SymbolType* binding;
 } TypeReferenceStack;
 
-#define STRUCTURAL_TYPE_CHECK_HELPER(NAME, TRUE, DEFAULT, ON_NULL, ...)         \
-    if (type != NULL) {                                                         \
-        TRUE else if (type->kind == TYPE_REFERENCE) {                           \
-            TypeReference* t = (TypeReference*)type;                            \
-            TypeReferenceStack elem = {                                         \
-                .last = stack,                                                  \
-                .binding = t->binding                                           \
-            };                                                                  \
-            TypeReferenceStack* cur = stack;                                    \
-            while (cur != NULL) {                                               \
-                if (cur->binding != elem.binding) {                             \
-                    cur = cur->last;                                            \
-                } DEFAULT                                                       \
-            }                                                                   \
-            return NAME (t->binding->type, &elem __VA_OPT__(,) __VA_ARGS__);    \
-        } else if (type->kind == TYPE_UNSURE) {                                 \
-            TypeUnsure* t = (TypeUnsure*)type;                                  \
-            if (t->actual != NULL) {                                            \
-                return NAME (t->actual, stack __VA_OPT__(,) __VA_ARGS__);       \
-            } else {                                                            \
-                return NAME (t->fallback, stack __VA_OPT__(,) __VA_ARGS__);     \
-            }                                                                   \
-        } DEFAULT                                                               \
+#define DEF_CALL(NAME, TYPE, STACK) NAME (TYPE, STACK)
+
+#define STRUCTURAL_TYPE_CHECK_HELPER(NAME, TRUE, DEFAULT, ON_NULL, CXT)     \
+    if (type != NULL) {                                                     \
+        TRUE else if (type->kind == TYPE_REFERENCE) {                       \
+            TypeReference* t = (TypeReference*)type;                        \
+            TypeReferenceStack elem = {                                     \
+                .last = stack,                                              \
+                .binding = t->binding                                       \
+            };                                                              \
+            TypeReferenceStack* cur = stack;                                \
+            while (cur != NULL) {                                           \
+                if (cur->binding != elem.binding) {                         \
+                    cur = cur->last;                                        \
+                } DEFAULT                                                   \
+            }                                                               \
+            return NAME (t->binding->type, &elem, CXT);                     \
+        } else if (type->kind == TYPE_UNSURE) {                             \
+            TypeUnsure* t = (TypeUnsure*)type;                              \
+            if (t->actual != NULL) {                                        \
+                return NAME (t->actual, stack, CXT);                        \
+            } else {                                                        \
+                return NAME (t->fallback, stack, CXT);                      \
+            }                                                               \
+    } DEFAULT                                                               \
     } ON_NULL
 
-#define STRUCTURAL_TYPE_CHECK(TYPE, NAME, TRUE, DEFAULT, ON_NULL)               \
-    static TYPE NAME ## Helper (Type* type, TypeReferenceStack* stack) {        \
-        STRUCTURAL_TYPE_CHECK_HELPER(NAME ## Helper, TRUE, DEFAULT, ON_NULL)    \
-    }                                                                           \
-    TYPE NAME (Type* type) {                                                    \
-        return NAME ## Helper (type, NULL);                                     \
+#define STRUCTURAL_TYPE_CHECK(TYPE, NAME, TRUE, DEFAULT, ON_NULL)                       \
+    static TYPE NAME ## Helper (Type* type, TypeReferenceStack* stack, void* _c) {      \
+        STRUCTURAL_TYPE_CHECK_HELPER(NAME ## Helper, TRUE, DEFAULT, ON_NULL, _c)        \
+    }                                                                                   \
+    TYPE NAME (Type* type) {                                                            \
+        return NAME ## Helper (type, NULL, NULL);                                       \
     }
 
 static Type* isTypeOfKindHelper(Type* type, TypeReferenceStack* stack, TypeKind kind) {
@@ -584,22 +586,22 @@ STRUCTURAL_TYPE_CHECK(
         return false;
     } else if (type->kind == TYPE_POINTER) {
         TypePointer* t = (TypePointer*)type;
-        return isPartialTypeHelper(t->base, stack);
+        return isPartialTypeHelper(t->base, stack, NULL);
     } else if (type->kind == TYPE_FUNCTION) {
         TypeFunction* t = (TypeFunction*)type;
         for (size_t i = 0; i < t->arg_count; i++) {
-            if (isPartialTypeHelper(t->arguments[i], stack)) {
+            if (isPartialTypeHelper(t->arguments[i], stack, NULL)) {
                 return true;
             }
         }
-        return isPartialTypeHelper(t->ret_type, stack);
+        return isPartialTypeHelper(t->ret_type, stack, NULL);
     } else if (type->kind == TYPE_ARRAY) {
         TypeArray* array = (TypeArray*)type;
-        return isPartialTypeHelper(array->base, stack);
+        return isPartialTypeHelper(array->base, stack, NULL);
     } else if (type->kind == TYPE_STRUCT) {
         TypeStruct* s = (TypeStruct*)type;
         for (size_t i = 0; i < s->count; i++) {
-            if (isPartialTypeHelper(s->types[i], stack)) {
+            if (isPartialTypeHelper(s->types[i], stack, NULL)) {
                 return true;
             }
         }
@@ -617,22 +619,22 @@ STRUCTURAL_TYPE_CHECK(
         return false;
     } else if (type->kind == TYPE_POINTER) {
         TypePointer* t = (TypePointer*)type;
-        return containsErrorTypeHelper(t->base, stack);
+        return containsErrorTypeHelper(t->base, stack, NULL);
     } else if (type->kind == TYPE_FUNCTION) {
         TypeFunction* t = (TypeFunction*)type;
         for (size_t i = 0; i < t->arg_count; i++) {
-            if (containsErrorTypeHelper(t->arguments[i], stack)) {
+            if (containsErrorTypeHelper(t->arguments[i], stack, NULL)) {
                 return true;
             }
         }
-        return containsErrorTypeHelper(t->ret_type, stack);
+        return containsErrorTypeHelper(t->ret_type, stack, NULL);
     } else if (type->kind == TYPE_ARRAY) {
         TypeArray* array = (TypeArray*)type;
-        return containsErrorTypeHelper(array->base, stack);
+        return containsErrorTypeHelper(array->base, stack, NULL);
     } else if (type->kind == TYPE_STRUCT) {
         TypeStruct* s = (TypeStruct*)type;
         for (size_t i = 0; i < s->count; i++) {
-            if (containsErrorTypeHelper(s->types[i], stack)) {
+            if (containsErrorTypeHelper(s->types[i], stack, NULL)) {
                 return true;
             }
         }
@@ -700,11 +702,11 @@ STRUCTURAL_TYPE_CHECK(
         return true;
     } else if (type->kind == TYPE_ARRAY) {
         TypeArray* array = (TypeArray*)type;
-        return isValidTypeHelper(array->base, stack);
+        return isValidTypeHelper(array->base, stack, NULL);
     } else if (type->kind == TYPE_STRUCT) {
         TypeStruct* s = (TypeStruct*)type;
         for (size_t i = 0; i < s->count; i++) {
-            if (!isValidTypeHelper(s->types[i], stack)) {
+            if (!isValidTypeHelper(s->types[i], stack, NULL)) {
                 return false;
             }
         }
@@ -725,11 +727,11 @@ STRUCTURAL_TYPE_CHECK(
         return false;
     } else if (type->kind == TYPE_ARRAY) {
         TypeArray* array = (TypeArray*)type;
-        return array->size == 0 || isEffectivelyVoidTypeHelper(array->base, stack);
+        return array->size == 0 || isEffectivelyVoidTypeHelper(array->base, stack, NULL);
     } else if (type->kind == TYPE_STRUCT) {
         TypeStruct* s = (TypeStruct*)type;
         for (size_t i = 0; i < s->count; i++) {
-            if (!isEffectivelyVoidTypeHelper(s->types[i], stack)) {
+            if (!isEffectivelyVoidTypeHelper(s->types[i], stack, NULL)) {
                 return false;
             }
         }
@@ -752,11 +754,11 @@ STRUCTURAL_TYPE_CHECK(
         return true;
     } else if (type->kind == TYPE_ARRAY) {
         TypeArray* array = (TypeArray*)type;
-        return isSizedTypeHelper(array->base, stack);
+        return isSizedTypeHelper(array->base, stack, NULL);
     } else if (type->kind == TYPE_STRUCT) {
         TypeStruct* s = (TypeStruct*)type;
         for (size_t i = 0; i < s->count; i++) {
-            if (!isSizedTypeHelper(s->types[i], stack)) {
+            if (!isSizedTypeHelper(s->types[i], stack, NULL)) {
                 return false;
             }
         }

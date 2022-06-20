@@ -1,5 +1,5 @@
-#ifndef _ANALYSIS_VARIABLE_H_
-#define _ANALYSIS_VARIABLE_H_
+#ifndef _RODA_ANALYSIS_VARIABLE_H_
+#define _RODA_ANALYSIS_VARIABLE_H_
 
 #include "compiler/types.h"
 #include "files/file.h"

@@ -1,5 +1,5 @@
-#ifndef _ERROR_CONTEXT_H_
-#define _ERROR_CONTEXT_H_
+#ifndef _RODA_ERROR_CONTEXT_H_
+#define _RODA_ERROR_CONTEXT_H_
 
 #include <stdio.h>
 #include <stdbool.h>

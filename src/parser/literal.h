@@ -1,5 +1,5 @@
-#ifndef _TEXT_PARSE_H_
-#define _TEXT_PARSE_H_
+#ifndef _RODA_TEXT_PARSE_H_
+#define _RODA_TEXT_PARSE_H_
 
 #include <stdbool.h>
 

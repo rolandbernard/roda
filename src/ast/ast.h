@@ -1,5 +1,5 @@
-#ifndef _AST_AST_H_
-#define _AST_AST_H_
+#ifndef _RODA_AST_AST_H_
+#define _RODA_AST_AST_H_
 
 #include <stddef.h>
 #include <stdint.h>

@@ -1,5 +1,5 @@
-#ifndef _FILE_H_
-#define _FILE_H_
+#ifndef _RODA_FILES_FILE_H_
+#define _RODA_FILES_FILE_H_
 
 #include <stdbool.h>
 #include <stdio.h>

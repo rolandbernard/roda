@@ -1,5 +1,5 @@
-#ifndef _UTIL_SORT_H_
-#define _UTIL_SORT_H_
+#ifndef _RODA_UTIL_SORT_H_
+#define _RODA_UTIL_SORT_H_
 
 #include <stddef.h>
 #include <stdbool.h>

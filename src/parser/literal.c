@@ -141,6 +141,7 @@ static LiteralParseError inlineDecodeStringLiteral(String* string) {
         }
     }
     string->data[new] = 0;
+    string->length = new;
     return createLiteralParseNoError();
 }
 

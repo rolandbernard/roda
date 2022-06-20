@@ -1,5 +1,5 @@
-#ifndef _MESSAGE_CONTEXT_H_
-#define _MESSAGE_CONTEXT_H_
+#ifndef _RODA_MESSAGE_CONTEXT_H_
+#define _RODA_MESSAGE_CONTEXT_H_
 
 #include "errors/message.h"
 

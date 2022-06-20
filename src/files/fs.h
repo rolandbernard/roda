@@ -1,5 +1,5 @@
-#ifndef _FILES_FS_H_
-#define _FILES_FS_H_
+#ifndef _RODA_FILES_FS_H_
+#define _RODA_FILES_FS_H_
 
 #include <stdio.h>
 

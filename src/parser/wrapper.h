@@ -1,5 +1,5 @@
-#ifndef _PARSER_WRAPPER_H_
-#define _PARSER_WRAPPER_H_
+#ifndef _RODA_PARSER_WRAPPER_H_
+#define _RODA_PARSER_WRAPPER_H_
 
 #include "ast/ast.h"
 #include "compiler/context.h"

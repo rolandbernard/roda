@@ -1,5 +1,5 @@
-#ifndef _ANALYSIS_SYMBOLS_H_
-#define _ANALYSIS_SYMBOLS_H_
+#ifndef _RODA_ANALYSIS_SYMBOLS_H_
+#define _RODA_ANALYSIS_SYMBOLS_H_
 
 #include <stddef.h>
 

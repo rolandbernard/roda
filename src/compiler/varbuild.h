@@ -1,5 +1,5 @@
-#ifndef _ANALYSIS_VARBUILD_H_
-#define _ANALYSIS_VARBUILD_H_
+#ifndef _RODA_ANALYSIS_VARBUILD_H_
+#define _RODA_ANALYSIS_VARBUILD_H_
 
 #include "compiler/context.h"
 

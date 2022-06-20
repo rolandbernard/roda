@@ -1,5 +1,5 @@
-#ifndef _AST_ASTPRINTER_H_
-#define _AST_ASTPRINTER_H_
+#ifndef _RODA_AST_ASTPRINTER_H_
+#define _RODA_AST_ASTPRINTER_H_
 
 #include <stdio.h>
 

@@ -1,5 +1,5 @@
-#ifndef _LLVM_CODEGEN_H_
-#define _LLVM_CODEGEN_H_
+#ifndef _RODA_LLVM_CODEGEN_H_
+#define _RODA_LLVM_CODEGEN_H_
 
 #include "compiler/context.h"
 

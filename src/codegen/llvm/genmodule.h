@@ -1,5 +1,5 @@
-#ifndef _LLVM_GENMODULE_H_
-#define _LLVM_GENMODULE_H_
+#ifndef _RODA_LLVM_GENMODULE_H_
+#define _RODA_LLVM_GENMODULE_H_
 
 #include "llvm-c/Core.h"
 

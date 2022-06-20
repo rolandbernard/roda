@@ -1,5 +1,5 @@
-#ifndef _UTIL_PARAMS_H_
-#define _UTIL_PARAMS_H_
+#ifndef _RODA_UTIL_PARAMS_H_
+#define _RODA_UTIL_PARAMS_H_
 
 #include <stdbool.h>
 #include <string.h>

@@ -1,5 +1,5 @@
-#ifndef _PATH_H_
-#define _PATH_H_
+#ifndef _RODA_FILES_PATH_H_
+#define _RODA_FILES_PATH_H_
 
 #include <stdbool.h>
 

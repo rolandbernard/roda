@@ -1,5 +1,5 @@
-#ifndef _LLVM_CONTEXT_H_
-#define _LLVM_CONTEXT_H_
+#ifndef _RODA_LLVM_CONTEXT_H_
+#define _RODA_LLVM_CONTEXT_H_
 
 #include <llvm-c/Core.h>
 #include <llvm-c/Target.h>

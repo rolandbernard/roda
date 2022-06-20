@@ -1,5 +1,5 @@
-#ifndef _LLVM_TYPEDEBUG_H_
-#define _LLVM_TYPEDEBUG_H_
+#ifndef _RODA_LLVM_TYPEDEBUG_H_
+#define _RODA_LLVM_TYPEDEBUG_H_
 
 #include <llvm-c/Core.h>
 

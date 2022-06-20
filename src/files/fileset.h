@@ -1,5 +1,5 @@
-#ifndef _FILESET_H_
-#define _FILESET_H_
+#ifndef _RODA_FILES_FILESET_H_
+#define _RODA_FILES_FILESET_H_
 
 #include "files/file.h"
 

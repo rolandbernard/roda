@@ -1,5 +1,5 @@
-#ifndef _UTIL_ALLOC_H_
-#define _UTIL_ALLOC_H_
+#ifndef _RODA_UTIL_ALLOC_H_
+#define _RODA_UTIL_ALLOC_H_
 
 #include <stdlib.h>
 

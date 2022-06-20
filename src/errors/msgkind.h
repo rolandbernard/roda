@@ -1,5 +1,5 @@
-#ifndef _MESSAGE_KIND_H_
-#define _MESSAGE_KIND_H_
+#ifndef _RODA_MESSAGE_KIND_H_
+#define _RODA_MESSAGE_KIND_H_
 
 #include <stdbool.h>
 

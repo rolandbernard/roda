@@ -1,5 +1,5 @@
-#ifndef _MESSAGE_PRINT_H_
-#define _MESSAGE_PRINT_H_
+#ifndef _RODA_MESSAGE_PRINT_H_
+#define _RODA_MESSAGE_PRINT_H_
 
 #include <stdbool.h>
 

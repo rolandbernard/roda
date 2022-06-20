@@ -1,5 +1,5 @@
-#ifndef _UTIL_HASH_H_
-#define _UTIL_HASH_H_
+#ifndef _RODA_UTIL_HASH_H_
+#define _RODA_UTIL_HASH_H_
 
 #include "text/string.h"
 

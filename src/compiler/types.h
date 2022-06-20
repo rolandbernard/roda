@@ -1,5 +1,5 @@
-#ifndef _COMPILER_TYPES_H_
-#define _COMPILER_TYPES_H_
+#ifndef _RODA_COMPILER_TYPES_H_
+#define _RODA_COMPILER_TYPES_H_
 
 #include <stddef.h>
 #include <stdbool.h>
