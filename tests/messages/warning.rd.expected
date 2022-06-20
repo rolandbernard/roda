@@ -1,0 +1,5 @@
+warning[W0001]: --unknown: unknown command line option
+warning[W0001]: -U: unknown command line option
+warning[W0001]: -o: expected a value, ignoring this option
+warning[W0001]: --output: expected a value, ignoring this option
+warning[W0001]: no input files were given

@@ -1,0 +1,1 @@
+error[E0008]: tests/error/messages/less-nosource.rd:7:17: type error, conflicting types `int` and `f64`

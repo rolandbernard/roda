@@ -8,6 +8,12 @@
 
 #include "rodac/params.h"
 
+#ifdef DEBUG
+#define DEBUG_ONLY_PARAMS(PARAMS) PARAMS
+#else
+#define DEBUG_ONLY_PARAMS(PARAMS)
+#endif
+
 static PARAM_SPEC_FUNCTION(parameterSpecFunction, CompilerContext*, {
     PARAM_USAGE(PROGRAM_NAME " [options] files...");
     PARAM_FLAG('h', "help", { context->settings.help = true; }, "print this help information and quit");
@@ -159,21 +165,21 @@ static PARAM_SPEC_FUNCTION(parameterSpecFunction, CompilerContext*, {
             }
         }
     }, false, "={minimal|less-nosource|less|nosource|all}", "select how error messages should be printed");
-#ifdef DEBUG
-    PARAM_STRING_LIST(0, "compiler-debug", {
-        if (strcmp("all", value) == 0) {
-            context->settings.compiler_debug = ~0;
-        } else if (strcmp("log", value) == 0) {
-            context->settings.compiler_debug |= COMPILER_DEBUG_LOG;
-        } else if (strcmp("parse-ast", value) == 0) {
-            context->settings.compiler_debug |= COMPILER_DEBUG_PARSE_AST;
-        } else if (strcmp("typed-ast", value) == 0) {
-            context->settings.compiler_debug |= COMPILER_DEBUG_TYPED_AST;
-        } else {
-            PARAM_WARN_UNKNOWN_VALUE()
-        }
-    }, "={all|log|parse-ast|typed-ast}[,...]", "print debug information while compiling");
-#endif
+    DEBUG_ONLY_PARAMS({
+        PARAM_STRING_LIST(0, "compiler-debug", {
+            if (strcmp("all", value) == 0) {
+                context->settings.compiler_debug = ~0;
+            } else if (strcmp("log", value) == 0) {
+                context->settings.compiler_debug |= COMPILER_DEBUG_LOG;
+            } else if (strcmp("parse-ast", value) == 0) {
+                context->settings.compiler_debug |= COMPILER_DEBUG_PARSE_AST;
+            } else if (strcmp("typed-ast", value) == 0) {
+                context->settings.compiler_debug |= COMPILER_DEBUG_TYPED_AST;
+            } else {
+                PARAM_WARN_UNKNOWN_VALUE()
+            }
+        }, "={all|log|parse-ast|typed-ast}[,...]", "print debug information while compiling");
+    });
     PARAM_DEFAULT({
         Path path = createPathFromCString(value);
         if (compareStrings(str("o"), getExtention(toConstPath(path))) == 0) {

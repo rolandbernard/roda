@@ -74,7 +74,7 @@ static CodePoint parseEscapeCode(const char* data, size_t* length) {
             break;
         case 'e':
             *length = 1;
-            ret = '\e';
+            ret = '\x1B';
             break;
         case 'x':
             *length = 3;

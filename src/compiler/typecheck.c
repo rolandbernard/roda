@@ -1,6 +1,7 @@
 
 #include "ast/ast.h"
 #include "ast/astprinter.h"
+#include "compiler/consteval.h"
 #include "compiler/typeeval.h"
 #include "errors/fatalerror.h"
 #include "files/file.h"
@@ -145,7 +146,7 @@ static void propagateTypes(CompilerContext* context, AstNode* node, bool* change
             case AST_STRUCT_TYPE:
             case AST_FN_TYPE:
             case AST_ARRAY:
-                UNREACHABLE("should not evaluate");
+                break; // Are reachable from variable propagations
             case AST_ARGDEF:
                 propagateTypes(context, node->parent, changed);
                 break;
@@ -2346,6 +2347,28 @@ static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
 }
 
 #define FOR_ALL_MODULES_IF_OK(ACTION) if (context->msgs.error_count == 0) { FOR_ALL_MODULES(ACTION) }
+
+void typeCheckConstExpr(CompilerContext* context, AstNode* node, Type* assumption) {
+    bool changed = false;
+    if (checkValidInConstExpr(context, node)) {
+        evaluateTypeHints(context, node);
+        propagateAllTypes(context, node, &changed); 
+        assumeAmbiguousTypes(context, ASSUME_LITERALS, node, &changed);
+        assumeAmbiguousTypes(context, ASSUME_CASTS, node, &changed);
+        if (assumption != NULL && node->res_type == NULL) {
+            Type* type = createUnsureType(&context->types, assumption);
+            if (propagateTypeIntoAstNode(context, node, type, node, &changed)) {
+                propagateTypes(context, node->parent, &changed);
+            }
+        }
+        if (context->msgs.error_count == 0) {
+            checkTypeConstraints(context, node);
+        }
+        if (context->msgs.error_count == 0) {
+            checkForUntypedNodes(context, node);
+        }
+    }
+}
 
 void runTypeChecking(CompilerContext* context) {
     bool changed = false;

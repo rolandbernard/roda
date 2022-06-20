@@ -1,0 +1,3 @@
+build:
+run: cmp %.out %.expected
+cleanup: #rm -f %.out

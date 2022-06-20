@@ -1,7 +1,7 @@
 // test: Test emiting ast
 // build: LLVM_PROFILE_FILE="profile/tests/%%p.profraw" ./build/$BUILD/bin/rodac $(realpath --relative-to=. %) -o=%.ast $TEST_ARGS
 // run: cmp %.ast %.expected
-// cleanup: rm %.ast
+// cleanup: rm -f %.ast
 
 type Char = i32;
 

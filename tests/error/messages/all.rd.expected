@@ -1,0 +1,11 @@
+error[E0008]: type error, conflicting types `int` and `f64`
+    --> tests/error/messages/all.rd:7:17
+   3 | 
+   4 | extern fn test(a: f64): int;
+     |                   --- note: expecting `f64` because of this
+   5 | 
+   6 | pub fn foo(a: int): int {
+     |               --- note: expecting `int` because of this
+   7 |     return test(a);
+     |                 ^ conflicting types `int` and `f64` for this expression
+   8 | }

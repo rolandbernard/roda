@@ -212,63 +212,6 @@ static ConstValue raiseTypeErrorNotInConst(CompilerContext* context, AstNode* no
     break;                                              \
 }
 
-static void evaluateReferencedTypes(CompilerContext* context, Type* type) {
-    if (type != NULL) {
-        switch (type->kind) {
-            case TYPE_ERROR:
-            case TYPE_VOID:
-            case TYPE_BOOL:
-            case TYPE_INT:
-            case TYPE_UINT:
-            case TYPE_REAL:
-            case TYPE_POINTER: {
-                TypePointer* t = (TypePointer*)type;
-                evaluateReferencedTypes(context, t->base);
-                break;
-            }
-            case TYPE_ARRAY: {
-                TypeArray* t = (TypeArray*)type;
-                evaluateReferencedTypes(context, t->base);
-                break;
-            }
-            case TYPE_FUNCTION: {
-                TypeFunction* t = (TypeFunction*)type;
-                for (size_t i = 0; i < t->arg_count; i++) {
-                    evaluateReferencedTypes(context, t->arguments[i]);
-                }
-                evaluateReferencedTypes(context, t->ret_type);
-                break;
-            }
-            case TYPE_REFERENCE: {
-                TypeReference* t = (TypeReference*)type;
-                SymbolType* binding = t->binding;
-                if (binding->type == NULL) {
-                    AstTypeDef* def = (AstTypeDef*)binding->def->parent;
-                    binding->type = evaluateTypeExpr(context, def->value);
-                    evaluateReferencedTypes(context, binding->type);
-                }
-                break;
-            }
-            case TYPE_STRUCT: {
-                TypeStruct* t = (TypeStruct*)type;
-                for (size_t i = 0; i < t->count; i++) {
-                    evaluateReferencedTypes(context, t->types[i]);
-                }
-                break;
-            }
-            case TYPE_UNSURE: {
-                TypeUnsure* t = (TypeUnsure*)type;
-                if (t->actual != NULL) {
-                    evaluateReferencedTypes(context, t->actual);
-                } else {
-                    evaluateReferencedTypes(context, t->fallback);
-                }
-                break;
-            }
-        }
-    }
-}
-
 ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
     if (node == NULL) {
         UNREACHABLE("should not evaluate");
@@ -279,7 +222,7 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
                 res = createConstError(context);
                 break;
             }
-            case AST_IF_ELSE: // TODO: if-else expessions?
+            case AST_IF_ELSE:
             case AST_FN:
             case AST_TYPEDEF:
             case AST_ARGDEF:
@@ -302,29 +245,23 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
             case AST_ARRAY:
             case AST_LIST:
             case AST_BLOCK:
-            case AST_VARDEF: {
-                UNREACHABLE("should not evaluate");
-            }
-            case AST_VAR: // TODO: constant variables?
-            case AST_INDEX: // TODO: constant arrays?
+            case AST_VARDEF:
+            case AST_VAR:
+            case AST_INDEX:
             case AST_VOID:
             case AST_ARRAY_LIT:
-            case AST_STRUCT_INDEX: // TODO: structs in const?
+            case AST_STRUCT_INDEX:
             case AST_STRUCT_LIT:
-            case AST_CALL: // TODO: constant calls?
-            case AST_STR: // TODO: constant strings?
-            case AST_SIZEOF: // TODO: would need llvm to make this const?
+            case AST_CALL:
+            case AST_STR:
+            case AST_SIZEOF:
             case AST_ADDR:
-            case AST_DEREF: {
-                // None of these are allowed in constant expressions.
-                res = raiseOpErrorNotInConst(context, node);
-                break;
-            }
+            case AST_DEREF:
+                UNREACHABLE("should not evaluate");
             case AST_AS: {
                 AstBinary* n = (AstBinary*)node;
                 if (n->res_type == NULL) {
                     n->res_type = evaluateTypeExpr(context, n->right);
-                    evaluateReferencedTypes(context, n->res_type);
                 }
                 ConstValue op = evaluateConstExpr(context, n->left);
                 TypeSizedPrimitive* type = isRealType(n->res_type);
@@ -464,7 +401,7 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
                     }
                     Type* t = isBooleanType(n->res_type);
                     ASSERT(t != NULL);
-                    if (t->kind == TYPE_INT) {
+                    if (t->kind == TYPE_BOOL) {
                         res = createConstBool(context, n->value);
                     } else {
                         UNREACHABLE("integer type expected");
@@ -477,6 +414,97 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
         }
         node->res_type = res.type;
         return res;
+    }
+}
+
+bool checkValidInConstExpr(CompilerContext* context, AstNode* node) {
+    if (node == NULL) {
+        UNREACHABLE("should not evaluate");
+    } else {
+        switch (node->kind) {
+            case AST_ERROR:
+                return true;
+            case AST_IF_ELSE: // TODO: if-else expessions?
+            case AST_FN:
+            case AST_TYPEDEF:
+            case AST_ARGDEF:
+            case AST_WHILE:
+            case AST_ADD_ASSIGN:
+            case AST_SUB_ASSIGN:
+            case AST_MUL_ASSIGN:
+            case AST_DIV_ASSIGN:
+            case AST_MOD_ASSIGN:
+            case AST_SHL_ASSIGN:
+            case AST_SHR_ASSIGN:
+            case AST_BAND_ASSIGN:
+            case AST_BOR_ASSIGN:
+            case AST_BXOR_ASSIGN:
+            case AST_FN_TYPE:
+            case AST_STRUCT_TYPE:
+            case AST_ASSIGN:
+            case AST_RETURN:
+            case AST_ROOT:
+            case AST_ARRAY:
+            case AST_LIST:
+            case AST_BLOCK:
+            case AST_VARDEF:
+                UNREACHABLE("should not evaluate");
+                return false;
+            case AST_VAR: // TODO: constant variables?
+            case AST_INDEX: // TODO: constant arrays?
+            case AST_VOID:
+            case AST_ARRAY_LIT:
+            case AST_STRUCT_INDEX: // TODO: structs in const?
+            case AST_STRUCT_LIT:
+            case AST_CALL: // TODO: constant calls?
+            case AST_STR: // TODO: constant strings?
+            case AST_SIZEOF: // TODO: would need llvm to make this const?
+            case AST_ADDR:
+            case AST_DEREF: {
+                // None of these are allowed in constant expressions.
+                raiseOpErrorNotInConst(context, node);
+                return false;
+            }
+            case AST_AS: {
+                AstBinary* n = (AstBinary*)node;
+                return checkValidInConstExpr(context, n->left);
+            }
+            case AST_ADD:
+            case AST_SUB:
+            case AST_MUL:
+            case AST_DIV:
+            case AST_MOD:
+            case AST_SHL:
+            case AST_SHR:
+            case AST_BAND:
+            case AST_BOR:
+            case AST_BXOR:
+            case AST_EQ:
+            case AST_NE:
+            case AST_LE:
+            case AST_GE:
+            case AST_LT:
+            case AST_GT:
+            case AST_OR:
+            case AST_AND: {
+                AstBinary* n = (AstBinary*)node;
+                return checkValidInConstExpr(context, n->left)
+                       && checkValidInConstExpr(context, n->right);
+            }
+            case AST_POS:
+            case AST_NEG:
+            case AST_NOT: {
+                AstUnary* n = (AstUnary*)node;
+                return checkValidInConstExpr(context, n->op);
+            }
+            case AST_CHAR:
+            case AST_INT:
+            case AST_REAL:
+            case AST_BOOL: {
+                return true;
+            }
+        }
+        return false;
     }
 }
 

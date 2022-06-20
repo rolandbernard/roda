@@ -1,0 +1,5 @@
+error[E0008]: tests/error/messages/less.rd:7:17: type error, conflicting types `int` and `f64`
+   6 | pub fn foo(a: int): int {
+   7 |     return test(a);
+     |                 ^ 
+   8 | }

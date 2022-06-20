@@ -1,7 +1,7 @@
 // test: Test emiting llvm ir
 // build: LLVM_PROFILE_FILE="profile/tests/%%p.profraw" ./build/$BUILD/bin/rodac % -o=%.bc $TEST_ARGS
 // run: test -f %.bc
-// cleanup: rm %.bc
+// cleanup: rm -f %.bc
 
 type Char = i32;
 

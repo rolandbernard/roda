@@ -31,4 +31,6 @@ ConstValue createConstBool(CompilerContext* context, bool value);
 
 ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node);
 
+bool checkValidInConstExpr(CompilerContext* context, AstNode* node);
+
 #endif

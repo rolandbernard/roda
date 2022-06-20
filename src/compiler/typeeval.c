@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "compiler/consteval.h"
+#include "compiler/typecheck.h"
 #include "errors/fatalerror.h"
 #include "errors/msgkind.h"
 #include "text/format.h"
@@ -135,8 +136,13 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
                 if (n->binding == NULL) {
                     n->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
                 } else {
-                    SymbolVariable* var = (SymbolVariable*)n->binding;
-                    n->res_type = createTypeReference(&context->types, (SymbolType*)var);;
+                    SymbolType* var = (SymbolType*)n->binding;
+                    n->res_type = createTypeReference(&context->types, var);
+                    if (var->type == NULL) {
+                        AstTypeDef* def = (AstTypeDef*)var->def->parent;
+                        var->type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
+                        var->type = evaluateTypeExpr(context, def->value);
+                    }
                 }
                 break;
             }
@@ -153,37 +159,42 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
             case AST_ARRAY: {
                 AstBinary* n = (AstBinary*)node;
                 Type* base = evaluateTypeExpr(context, n->right);
-                ConstValue size = evaluateConstExpr(context, n->left);
-                TypeSizedPrimitive* size_type = isIntegerType(size.type);
-                if (base->kind == TYPE_ERROR) {
-                    n->res_type = base;
-                } else if (size.type->kind == TYPE_ERROR) {
-                    n->res_type = size.type;
-                } else if (size_type == NULL) {
-                    String idx_type = buildTypeName(size.type);
-                    addMessageToContext(
-                        &context->msgs,
-                        createMessage(
-                            ERROR_INCOMPATIBLE_TYPE,
-                            createFormattedString("array length with non integer type `%s`", cstr(idx_type)), 1,
-                            createMessageFragment(MESSAGE_ERROR, createFormattedString("type `%s` is not an integer type", cstr(idx_type)), n->left->location)
-                        )
-                    );
-                    freeString(idx_type);
-                    n->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
-                } else if (size_type->kind == TYPE_INT && size.sint < 0) {
-                    addMessageToContext(
-                        &context->msgs,
-                        createMessage(
-                            ERROR_INVALID_ARRAY_LENGTH,
-                            createFormattedString("negative array length, `%i` is less than 0", size.sint), 1,
-                            createMessageFragment(MESSAGE_ERROR, createFormattedString("array length of `%i` not allowed here", size.sint), n->left->location)
-                        )
-                    );
+                typeCheckConstExpr(context, n->left, createSizedPrimitiveType(&context->types, TYPE_UINT, SIZE_SIZE));
+                if (context->msgs.error_count != 0) {
                     n->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
                 } else {
-                    size_t len = size_type->kind == TYPE_INT ? (size_t)size.sint : (size_t)size.uint;
-                    n->res_type = createArrayType(&context->types, base, len);
+                    ConstValue size = evaluateConstExpr(context, n->left);
+                    TypeSizedPrimitive* size_type = isIntegerType(size.type);
+                    if (base->kind == TYPE_ERROR) {
+                        n->res_type = base;
+                    } else if (size.type->kind == TYPE_ERROR) {
+                        n->res_type = size.type;
+                    } else if (size_type == NULL) {
+                        String idx_type = buildTypeName(size.type);
+                        addMessageToContext(
+                            &context->msgs,
+                            createMessage(
+                                ERROR_INCOMPATIBLE_TYPE,
+                                createFormattedString("array length with non integer type `%s`", cstr(idx_type)), 1,
+                                createMessageFragment(MESSAGE_ERROR, createFormattedString("type `%s` is not an integer type", cstr(idx_type)), n->left->location)
+                            )
+                        );
+                        freeString(idx_type);
+                        n->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
+                    } else if (size_type->kind == TYPE_INT && size.sint < 0) {
+                        addMessageToContext(
+                            &context->msgs,
+                            createMessage(
+                                ERROR_INVALID_ARRAY_LENGTH,
+                                createFormattedString("negative array length, `%i` is less than 0", size.sint), 1,
+                                createMessageFragment(MESSAGE_ERROR, createFormattedString("array length of `%i` not allowed here", size.sint), n->left->location)
+                            )
+                        );
+                        n->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
+                    } else {
+                        size_t len = size_type->kind == TYPE_INT ? (size_t)size.sint : (size_t)size.uint;
+                        n->res_type = createArrayType(&context->types, base, len);
+                    }
                 }
                 break;
             }

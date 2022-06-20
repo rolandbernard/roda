@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "compiler/variable.h"
+#include "compiler/typeeval.h"
 #include "errors/fatalerror.h"
 #include "text/format.h"
 #include "util/alloc.h"
@@ -644,34 +645,34 @@ STRUCTURAL_TYPE_CHECK(
     else { return false; }
 )
 
-static void fillPartialTypeHelper(Type* type, TypeReferenceStack* stack, Type* with) {
+static void* fillPartialTypeHelper(Type* type, TypeReferenceStack* stack, Type* with) {
     STRUCTURAL_TYPE_CHECK_HELPER(fillPartialTypeHelper, 
         if (
             type->kind == TYPE_ERROR || type->kind == TYPE_VOID || type->kind == TYPE_BOOL
             || type->kind == TYPE_INT || type->kind == TYPE_UINT || type->kind == TYPE_REAL
         ) {
-            return;
+            return NULL;
         } else if (type->kind == TYPE_POINTER) {
             TypePointer* t = (TypePointer*)type;
             fillPartialTypeHelper(t->base, stack, with);
-            return;
+            return NULL;
         } else if (type->kind == TYPE_FUNCTION) {
             TypeFunction* t = (TypeFunction*)type;
             for (size_t i = 0; i < t->arg_count; i++) {
                 fillPartialTypeHelper(t->arguments[i], stack, with);
             }
             fillPartialTypeHelper(t->ret_type, stack, with);
-            return;
+            return NULL;
         } else if (type->kind == TYPE_ARRAY) {
             TypeArray* array = (TypeArray*)type;
             fillPartialTypeHelper(array->base, stack, with);
-            return;
+            return NULL;
         } else if (type->kind == TYPE_STRUCT) {
             TypeStruct* s = (TypeStruct*)type;
             for (size_t i = 0; i < s->count; i++) {
                 fillPartialTypeHelper(s->types[i], stack, with);
             }
-            return;
+            return NULL;
         } else if (type->kind == TYPE_UNSURE) {
             TypeUnsure* t = (TypeUnsure*)type;
             if (t->actual != NULL) {
@@ -681,10 +682,10 @@ static void fillPartialTypeHelper(Type* type, TypeReferenceStack* stack, Type* w
             } else {
                 t->fallback = with;
             }
-            return;
+            return NULL;
         },
-        else { return; },
-        else { return; },
+        else { return NULL; },
+        else { return NULL; },
         with
     )
 }

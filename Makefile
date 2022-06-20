@@ -32,6 +32,7 @@ YACC := bison
 # ==
 
 # == Flags
+# CFLAGS += -std=c11 -pedantic
 ifneq ($(GIT_HEAD),)
 CFLAGS += -DGIT_HEAD="\"$(GIT_HEAD)\""
 endif

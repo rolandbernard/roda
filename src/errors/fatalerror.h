@@ -25,10 +25,6 @@
 }
 #endif
 
-#ifndef noreturn
-#define noreturn
-#endif
-
 noreturn void fatalError(ConstString message);
 
 #endif

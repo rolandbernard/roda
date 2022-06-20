@@ -2,7 +2,5 @@ build:
 run: LLVM_PROFILE_FILE="profile/tests/%%p.profraw" ./build/$BUILD/bin/rodac % --messages=minimal
 cleanup: 
 
-buildtime: < 20s
-time: < 10s
 exit: != 0
 stderr: !=

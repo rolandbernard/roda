@@ -1,0 +1,4 @@
+error[E0008]: type error, conflicting types `int` and `f64`
+     = tests/error/messages/nosource.rd:4:19-4:21: note: expecting `f64` because of this
+     = tests/error/messages/nosource.rd:6:15-6:17: note: expecting `int` because of this
+     = tests/error/messages/nosource.rd:7:17: conflicting types `int` and `f64` for this expression
