@@ -6,38 +6,26 @@
 
 #define INITIAL_LIST_CAPACITY 32
 
-DynamicAstList* createDynamicAstList() {
-    DynamicAstList* ret = ALLOC(DynamicAstList, 1);
-    initDynamicAstList(ret, 0);
-    return ret;
-}
-
-DynamicAstList* createDynamicAstListOfSize(size_t size) {
-    DynamicAstList* ret = ALLOC(DynamicAstList, 1);
-    initDynamicAstList(ret, size);
-    return ret;
-}
-
-void initDynamicAstList(DynamicAstList* list, size_t size) {
+static void initAstList(AstList* list, size_t size) {
     initAstNode((AstNode*)list, AST_LIST, invalidSpan());
     list->nodes = ALLOC(AstNode*, size);
     list->count = 0;
     list->capacity = size;
 }
 
-void deinitDynamicAstList(DynamicAstList* list) {
-    for (size_t i = 0; i < list->count; i++) {
-        freeAstNode(list->nodes[i]);
-    }
-    FREE(list->nodes);
+AstList* createEmptyAstList() {
+    AstList* ret = ALLOC(AstList, 1);
+    initAstList(ret, 0);
+    return ret;
 }
 
-void freeDynamicAstList(DynamicAstList* list) {
-    deinitDynamicAstList(list);
-    FREE(list);
+AstList* createAstListOfSize(size_t size) {
+    AstList* ret = ALLOC(AstList, 1);
+    initAstList(ret, size);
+    return ret;
 }
 
-void addToDynamicAstList(DynamicAstList* list, AstNode* node) {
+void addToAstList(AstList* list, AstNode* node) {
     if (list->count == list->capacity) {
         if (list->capacity == 0) {
             list->capacity = INITIAL_LIST_CAPACITY;
@@ -52,7 +40,7 @@ void addToDynamicAstList(DynamicAstList* list, AstNode* node) {
     list->count++;
 }
 
-void resizeDynamicAstList(DynamicAstList* list, size_t size) {
+void resizeAstList(AstList* list, size_t size) {
     list->nodes = REALLOC(AstNode*, list->nodes, size);
     if (list->count < size) {
         list->count = size;
@@ -60,23 +48,7 @@ void resizeDynamicAstList(DynamicAstList* list, size_t size) {
     list->capacity = size;
 }
 
-void fitDynamicAstList(DynamicAstList* list) {
-    resizeDynamicAstList(list, list->count);
-}
-
-AstList* toStaticAstList(DynamicAstList* list) {
-    fitDynamicAstList(list);
-    AstList* ret = REALLOC(AstList, list, 1);
-    for (size_t i = 0; i < ret->count; i++) {
-        ret->nodes[i]->parent = (AstNode*)ret;
-        ret->nodes[i]->parent_idx = i;
-    }
-    return ret;
-}
-
-DynamicAstList* toDynamicAstList(AstList* list) {
-    DynamicAstList* ret = REALLOC(DynamicAstList, list, 1);
-    ret->capacity = ret->count;
-    return ret;
+void fitAstList(AstList* list) {
+    resizeAstList(list, list->count);
 }
 

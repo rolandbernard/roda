@@ -113,6 +113,7 @@ typedef struct {
     AST_NODE_BASE
     AstNode** nodes;
     size_t count;
+    size_t capacity;
 } AstList;
 
 typedef struct {

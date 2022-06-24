@@ -38,6 +38,7 @@ AstList* createAstList(Span loc, AstNodeKind kind, size_t count, AstNode** nodes
     AstList* node = NEW(AstList);
     initAstNode((AstNode*)node, kind, loc);
     node->count = count;
+    node->capacity = count;
     node->nodes = nodes;
     for (size_t i = 0; i < count; i++) {
         SET_PARENT(nodes[i], i);

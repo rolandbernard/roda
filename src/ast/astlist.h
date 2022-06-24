@@ -3,31 +3,14 @@
 
 #include "ast/ast.h"
 
-typedef struct {
-    AST_NODE_BASE
-    AstNode** nodes;
-    size_t count;
-    size_t capacity;
-} DynamicAstList;
+AstList* createEmptyAstList();
 
-DynamicAstList* createDynamicAstList();
+AstList* createAstListOfSize(size_t size);
 
-DynamicAstList* createDynamicAstListOfSize(size_t size);
+void addToAstList(AstList* list, AstNode* node);
 
-void initDynamicAstList(DynamicAstList* list, size_t size);
+void resizeAstList(AstList* list, size_t size);
 
-void deinitDynamicAstList(DynamicAstList* list);
-
-void freeDynamicAstList(DynamicAstList* list);
-
-void addToDynamicAstList(DynamicAstList* list, AstNode* node);
-
-void resizeDynamicAstList(DynamicAstList* list, size_t size);
-
-void fitDynamicAstList(DynamicAstList* list);
-
-AstList* toStaticAstList(DynamicAstList* list);
-
-DynamicAstList* toDynamicAstList(AstList* list);
+void fitAstList(AstList* list);
 
 #endif

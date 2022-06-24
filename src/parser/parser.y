@@ -40,20 +40,20 @@ extern void yyerror(YYLTYPE* yyllocp, yyscan_t scanner, ParserContext* context, 
         AstList* list;
         AstFnFlags flags;
     } arg_defs;
-    DynamicAstList* dynlist;
+    AstList* list;
 }
 
 %destructor { freeAstNode($$); } <ast>
 %destructor { freeAstNode((AstNode*)$$); } <ident>
 %destructor { freeAstNode((AstNode*)$$.list); } <arg_defs>
-%destructor { freeDynamicAstList($$); } <dynlist>
+%destructor { freeAstNode((AstNode*)$$); } <list>
 
 %type <ast> root block stmt block_stmt type expr root_stmt if
 %type <ast> arg_def opt_type assign integer real string bool field_val
 %type <ident> ident
 %type <arg_defs> arg_defs arg_types
-%type <dynlist> arg_def_list stmts root_stmts list
-%type <dynlist> type_list_nonempty list_nonempty field_vals arg_type_list
+%type <list> arg_def_list stmts root_stmts list
+%type <list> type_list_nonempty list_nonempty field_vals arg_type_list
 
 %token <lexeme> ID      "identifier"
 %token <lexeme> STR     "string"
@@ -115,11 +115,11 @@ extern void yyerror(YYLTYPE* yyllocp, yyscan_t scanner, ParserContext* context, 
 program : root  { context->result = $1; }
         ;
 
-root : root_stmts  { $$ = (AstNode*)createAstRoot(@$, toStaticAstList($1)); }
+root : root_stmts  { fitAstList($1); $$ = (AstNode*)createAstRoot(@$, $1); }
      ;
 
-root_stmts : %empty                     { $$ = createDynamicAstList(); $$->location = @$; }
-           | root_stmts root_stmt       { $$ = $1; addToDynamicAstList($1, $2); $$->location = @$; }
+root_stmts : %empty                     { $$ = createEmptyAstList(); $$->location = @$; }
+           | root_stmts root_stmt       { $$ = $1; addToAstList($1, $2); $$->location = @$; }
            | root_stmts ';'             { $$ = $1; }
            ;
 
@@ -135,25 +135,25 @@ opt_type : %empty   { $$ = NULL; }
          ;
 
 arg_defs : %empty                 { $$.list = createAstList(@$, AST_LIST, 0, NULL); $$.flags = AST_FN_FLAG_NONE; }
-         | arg_def_list           { $$.list = toStaticAstList($1); $$.flags = AST_FN_FLAG_NONE; }
-         | arg_def_list ','       { $$.list = toStaticAstList($1); $$.flags = AST_FN_FLAG_NONE; }
-         | arg_def_list ',' ".."  { $$.list = toStaticAstList($1); $$.flags = AST_FN_FLAG_VARARG; }
+         | arg_def_list           { fitAstList($1); $$.list = $1; $$.flags = AST_FN_FLAG_NONE; }
+         | arg_def_list ','       { fitAstList($1); $$.list = $1; $$.flags = AST_FN_FLAG_NONE; }
+         | arg_def_list ',' ".."  { fitAstList($1); $$.list = $1; $$.flags = AST_FN_FLAG_VARARG; }
          ;
 
-arg_def_list : arg_def                      { $$ = createDynamicAstList(); addToDynamicAstList($$, $1); $$->location = @$; }
-             | arg_def_list ',' arg_def     { $$ = $1; addToDynamicAstList($1, $3); $$->location = @$; }
+arg_def_list : arg_def                      { $$ = createEmptyAstList(); addToAstList($$, $1); $$->location = @$; }
+             | arg_def_list ',' arg_def     { $$ = $1; addToAstList($1, $3); $$->location = @$; }
              ;
 
 arg_def : error          { $$ = createAstSimple(@$, AST_ERROR); }
         | ident ':' type { $$ = (AstNode*)createAstArgDef(@$, $1, $3); }
         ;
 
-block   : '{' stmts '}'  { $$ = (AstNode*)createAstBlock(@$, toStaticAstList($2)); }
+block   : '{' stmts '}'  { fitAstList($2); $$ = (AstNode*)createAstBlock(@$, $2); }
         ;
 
-stmts   : %empty            { $$ = createDynamicAstList(); $$->location = @$; }
-        | stmts block_stmt  { $$ = $1; addToDynamicAstList($1, $2); $$->location = @$; }
-        | stmts stmt ';'    { $$ = $1; addToDynamicAstList($1, $2); $$->location = @$; }
+stmts   : %empty            { $$ = createEmptyAstList(); $$->location = @$; }
+        | stmts block_stmt  { $$ = $1; addToAstList($1, $2); $$->location = @$; }
+        | stmts stmt ';'    { $$ = $1; addToAstList($1, $2); $$->location = @$; }
         | stmts ';'         { $$ = $1; }
         ;
 
@@ -191,8 +191,8 @@ assign : expr '=' expr      { $$ = (AstNode*)createAstBinary(@$, AST_ASSIGN, $1,
 
 type    : ident                                 { $$ = (AstNode*)$1; }
         | '(' ')'                               { $$ = createAstSimple(@$, AST_VOID); }
-        | '(' arg_def_list ')'                  { $$ = (AstNode*)toStaticAstList($2); $$->kind = AST_STRUCT_TYPE; $$->location = @$; }
-        | '(' arg_def_list ',' ')'              { $$ = (AstNode*)toStaticAstList($2); $$->kind = AST_STRUCT_TYPE; $$->location = @$; }
+        | '(' arg_def_list ')'                  { fitAstList($2); $$ = (AstNode*)$2; $$->kind = AST_STRUCT_TYPE; $$->location = @$; }
+        | '(' arg_def_list ',' ')'              { fitAstList($2); $$ = (AstNode*)$2; $$->kind = AST_STRUCT_TYPE; $$->location = @$; }
         | '*' type          %prec UNARY_PRE     { $$ = (AstNode*)createAstUnary(@$, AST_ADDR, $2); }
         | '[' expr ']' type %prec UNARY_PRE     { $$ = (AstNode*)createAstBinary(@$, AST_ARRAY, $2, $4); }
         | "fn" '(' arg_types ')'                { $$ = (AstNode*)createAstFnType(@$, $3.list, NULL, $3.flags != AST_FN_FLAG_NONE); }
@@ -200,20 +200,20 @@ type    : ident                                 { $$ = (AstNode*)$1; }
         ;
 
 arg_types : %empty                          { $$.list = createAstList(@$, AST_LIST, 0, NULL); $$.flags = AST_FN_FLAG_NONE; }
-          | type_list_nonempty              { $$.list = toStaticAstList($1); $$.flags = AST_FN_FLAG_NONE; }
-          | type_list_nonempty ','          { $$.list = toStaticAstList($1); $$.flags = AST_FN_FLAG_NONE; }
-          | type_list_nonempty ',' ".."     { $$.list = toStaticAstList($1); $$.flags = AST_FN_FLAG_VARARG; }
-          | arg_type_list                   { $$.list = toStaticAstList($1); $$.flags = AST_FN_FLAG_NONE; }
-          | arg_type_list ','               { $$.list = toStaticAstList($1); $$.flags = AST_FN_FLAG_NONE; }
-          | arg_type_list ',' ".."          { $$.list = toStaticAstList($1); $$.flags = AST_FN_FLAG_VARARG; }
+          | type_list_nonempty              { fitAstList($1); $$.list = $1; $$.flags = AST_FN_FLAG_NONE; }
+          | type_list_nonempty ','          { fitAstList($1); $$.list = $1; $$.flags = AST_FN_FLAG_NONE; }
+          | type_list_nonempty ',' ".."     { fitAstList($1); $$.list = $1; $$.flags = AST_FN_FLAG_VARARG; }
+          | arg_type_list                   { fitAstList($1); $$.list = $1; $$.flags = AST_FN_FLAG_NONE; }
+          | arg_type_list ','               { fitAstList($1); $$.list = $1; $$.flags = AST_FN_FLAG_NONE; }
+          | arg_type_list ',' ".."          { fitAstList($1); $$.list = $1; $$.flags = AST_FN_FLAG_VARARG; }
           ;
 
-type_list_nonempty  : type                          { $$ = createDynamicAstList(); addToDynamicAstList($$, $1); $$->location = @$; }
-                    | type_list_nonempty ',' type   { $$ = $1; addToDynamicAstList($1, $3); $$->location = @$; }
+type_list_nonempty  : type                          { $$ = createEmptyAstList(); addToAstList($$, $1); $$->location = @$; }
+                    | type_list_nonempty ',' type   { $$ = $1; addToAstList($1, $3); $$->location = @$; }
                     ;
 
-arg_type_list   : ident ':' type                       { $$ = createDynamicAstList(); addToDynamicAstList($$, $3); $$->location = @$; freeAstNode((AstNode*)$1); }
-                | arg_type_list ',' ident ':' type     { $$ = $1; addToDynamicAstList($1, $5); $$->location = @$; freeAstNode((AstNode*)$3); }
+arg_type_list   : ident ':' type                       { $$ = createEmptyAstList(); addToAstList($$, $3); $$->location = @$; freeAstNode((AstNode*)$1); }
+                | arg_type_list ',' ident ':' type     { $$ = $1; addToAstList($1, $5); $$->location = @$; freeAstNode((AstNode*)$3); }
                 ;
 
 expr    : ident                         { $$ = (AstNode*)$1; }
@@ -224,17 +224,17 @@ expr    : ident                         { $$ = (AstNode*)$1; }
         | expr '.' ident                { $$ = (AstNode*)createAstStructIndex(@$, $1, $3); }
         | "sizeof" type                 { $$ = (AstNode*)createAstUnary(@$, AST_SIZEOF, $2); }
         | '(' ')'                       { $$ = createAstSimple(@$, AST_VOID); }
-        | '[' list ']'                  { $$ = (AstNode*)toStaticAstList($2); $$->kind = AST_ARRAY_LIT; $$->location = @$; }
+        | '[' list ']'                  { fitAstList($2); $$ = (AstNode*)$2; $$->kind = AST_ARRAY_LIT; $$->location = @$; }
         | '(' expr ')'                  { $$ = $2; }
-        | '(' field_vals ')'            { $$ = (AstNode*)toStaticAstList($2); $$->kind = AST_STRUCT_LIT; $$->location = @$; }
-        | '(' field_vals ',' ')'        { $$ = (AstNode*)toStaticAstList($2); $$->kind = AST_STRUCT_LIT; $$->location = @$; }
+        | '(' field_vals ')'            { fitAstList($2); $$ = (AstNode*)$2; $$->kind = AST_STRUCT_LIT; $$->location = @$; }
+        | '(' field_vals ',' ')'        { fitAstList($2); $$ = (AstNode*)$2; $$->kind = AST_STRUCT_LIT; $$->location = @$; }
         | '-' expr %prec UNARY_PRE      { $$ = (AstNode*)createAstUnary(@$, AST_NEG, $2); }
         | '+' expr %prec UNARY_PRE      { $$ = (AstNode*)createAstUnary(@$, AST_POS, $2); }
         | '*' expr %prec UNARY_PRE      { $$ = (AstNode*)createAstUnary(@$, AST_ADDR, $2); }
         | '&' expr %prec UNARY_PRE      { $$ = (AstNode*)createAstUnary(@$, AST_DEREF, $2); }
         | '!' expr %prec UNARY_PRE      { $$ = (AstNode*)createAstUnary(@$, AST_NOT, $2); }
         | expr '[' expr ']'             { $$ = (AstNode*)createAstBinary(@$, AST_INDEX, $1, $3); }
-        | expr '(' list ')'             { $$ = (AstNode*)createAstCall(@$, $1, toStaticAstList($3)); }
+        | expr '(' list ')'             { fitAstList($3); $$ = (AstNode*)createAstCall(@$, $1, $3); }
         | expr "as" type                { $$ = (AstNode*)createAstBinary(@$, AST_AS, $1, $3); }
         | expr '+' expr                 { $$ = (AstNode*)createAstBinary(@$, AST_ADD, $1, $3); }
         | expr '-' expr                 { $$ = (AstNode*)createAstBinary(@$, AST_SUB, $1, $3); }
@@ -260,20 +260,20 @@ expr    : ident                         { $$ = (AstNode*)$1; }
         | expr '(' error ')'            { $$ = createAstSimple(@$, AST_ERROR); freeAstNode($1); }
         ;
 
-field_vals  : field_val                      { $$ = createDynamicAstList(); addToDynamicAstList($$, $1); $$->location = @$; }
-            | field_vals ',' field_val     { $$ = $1; addToDynamicAstList($1, $3); $$->location = @$; }
+field_vals  : field_val                      { $$ = createEmptyAstList(); addToAstList($$, $1); $$->location = @$; }
+            | field_vals ',' field_val     { $$ = $1; addToAstList($1, $3); $$->location = @$; }
             ;
 
 field_val : ident '=' expr { $$ = (AstNode*)createAstArgDef(@$, $1, $3); }
           ;
 
-list    : %empty                { $$ = createDynamicAstList(); $$->location = @$; }
+list    : %empty                { $$ = createEmptyAstList(); $$->location = @$; }
         | list_nonempty         { $$ = $1; }
         | list_nonempty ','     { $$ = $1; }
         ;
 
-list_nonempty : expr                    { $$ = createDynamicAstList(); addToDynamicAstList($$, $1);; $$->location = @$; }
-              | list_nonempty ',' expr  { $$ = $1; addToDynamicAstList($$, $3); $$->location = @$; }
+list_nonempty : expr                    { $$ = createEmptyAstList(); addToAstList($$, $1);; $$->location = @$; }
+              | list_nonempty ',' expr  { $$ = $1; addToAstList($$, $3); $$->location = @$; }
               ;
 
 integer : INT   { $$ = parseIntLiteralIn(context, @1, $1); }
