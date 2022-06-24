@@ -6,6 +6,8 @@
 
 void typeCheckExpr(CompilerContext* context, AstNode* node);
 
+void checkTypeConstraints(CompilerContext* context, AstNode* node);
+
 void runTypeChecking(CompilerContext* context);
 
 #endif

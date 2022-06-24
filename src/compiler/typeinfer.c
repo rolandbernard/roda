@@ -1,11 +1,8 @@
 
-#include "ast/ast.h"
-#include "ast/astprinter.h"
 #include "compiler/typeeval.h"
 #include "errors/fatalerror.h"
-#include "files/file.h"
-#include "text/format.h"
 #include "util/alloc.h"
+#include "compiler/typecheck.h"
 
 #include "compiler/typeinfer.h"
 
@@ -1298,6 +1295,7 @@ void runTypeInference(CompilerContext* context) {
     FOR_ALL_MODULES({ assumeAmbiguousTypes(context, ASSUME_SIZEOF | ASSUME_INDEX, file->ast, &changed); });
     FOR_ALL_MODULES({ assumeAmbiguousTypes(context, ASSUME_LITERALS, file->ast, &changed); });
     FOR_ALL_MODULES({ assumeAmbiguousTypes(context, ASSUME_CASTS, file->ast, &changed); });
+    FOR_ALL_MODULES_IF_OK({ checkTypeConstraints(context, file->ast); });
     changed = false;
     FOR_ALL_MODULES_IF_OK({ assumeAmbiguousTypes(context, ASSUME_VARS, file->ast, &changed); });
     while (changed) {

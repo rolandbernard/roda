@@ -160,7 +160,7 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
             case AST_ARRAY: {
                 AstBinary* n = (AstBinary*)node;
                 Type* base = evaluateTypeExpr(context, n->right);
-                if (checkValidInConstExpr(context, node)) {
+                if (checkValidInConstExpr(context, n->left)) {
                     typeInferExpr(context, n->left, createSizedPrimitiveType(&context->types, TYPE_UINT, SIZE_SIZE));
                     typeCheckExpr(context, n->left);
                 }

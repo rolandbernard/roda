@@ -35,7 +35,10 @@ typedef struct SymbolType {
 
 #define FOR_ALL_VAR_REFS(VAR, ACTION) { \
     struct AstVar* ref = VAR->refs;     \
-    while (ref != NULL) ACTION          \
+    while (ref != NULL) {               \
+        ACTION                          \
+        ref = ref->next_ref;            \
+    }                                   \
 }
 
 void freeSymbolEntry(SymbolEntry* var);

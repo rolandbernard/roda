@@ -1,11 +1,7 @@
 
-#include "ast/ast.h"
 #include "ast/astprinter.h"
 #include "compiler/typeeval.h"
 #include "errors/fatalerror.h"
-#include "files/file.h"
-#include "text/format.h"
-#include "util/alloc.h"
 
 #include "compiler/typecheck.h"
 
@@ -641,7 +637,7 @@ static void checkNodeIsWritable(CompilerContext* context, AstNode* node) {
     }
 }
 
-static void checkTypeConstraints(CompilerContext* context, AstNode* node) {
+void checkTypeConstraints(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
             case AST_STRUCT_TYPE:

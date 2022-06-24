@@ -7,6 +7,7 @@
 
 void initMessageContext(MessageContext* message_context, const MessageFilter* filter) {
     message_context->messages = NULL;
+    message_context->messages_last = NULL;
     message_context->error_count = 0;
     message_context->filter = filter;
 }
@@ -14,6 +15,7 @@ void initMessageContext(MessageContext* message_context, const MessageFilter* fi
 void clearMessageContext(MessageContext* context) {
     deinitMessageContext(context);
     context->messages = NULL;
+    context->messages_last = NULL;
 }
 
 void deinitMessageContext(MessageContext* message_context) {
@@ -32,8 +34,12 @@ void addMessageToContext(MessageContext* message_context, Message* message) {
         message_context->error_count++;
     }
     if (use_msg) {
-        message->next = message_context->messages;
-        message_context->messages = message;
+        if (message_context->messages_last == NULL) {
+            message_context->messages = message;
+        } else {
+            message_context->messages_last->next = message;
+        }
+        message_context->messages_last = message;
     } else {
         freeMessage(message);
     }

@@ -11,6 +11,7 @@ typedef struct {
 
 typedef struct {
     Message* messages;
+    Message* messages_last;
     size_t error_count;
     const MessageFilter* filter;
 } MessageContext;
