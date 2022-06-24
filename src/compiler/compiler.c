@@ -1,5 +1,6 @@
 
 #include "ast/astprinter.h"
+#include "compiler/typeinfer.h"
 #include "compiler/typecheck.h"
 #include "compiler/controlflow.h"
 #include "compiler/varbuild.h"
@@ -25,10 +26,14 @@ void runCompilation(CompilerContext* context) {
         printAndClearMessages(context, stderr);
     }
     if (context->msgs.error_count == 0) {
-        runTypeChecking(context);
+        runTypeInference(context);
+        DEBUG_LOG(context, "finished type inference");
         DEBUG_DO(context, COMPILER_DEBUG_TYPED_AST, {
             FOR_ALL_MODULES({ printAst(stderr, file->ast); });
         });
+    }
+    if (context->msgs.error_count == 0) {
+        runTypeChecking(context);
         DEBUG_LOG(context, "finished type checking");
         printAndClearMessages(context, stderr);
     }

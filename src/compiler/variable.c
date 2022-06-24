@@ -37,12 +37,11 @@ void freeSymbolEntry(SymbolEntry* var) {
         case SYMBOL_TYPE:
             break;
     }
-    FREE(var->refs);
     FREE(var);
 }
 
 void addSymbolReference(SymbolEntry* entry, struct AstVar* var) {
     var->next_ref = entry->refs;
-    entry->refs = var->next_ref;
+    entry->refs = var;
 }
 

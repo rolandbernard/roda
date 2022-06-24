@@ -3,6 +3,7 @@
 
 #include "compiler/consteval.h"
 #include "compiler/typecheck.h"
+#include "compiler/typeinfer.h"
 #include "errors/fatalerror.h"
 #include "errors/msgkind.h"
 #include "text/format.h"
@@ -159,7 +160,10 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
             case AST_ARRAY: {
                 AstBinary* n = (AstBinary*)node;
                 Type* base = evaluateTypeExpr(context, n->right);
-                typeCheckConstExpr(context, n->left, createSizedPrimitiveType(&context->types, TYPE_UINT, SIZE_SIZE));
+                if (checkValidInConstExpr(context, node)) {
+                    typeInferExpr(context, n->left, createSizedPrimitiveType(&context->types, TYPE_UINT, SIZE_SIZE));
+                    typeCheckExpr(context, n->left);
+                }
                 if (context->msgs.error_count != 0) {
                     n->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
                 } else {

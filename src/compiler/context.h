@@ -112,6 +112,9 @@ typedef struct {
 #define FOR_ALL_MODULES(ACTION) \
     FOR_ALL_MODULES_IN(context, ACTION)
 
+#define FOR_ALL_MODULES_IF_OK(ACTION) \
+    if (context->msgs.error_count == 0) { FOR_ALL_MODULES(ACTION) }
+
 CompilerContext* createCompilerContext();
 
 void freeCompilerContext(CompilerContext* context);

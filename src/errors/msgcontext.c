@@ -23,16 +23,17 @@ void deinitMessageContext(MessageContext* message_context) {
         freeMessage(cur);
         cur = next;
     }
-    FREE(message_context->messages);
 }
 
 void addMessageToContext(MessageContext* message_context, Message* message) {
+    bool use_msg = applyFilterForKind(message_context->filter, message->kind)
+        && applyFilterForContext(message_context->filter, message_context);
     if (getMessageCategory(message->kind) == MESSAGE_ERROR) {
         message_context->error_count++;
     }
-    if (applyFilterForKind(message_context->filter, message->kind) && applyFilterForContext(message_context->filter, message_context)) {
+    if (use_msg) {
         message->next = message_context->messages;
-        message_context->messages = message->next;
+        message_context->messages = message;
     } else {
         freeMessage(message);
     }

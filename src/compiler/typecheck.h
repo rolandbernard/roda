@@ -4,7 +4,7 @@
 #include "ast/ast.h"
 #include "compiler/context.h"
 
-void typeCheckConstExpr(CompilerContext* context, AstNode* node, Type* assumption);
+void typeCheckExpr(CompilerContext* context, AstNode* node);
 
 void runTypeChecking(CompilerContext* context);
 
