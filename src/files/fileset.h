@@ -4,9 +4,8 @@
 #include "files/file.h"
 
 typedef struct {
-    File** files;
+    File* files;
     size_t file_count;
-    size_t file_capacity;
     File** hashed;
     size_t hashed_capacity;
 } FileSet;

@@ -14,7 +14,8 @@ typedef struct {
     Span position;
 } MessageFragment;
 
-typedef struct {
+typedef struct Message {
+    struct Message* next;
     MessageKind kind;
     String message;
     MessageFragment** fragments;

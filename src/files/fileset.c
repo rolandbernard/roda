@@ -11,16 +11,17 @@
 void initFileSet(FileSet* fileset) {
     fileset->files = NULL;
     fileset->file_count = 0;
-    fileset->file_capacity = 0;
     fileset->hashed = NULL;
     fileset->hashed_capacity = 0;
 }
 
 void deinitFileSet(FileSet* fileset) {
-    for (size_t i = 0; i < fileset->file_count; i++) {
-        freeFile(fileset->files[i]);
+    File* cur = fileset->files;
+    while (cur != NULL) {
+        File* next = cur->next;
+        freeFile(cur);
+        cur = next;
     }
-    FREE(fileset->files);
     FREE(fileset->hashed);
 }
 
@@ -79,11 +80,8 @@ File* createFileInSet(FileSet* fileset, ConstPath relative_or_absolute_path) {
         return fileset->hashed[idx];
     } else {
         fileset->hashed[idx] = file;
-        if (fileset->file_count == fileset->file_capacity) {
-            fileset->file_capacity = fileset->file_capacity == 0 ? INITIAL_CAPACITY : 3 * fileset->file_capacity / 2;
-            fileset->files = REALLOC(File*, fileset->files, fileset->file_capacity);
-        }
-        fileset->files[fileset->file_count] = file;
+        file->next = fileset->files;
+        fileset->files = file;
         fileset->file_count++;
         return file;
     }

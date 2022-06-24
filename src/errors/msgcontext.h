@@ -10,9 +10,7 @@ typedef struct {
 } MessageFilter;
 
 typedef struct {
-    Message** messages;
-    size_t message_count;
-    size_t message_capacity;
+    Message* messages;
     size_t error_count;
     const MessageFilter* filter;
 } MessageContext;

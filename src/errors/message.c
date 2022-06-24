@@ -28,6 +28,7 @@ void freeMessageFragment(MessageFragment* fragment) {
 }
 
 static void vaInitMessage(Message* message, MessageKind kind, String string, int fragment_count, va_list args) {
+    message->next = NULL;
     message->kind = kind;
     message->message = string;
     message->fragment_count = fragment_count;

@@ -15,9 +15,7 @@ typedef enum {
     SymbolEntryKind kind;       \
     Symbol name;                \
     struct AstVar* def;         \
-    struct AstVar** refs;       \
-    size_t ref_count;           \
-    size_t ref_capacity;        \
+    struct AstVar* refs;        \
     void* codegen;
 
 typedef struct {
@@ -34,6 +32,11 @@ typedef struct SymbolType {
     SYMBOL_ENTRY_BASE
     Type* type;
 } SymbolType;
+
+#define FOR_ALL_VAR_REFS(VAR, ACTION) { \
+    struct AstVar* ref = VAR->refs;     \
+    while (ref != NULL) ACTION          \
+}
 
 void freeSymbolEntry(SymbolEntry* var);
 

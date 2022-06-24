@@ -13,6 +13,7 @@
 #include "files/file.h"
 
 void initFile(File* file, ConstPath file_path) {
+    file->next = NULL;
     file->original_path = copyPath(file_path);
     file->absolute_path = getAbsolutePath(file_path);
     file->directory = getParentDirectory(toConstPath(file->absolute_path));
@@ -23,6 +24,7 @@ void initFile(File* file, ConstPath file_path) {
 
 File* copyFile(const File* file) {
     File* ret = ALLOC(File, 1);
+    ret->next = NULL;
     ret->original_path = copyPath(toConstPath(file->original_path));
     ret->absolute_path = copyPath(toConstPath(file->absolute_path));
     ret->directory = getParentDirectory(toConstPath(ret->absolute_path));

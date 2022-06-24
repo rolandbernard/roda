@@ -95,11 +95,22 @@ typedef struct {
     SymbolTable buildins;
 } CompilerContext;
 
-#define FOR_ALL_MODULES(ACTION)                                 \
-    for (size_t i = 0; i < context->files.file_count; i++) {    \
-        File* file = context->files.files[i];                   \
-        if (file->ast != NULL) ACTION                           \
-    }
+#define FOR_ALL_FILES_IN(CXT, ACTION) {     \
+    File* file = CXT->files.files;          \
+    while (file != NULL) {                  \
+        ACTION                              \
+        file = file->next;                  \
+    }                                       \
+}
+
+#define FOR_ALL_MODULES_IN(CXT, ACTION) \
+    FOR_ALL_FILES_IN(CXT, { if (file->ast != NULL) ACTION })
+
+#define FOR_ALL_FILES(ACTION) \
+    FOR_ALL_FILES_IN(context, ACTION)
+
+#define FOR_ALL_MODULES(ACTION) \
+    FOR_ALL_MODULES_IN(context, ACTION)
 
 CompilerContext* createCompilerContext();
 

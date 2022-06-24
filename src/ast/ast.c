@@ -63,6 +63,7 @@ AstVar* createAstVar(Span loc, Symbol name) {
     initAstNode((AstNode*)node, AST_VAR, loc);
     node->name = name;
     node->binding = NULL;
+    node->next_ref = NULL;
     return node;
 }
 

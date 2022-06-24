@@ -7,7 +7,8 @@
 #include "text/string.h"
 #include "files/path.h"
 
-typedef struct {
+typedef struct File {
+    struct File* next;
     Path original_path;
     Path absolute_path;
     ConstPath directory;

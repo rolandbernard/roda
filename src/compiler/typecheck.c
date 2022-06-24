@@ -179,11 +179,11 @@ static void propagateTypes(CompilerContext* context, AstNode* node, bool* change
                     } else if (n->res_type != NULL) {
                         var->type = n->res_type;
                         var->type_reasoning = n->res_type_reasoning;
-                        for (size_t i = 0; i < var->ref_count; i++) {
-                            if (n != var->refs[i]) {
-                                propagateTypes(context, (AstNode*)var->refs[i], changed);
+                        FOR_ALL_VAR_REFS(var, {
+                            if (n != ref) {
+                                propagateTypes(context, (AstNode*)ref, changed);
                             }
-                        }
+                        })
                         propagateTypes(context, (AstNode*)var->def, changed);
                     }
                 }
@@ -580,10 +580,10 @@ static void propagateToVariableReferences(AstVar* node) {
     if (var != NULL) {
         var->type = node->res_type;
         var->type_reasoning = node->res_type_reasoning;
-        for (size_t i = 0; i < var->ref_count; i++) {
-            var->refs[i]->res_type = node->res_type;
-            var->refs[i]->res_type_reasoning = node->res_type_reasoning;
-        }
+        FOR_ALL_VAR_REFS(var, {
+            ref->res_type = node->res_type;
+            ref->res_type_reasoning = node->res_type_reasoning;
+        })
         var->def->res_type = node->res_type;
         var->def->res_type_reasoning = node->res_type_reasoning;
     }
@@ -878,9 +878,9 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
 static void propagateVariableReferences(CompilerContext* context, AstVar* node, bool* changed) {
     SymbolVariable* var = (SymbolVariable*)node->binding;
     if (var != NULL) {
-        for (size_t i = 0; i < var->ref_count; i++) {
-            propagateTypes(context, var->refs[i]->parent, changed);
-        }
+        FOR_ALL_VAR_REFS(var, {
+            propagateTypes(context, ref->parent, changed);
+        })
         propagateTypes(context, var->def->parent, changed);
     }
 }

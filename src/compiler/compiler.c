@@ -11,12 +11,11 @@
 #include "compiler/compiler.h"
 
 void runCompilation(CompilerContext* context) {
-    for (size_t i = 0; i < context->files.file_count; i++) {
-        File* file = context->files.files[i];
+    FOR_ALL_FILES({
         file->ast = parseFile(file, context);
         DEBUG_DO(context, COMPILER_DEBUG_PARSE_AST, { printAst(stderr, file->ast); });
         printAndClearMessages(context, stderr);
-    }
+    })
     DEBUG_LOG(context, "finished parsing all files");
     if (context->msgs.error_count == 0) {
         runControlFlowReferenceResolution(context);

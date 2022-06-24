@@ -127,6 +127,7 @@ typedef struct AstVar {
     AST_NODE_BASE
     Symbol name;
     SymbolEntry* binding;
+    struct AstVar* next_ref;
 } AstVar;
 
 typedef struct {

@@ -576,8 +576,10 @@ void printMessage(const Message* message, FILE* output, const MessageFilter* fil
 }
 
 void printMessages(const MessageContext* message_context, FILE* output, MessageStyle style) {
-    for (size_t i = 0; i < message_context->message_count; i++) {
-        printMessage(message_context->messages[i], output, message_context->filter, style);
+    Message* cur = message_context->messages;
+    while (cur != NULL) {
+        printMessage(cur, output, message_context->filter, style);
+        cur = cur->next;
     }
 }
 
