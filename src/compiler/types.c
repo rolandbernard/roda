@@ -132,7 +132,18 @@ Type* createTypeReference(TypeContext* cxt, struct AstNode* def, struct SymbolTy
     return addAndInitType(cxt, (Type*)type, TYPE_REFERENCE, def);
 }
 
-Type* createTypeStruct(TypeContext* cxt, struct AstNode* def, Symbol* names, Type** types, size_t count) {
+static void swapStructFields(size_t i, size_t j, void* cxt) {
+    TypeStruct* type = (TypeStruct*)cxt;
+    swap(type->names, sizeof(Symbol), i, j);
+    swap(type->types, sizeof(Type*), i, j);
+}
+
+static bool compareStructFieldNames(size_t i, size_t j, void* cxt) {
+    TypeStruct* type = (TypeStruct*)cxt;
+    return type->names[i] <= type->names[j];
+}
+
+Type* createTypeStruct(TypeContext* cxt, struct AstNode* def, bool ordered, Symbol* names, Type** types, size_t count) {
     for (size_t i = 0; i < count; i++) {
         if (isErrorType(types[i])) {
             Type* ret = types[i];
@@ -142,9 +153,13 @@ Type* createTypeStruct(TypeContext* cxt, struct AstNode* def, Symbol* names, Typ
         }
     }
     TypeStruct* type = NEW(TypeStruct);
+    type->ordered = ordered;
     type->names = names;
     type->types = types;
     type->count = count;
+    if (!ordered) {
+        heapSort(count, swapStructFields, compareStructFieldNames, type);
+    }
     return addAndInitType(cxt, (Type*)type, TYPE_STRUCT, def);
 }
 
@@ -230,6 +245,9 @@ static void buildTypeNameInto(StringBuilder* dst, const Type* type) {
             }
             case TYPE_STRUCT: {
                 TypeStruct* t = (TypeStruct*)type;
+                if (t->ordered) {
+                    pushToStringBuilder(dst, str("extern "));
+                }
                 pushToStringBuilder(dst, str("("));
                 for (size_t i = 0; i < t->count; i++) {
                     if (i != 0) {
@@ -799,7 +817,7 @@ static bool compareStructuralTypesHelper(Type* a, Type* b, bool change, bool* ch
                 case TYPE_STRUCT: {
                     TypeStruct* ta = (TypeStruct*)a;
                     TypeStruct* tb = (TypeStruct*)b;
-                    if (ta->count != tb->count) {
+                    if (ta->ordered != tb->ordered || ta->count != tb->count) {
                         equal = false;
                     } else {
                         equal = true;

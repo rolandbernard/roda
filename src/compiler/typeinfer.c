@@ -337,7 +337,7 @@ static void propagateTypes(CompilerContext* context, AstNode* node, bool* change
                             names[i] = field->name->name;
                             types[i] = field->field_value->res_type;
                         }
-                        Type* type = createTypeStruct(&context->types, node, names, types, n->count);
+                        Type* type = createTypeStruct(&context->types, node, false, names, types, n->count);
                         if (propagateTypeIntoAstNode(context, node, type, changed)) {
                             propagateTypes(context, node->parent, changed);
                         }

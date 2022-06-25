@@ -221,7 +221,9 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
                         names[i] = field->name->name;
                         types[i] = evaluateTypeExpr(context, field->type);
                     }
-                    n->res_type = createTypeStruct(&context->types, node, names, types, n->count);
+                    n->res_type = createTypeStruct(&context->types, node, false, names, types, n->count);
+                } else {
+                    n->res_type = getErrorType(&context->types);
                 }
                 break;
             }

@@ -50,7 +50,9 @@ static LLVMTypeRef generateLlvmTypeHelper(LlvmCodegenContext* context, Type* typ
                 for (size_t i = 0; i < cxt.struc->count; i++) {
                     cxt.types[i] = generateLlvmTypeHelper(context, cxt.struc->types[i], stack);
                 }
-                heapSort(cxt.struc->count, structSortSwap, structSortCompare, &cxt);
+                if (!cxt.struc->ordered) {
+                    heapSort(cxt.struc->count, structSortSwap, structSortCompare, &cxt);
+                }
                 result = LLVMStructTypeInContext(context->llvm_cxt, cxt.types, cxt.struc->count, false);
                 FREE(cxt.types);
                 break;

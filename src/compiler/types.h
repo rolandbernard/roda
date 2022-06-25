@@ -67,6 +67,7 @@ typedef struct {
 
 typedef struct {
     TYPE_BASE
+    bool ordered;
     Symbol* names;
     Type** types;
     size_t count;
@@ -101,7 +102,7 @@ Type* createFunctionType(TypeContext* cxt, struct AstNode* def, Type* ret_type, 
 
 Type* createTypeReference(TypeContext* cxt, struct AstNode* def, struct SymbolType* binding);
 
-Type* createTypeStruct(TypeContext* cxt, struct AstNode* def, Symbol* name, Type** types, size_t count);
+Type* createTypeStruct(TypeContext* cxt, struct AstNode* def, bool ordered, Symbol* name, Type** types, size_t count);
 
 Type* createUnsureType(TypeContext* cxt, struct AstNode* def, Type* fallback);
 
