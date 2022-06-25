@@ -125,7 +125,7 @@ bool loadFileData(const File* file, String* output) {
         fseek(stream, 0, SEEK_SET);
         output->length -= ftell(stream);
         output->data = ALLOC(char, output->length);
-        fread(output->data, 1, output->length, stream);
+        output->length = fread(output->data, 1, output->length, stream);
         fclose(stream);
         return true;
     }

@@ -27,7 +27,9 @@ void raiseNoBackendError(CompilerContext* context, const char* kind) {
 }
 
 static String getLinkerCommand(CompilerContext* context) {
-    String command = copyFromCString("cc");
+    StringBuilder command;
+    initStringBuilder(&command);
+    pushFormattedString(&command, "cc");
     if (context->settings.emit_debug) {
         pushFormattedString(&command, " -g");
     }
@@ -63,7 +65,7 @@ static String getLinkerCommand(CompilerContext* context) {
     for (size_t i = 0; i < context->settings.libs.count; i++) {
         pushFormattedString(&command, " -l%s", cstr(context->settings.libs.strings[i]));
     }
-    return command;
+    return builderToString(&command);
 }
 
 void runCodeGeneration(CompilerContext* context) {

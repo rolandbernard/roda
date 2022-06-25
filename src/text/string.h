@@ -66,6 +66,20 @@ String resizeStringData(String string);
 
 String copyFromCString(const char* cstr);
 
-String pushToString(String dst, ConstString src);
+typedef struct {
+    char* data;
+    size_t length;
+    size_t capacity;
+} StringBuilder;
+
+void initStringBuilder(StringBuilder* builder);
+
+void deinitStringBuilder(StringBuilder* builder);
+
+void pushToStringBuilder(StringBuilder* builder, ConstString src);
+
+void makeSpaceInStringBuilder(StringBuilder* builder, size_t length);
+
+String builderToString(StringBuilder* builder);
 
 #endif

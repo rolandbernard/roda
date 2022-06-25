@@ -203,11 +203,35 @@ String copyFromCString(const char* cstr) {
     return copyString(createFromConstCString(cstr));
 }
 
-String pushToString(String dst, ConstString src) {
-    dst.data = REALLOC(char, dst.data, dst.length + src.length + 1);
-    dst.data[dst.length + src.length] = 0;
-    memcpy(dst.data + dst.length, src.data, src.length);
-    dst.length += src.length;
-    return dst;
+#define INITIAL_CAPACITY 32
+
+void initStringBuilder(StringBuilder* builder) {
+    builder->data = NULL;
+    builder->length = 0;
+    builder->capacity = 0;
+}
+
+void deinitStringBuilder(StringBuilder* builder) {
+    FREE(builder->data);
+}
+
+void makeSpaceInStringBuilder(StringBuilder* builder, size_t length) {
+    if (builder->length + length + 1 > builder->capacity) {
+        while (builder->capacity < builder->length + length + 1) {
+            builder->capacity = builder->capacity == 0 ? INITIAL_CAPACITY : 2 * builder->capacity;
+        }
+        builder->data = REALLOC(char, builder->data, builder->capacity);
+    }
+}
+
+void pushToStringBuilder(StringBuilder* builder, ConstString src) {
+    makeSpaceInStringBuilder(builder, src.length);
+    memcpy(builder->data + builder->length, src.data, src.length);
+    builder->length += src.length;
+    builder->data[builder->length] = 0;
+}
+
+String builderToString(StringBuilder* builder) {
+    return createString(builder->data, builder->length);
 }
 

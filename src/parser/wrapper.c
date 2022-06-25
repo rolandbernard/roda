@@ -83,7 +83,9 @@ static const char* tokenName(char* dst, const char* src) {
 
 void reportSyntaxError(ParserContext* context, Span loc, const char* actual, size_t num_exp, const char* const* expected) {
     char name[128]; // This is larger than any defined token name.
-    String complete = createFormattedString("syntax error, unexpected %s", tokenName(name, actual));
+    StringBuilder complete;
+    initStringBuilder(&complete);
+    pushFormattedString(&complete, "syntax error, unexpected %s", tokenName(name, actual));
     if (num_exp > 0) {
         pushFormattedString(&complete, ", expecting %s", tokenName(name, expected[0]));
         for (size_t i = 1; i < num_exp; i++) {
@@ -94,7 +96,7 @@ void reportSyntaxError(ParserContext* context, Span loc, const char* actual, siz
             }
         }
     }
-    addMessageToContext(&context->context->msgs, createMessage(ERROR_SYNTAX, complete, 1,
+    addMessageToContext(&context->context->msgs, createMessage(ERROR_SYNTAX, builderToString(&complete), 1,
         createMessageFragment(MESSAGE_ERROR, createFormattedString("unexpected %s", tokenName(name, actual)), loc)
     ));
 }

@@ -97,12 +97,13 @@ void deinitLlvmBackend(CompilerContext* context) {
 
 static LLVMModuleRef generateLinkedModule(LlvmCodegenContext* context) {
     LLVMModuleRef linked_module = NULL;
-    String name = createEmptyString();
+    StringBuilder name;
+    initStringBuilder(&name);
     FOR_ALL_MODULES_IN(context->cxt, {
         pushFormattedString(&name, "%s;", cstr(file->original_path));
     })
-    linked_module = LLVMModuleCreateWithNameInContext(cstr(name), context->llvm_cxt);
-    freeString(name);
+    linked_module = LLVMModuleCreateWithNameInContext(cstr(builderToString(&name)), context->llvm_cxt);
+    deinitStringBuilder(&name);
     LLVMSetModuleDataLayout(linked_module, context->target_data);
     FOR_ALL_MODULES_IN(context->cxt, {
         LLVMModuleRef module = generateSingleModule(context, file);

@@ -155,21 +155,21 @@ Type* createUnsureType(TypeContext* cxt, struct AstNode* def, Type* fallback) {
     return addAndInitType(cxt, (Type*)type, TYPE_UNSURE, def);
 }
 
-static void buildTypeNameInto(String* dst, const Type* type) {
+static void buildTypeNameInto(StringBuilder* dst, const Type* type) {
     if (type == NULL) {
-        *dst = pushToString(*dst, str("_"));
+        pushToStringBuilder(dst, str("_"));
     } else {
         switch (type->kind) {
             case TYPE_ERROR: {
-                *dst = pushToString(*dst, str("error"));
+                pushToStringBuilder(dst, str("error"));
                 break;
             }
             case TYPE_VOID: {
-                *dst = pushToString(*dst, str("()"));
+                pushToStringBuilder(dst, str("()"));
                 break;
             }
             case TYPE_BOOL: {
-                *dst = pushToString(*dst, str("bool"));
+                pushToStringBuilder(dst, str("bool"));
                 break;
             }
             case TYPE_INT: {
@@ -197,7 +197,7 @@ static void buildTypeNameInto(String* dst, const Type* type) {
             }
             case TYPE_POINTER: {
                 TypePointer* t = (TypePointer*)type;
-                *dst = pushToString(*dst, str("*"));
+                pushToStringBuilder(dst, str("*"));
                 buildTypeNameInto(dst, t->base);
                 break;
             }
@@ -209,37 +209,37 @@ static void buildTypeNameInto(String* dst, const Type* type) {
             }
             case TYPE_FUNCTION: {
                 TypeFunction* t = (TypeFunction*)type;
-                *dst = pushToString(*dst, str("fn ("));
+                pushToStringBuilder(dst, str("fn ("));
                 for (size_t i = 0; i < t->arg_count; i++) {
                     if (i != 0) {
-                        *dst = pushToString(*dst, str(", "));
+                        pushToStringBuilder(dst, str(", "));
                     }
                     buildTypeNameInto(dst, t->arguments[i]);
                 }
                 if (t->vararg) {
-                    *dst = pushToString(*dst, str(", .."));
+                    pushToStringBuilder(dst, str(", .."));
                 }
-                *dst = pushToString(*dst, str("): "));
+                pushToStringBuilder(dst, str("): "));
                 buildTypeNameInto(dst, t->ret_type);
                 break;
             }
             case TYPE_REFERENCE: {
                 TypeReference* t = (TypeReference*)type;
-                *dst = pushToString(*dst, str(t->binding->name));
+                pushToStringBuilder(dst, str(t->binding->name));
                 break;
             }
             case TYPE_STRUCT: {
                 TypeStruct* t = (TypeStruct*)type;
-                *dst = pushToString(*dst, str("("));
+                pushToStringBuilder(dst, str("("));
                 for (size_t i = 0; i < t->count; i++) {
                     if (i != 0) {
-                        *dst = pushToString(*dst, str(", "));
+                        pushToStringBuilder(dst, str(", "));
                     }
-                    *dst = pushToString(*dst, str(t->names[i]));
-                    *dst = pushToString(*dst, str(" = "));
+                    pushToStringBuilder(dst, str(t->names[i]));
+                    pushToStringBuilder(dst, str(" = "));
                     buildTypeNameInto(dst, t->types[i]);
                 }
-                *dst = pushToString(*dst, str(")"));
+                pushToStringBuilder(dst, str(")"));
                 break;
             }
             case TYPE_UNSURE: {
@@ -255,9 +255,10 @@ static void buildTypeNameInto(String* dst, const Type* type) {
 }
 
 String buildTypeName(const Type* type) {
-    String ret = createEmptyString();
+    StringBuilder ret;
+    initStringBuilder(&ret);
     buildTypeNameInto(&ret, type);
-    return ret;
+    return builderToString(&ret);
 }
 
 #define RETURN_VOID             \
