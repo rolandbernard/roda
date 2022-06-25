@@ -63,6 +63,7 @@ Type* getErrorType(TypeContext* cxt) {
 }
 
 static Type* addAndInitType(TypeContext* context, Type* type, TypeKind kind, AstNode* def) {
+    type->visited = false;
     type->kind = kind;
     type->codegen = NULL;
     type->equiv = type;
@@ -259,55 +260,56 @@ String buildTypeName(const Type* type) {
     return ret;
 }
 
-typedef struct TypeReferenceStack {
-    struct TypeReferenceStack* last;
-    const SymbolType* binding;
-} TypeReferenceStack;
-
-#define STRUCTURAL_TYPE_CHECK_HELPER(NAME, TRUE, DEFAULT, ON_NULL, CXT)     \
-    if (type != NULL) {                                                     \
-        TRUE else if (type->kind == TYPE_REFERENCE) {                       \
-            TypeReference* t = (TypeReference*)type;                        \
-            TypeReferenceStack elem = {                                     \
-                .last = stack,                                              \
-                .binding = t->binding                                       \
-            };                                                              \
-            TypeReferenceStack* cur = stack;                                \
-            while (cur != NULL) {                                           \
-                if (cur->binding != elem.binding) {                         \
-                    cur = cur->last;                                        \
-                } DEFAULT                                                   \
-            }                                                               \
-            return NAME (t->binding->type, &elem, CXT);                     \
-        } else if (type->kind == TYPE_UNSURE) {                             \
-            TypeUnsure* t = (TypeUnsure*)type;                              \
-            if (t->actual != NULL) {                                        \
-                return NAME (t->actual, stack, CXT);                        \
-            } else {                                                        \
-                return NAME (t->fallback, stack, CXT);                      \
-            }                                                               \
-    } DEFAULT                                                               \
-    } ON_NULL
-
-#define STRUCTURAL_TYPE_CHECK(TYPE, NAME, TRUE, DEFAULT, ON_NULL)                       \
-    static TYPE NAME ## Helper (Type* type, TypeReferenceStack* stack, void* _c) {      \
-        STRUCTURAL_TYPE_CHECK_HELPER(NAME ## Helper, TRUE, DEFAULT, ON_NULL, _c)        \
-    }                                                                                   \
-    TYPE NAME (Type* type) {                                                            \
-        return NAME ## Helper (type, NULL, NULL);                                       \
+#define RETURN_VOID             \
+    if (visit) {                \
+        type->visited = false;  \
     }
 
-static Type* isTypeOfKindHelper(Type* type, TypeReferenceStack* stack, TypeKind kind) {
-    STRUCTURAL_TYPE_CHECK_HELPER(isTypeOfKindHelper, 
-        if (type->kind == kind) { return type; },
-        else { return NULL; },
-        else { return NULL; },
-        kind
-    )
+#define RETURN(TYPE, VALUE) {   \
+    TYPE result = VALUE;        \
+    if (visit) {                \
+        type->visited = false;  \
+    }                           \
+    return result;              \
 }
 
+#define STRUCTURAL_TYPE_CHECK_HELPER(TRUE, DEFAULT, ON_NULL, REC)   \
+    bool visit = false;                                             \
+    if (type != NULL) {                                             \
+        if (type->visited) {                                        \
+            DEFAULT                                                 \
+        } else {                                                    \
+            type->visited = true;                                   \
+            visit = true;                                           \
+            TRUE else if (type->kind == TYPE_REFERENCE) {           \
+                TypeReference* t = (TypeReference*)type;            \
+                ASSERT(t->binding != NULL);                         \
+                Type* next = t->binding->type;                      \
+                REC                                                 \
+            } else if (type->kind == TYPE_UNSURE) {                 \
+                TypeUnsure* t = (TypeUnsure*)type;                  \
+                if (t->actual != NULL) {                            \
+                    Type* next = t->actual;                         \
+                    REC                                             \
+                } else {                                            \
+                    Type* next = t->fallback;                       \
+                    REC                                             \
+                }                                                   \
+            } else {                                                \
+                DEFAULT                                             \
+            }                                                       \
+        }                                                           \
+    } else {                                                        \
+        ON_NULL                                                     \
+    }
+
 static Type* isTypeOfKind(Type* type, TypeKind kind) {
-    return isTypeOfKindHelper(type, NULL, kind);
+    STRUCTURAL_TYPE_CHECK_HELPER(
+        if (type->kind == kind) { RETURN(Type*, type); },
+        { RETURN(Type*, NULL); },
+        { RETURN(Type*, NULL); },
+        { RETURN(Type*, isTypeOfKind(next, kind)); }
+    )
 }
 
 TypeSizedPrimitive* isSignedIntegerType(Type* type) {
@@ -318,37 +320,53 @@ TypeSizedPrimitive* isUnsignedIntegerType(Type* type) {
     return (TypeSizedPrimitive*)isTypeOfKind(type, TYPE_UINT);
 }
 
-STRUCTURAL_TYPE_CHECK(
-    TypeSizedPrimitive*, isIntegerType,
-    if (type->kind == TYPE_INT || type->kind == TYPE_UINT) { return (TypeSizedPrimitive*)type; },
-    else { return NULL; },
-    else { return NULL; }
-)
+TypeSizedPrimitive* isIntegerType(Type* type) {
+    STRUCTURAL_TYPE_CHECK_HELPER(
+        if (type->kind == TYPE_INT || type->kind == TYPE_UINT) {
+            RETURN(TypeSizedPrimitive*, (TypeSizedPrimitive*)type);
+        },
+        { RETURN(TypeSizedPrimitive*, NULL); },
+        { RETURN(TypeSizedPrimitive*, NULL); },
+        { RETURN(TypeSizedPrimitive*, isIntegerType(next)) }
+    )
+}
 
-STRUCTURAL_TYPE_CHECK(
-    TypeSizedPrimitive*, isFloatType,
-    if (type->kind == TYPE_REAL && ((TypeSizedPrimitive*)type)->size == 32) { return (TypeSizedPrimitive*)type; },
-    else { return NULL; },
-    else { return NULL; }
-)
+TypeSizedPrimitive* isFloatType(Type* type) {
+    STRUCTURAL_TYPE_CHECK_HELPER(
+        if (type->kind == TYPE_REAL && ((TypeSizedPrimitive*)type)->size == 32) {
+            RETURN(TypeSizedPrimitive*, (TypeSizedPrimitive*)type);
+        },
+        { RETURN(TypeSizedPrimitive*, NULL); },
+        { RETURN(TypeSizedPrimitive*, NULL); },
+        { RETURN(TypeSizedPrimitive*, isFloatType(next)) }
+    )
+}
 
-STRUCTURAL_TYPE_CHECK(
-    TypeSizedPrimitive*, isDoubleType,
-    if (type->kind == TYPE_REAL && ((TypeSizedPrimitive*)type)->size == 64) { return (TypeSizedPrimitive*)type; },
-    else { return NULL; },
-    else { return NULL; }
-)
+TypeSizedPrimitive* isDoubleType(Type* type) {
+    STRUCTURAL_TYPE_CHECK_HELPER(
+        if (type->kind == TYPE_REAL && ((TypeSizedPrimitive*)type)->size == 64) {
+            RETURN(TypeSizedPrimitive*, (TypeSizedPrimitive*)type);
+        },
+        { RETURN(TypeSizedPrimitive*, NULL); },
+        { RETURN(TypeSizedPrimitive*, NULL); },
+        { RETURN(TypeSizedPrimitive*, isDoubleType(next)) }
+    )
+}
 
 TypeSizedPrimitive* isRealType(Type* type) {
     return (TypeSizedPrimitive*)isTypeOfKind(type, TYPE_REAL);
 }
 
-STRUCTURAL_TYPE_CHECK(
-    TypeSizedPrimitive*, isNumericType,
-    if (type->kind == TYPE_REAL || type->kind == TYPE_INT || type->kind == TYPE_UINT) { return (TypeSizedPrimitive*)type; },
-    else { return NULL; },
-    else { return NULL; }
-)
+TypeSizedPrimitive* isNumericType(Type* type) {
+    STRUCTURAL_TYPE_CHECK_HELPER(
+        if (type->kind == TYPE_REAL || type->kind == TYPE_INT || type->kind == TYPE_UINT) {
+            RETURN(TypeSizedPrimitive*, (TypeSizedPrimitive*)type);
+        },
+        { RETURN(TypeSizedPrimitive*, NULL); },
+        { RETURN(TypeSizedPrimitive*, NULL); },
+        { RETURN(TypeSizedPrimitive*, isNumericType(next)) }
+    )
+}
 
 Type* isBooleanType(Type* type) {
     return isTypeOfKind(type, TYPE_BOOL);
@@ -395,211 +413,224 @@ bool isErrorType(Type* type) {
     return type != NULL && type->kind == TYPE_ERROR;
 }
 
-STRUCTURAL_TYPE_CHECK(
-    bool, isPartialType,
-    if (
-        type->kind == TYPE_ERROR || type->kind == TYPE_VOID || type->kind == TYPE_BOOL
-        || type->kind == TYPE_INT || type->kind == TYPE_UINT || type->kind == TYPE_REAL
-    ) {
-        return false;
-    } else if (type->kind == TYPE_POINTER) {
-        TypePointer* t = (TypePointer*)type;
-        return isPartialTypeHelper(t->base, stack, NULL);
-    } else if (type->kind == TYPE_FUNCTION) {
-        TypeFunction* t = (TypeFunction*)type;
-        for (size_t i = 0; i < t->arg_count; i++) {
-            if (isPartialTypeHelper(t->arguments[i], stack, NULL)) {
-                return true;
-            }
-        }
-        return isPartialTypeHelper(t->ret_type, stack, NULL);
-    } else if (type->kind == TYPE_ARRAY) {
-        TypeArray* array = (TypeArray*)type;
-        return isPartialTypeHelper(array->base, stack, NULL);
-    } else if (type->kind == TYPE_STRUCT) {
-        TypeStruct* s = (TypeStruct*)type;
-        for (size_t i = 0; i < s->count; i++) {
-            if (isPartialTypeHelper(s->types[i], stack, NULL)) {
-                return true;
-            }
-        }
-        return false;
-    },
-    else { return false; },
-    else { return true; }
-)
-
-STRUCTURAL_TYPE_CHECK(
-    bool, containsErrorType,
-    if (type->kind == TYPE_ERROR) {
-        return true;
-    } else if (type->kind == TYPE_VOID || type->kind == TYPE_BOOL || type->kind == TYPE_INT || type->kind == TYPE_UINT || type->kind == TYPE_REAL) {
-        return false;
-    } else if (type->kind == TYPE_POINTER) {
-        TypePointer* t = (TypePointer*)type;
-        return containsErrorTypeHelper(t->base, stack, NULL);
-    } else if (type->kind == TYPE_FUNCTION) {
-        TypeFunction* t = (TypeFunction*)type;
-        for (size_t i = 0; i < t->arg_count; i++) {
-            if (containsErrorTypeHelper(t->arguments[i], stack, NULL)) {
-                return true;
-            }
-        }
-        return containsErrorTypeHelper(t->ret_type, stack, NULL);
-    } else if (type->kind == TYPE_ARRAY) {
-        TypeArray* array = (TypeArray*)type;
-        return containsErrorTypeHelper(array->base, stack, NULL);
-    } else if (type->kind == TYPE_STRUCT) {
-        TypeStruct* s = (TypeStruct*)type;
-        for (size_t i = 0; i < s->count; i++) {
-            if (containsErrorTypeHelper(s->types[i], stack, NULL)) {
-                return true;
-            }
-        }
-        return false;
-    },
-    else { return false; },
-    else { return false; }
-)
-
-static void* fillPartialTypeHelper(Type* type, TypeReferenceStack* stack, Type* with) {
-    STRUCTURAL_TYPE_CHECK_HELPER(fillPartialTypeHelper, 
+bool isPartialType(Type* type) {
+    STRUCTURAL_TYPE_CHECK_HELPER(
         if (
             type->kind == TYPE_ERROR || type->kind == TYPE_VOID || type->kind == TYPE_BOOL
             || type->kind == TYPE_INT || type->kind == TYPE_UINT || type->kind == TYPE_REAL
         ) {
-            return NULL;
+            RETURN(bool, false);
         } else if (type->kind == TYPE_POINTER) {
             TypePointer* t = (TypePointer*)type;
-            fillPartialTypeHelper(t->base, stack, with);
-            return NULL;
+            RETURN(bool, isPartialType(t->base));
         } else if (type->kind == TYPE_FUNCTION) {
             TypeFunction* t = (TypeFunction*)type;
             for (size_t i = 0; i < t->arg_count; i++) {
-                fillPartialTypeHelper(t->arguments[i], stack, with);
+                if (isPartialType(t->arguments[i])) {
+                    RETURN(bool, true);
+                }
             }
-            fillPartialTypeHelper(t->ret_type, stack, with);
-            return NULL;
+            RETURN(bool, isPartialType(t->ret_type));
         } else if (type->kind == TYPE_ARRAY) {
             TypeArray* array = (TypeArray*)type;
-            fillPartialTypeHelper(array->base, stack, with);
-            return NULL;
+            RETURN(bool, isPartialType(array->base));
         } else if (type->kind == TYPE_STRUCT) {
             TypeStruct* s = (TypeStruct*)type;
             for (size_t i = 0; i < s->count; i++) {
-                fillPartialTypeHelper(s->types[i], stack, with);
+                if (isPartialType(s->types[i])) {
+                    RETURN(bool, true);
+                }
             }
-            return NULL;
-        } else if (type->kind == TYPE_UNSURE) {
-            TypeUnsure* t = (TypeUnsure*)type;
-            if (t->actual != NULL) {
-                fillPartialTypeHelper(t->actual, stack, with);
-            } else if (t->fallback != NULL) {
-                fillPartialTypeHelper(t->fallback, stack, with);
-            } else {
-                t->fallback = with;
-            }
-            return NULL;
+            RETURN(bool, false);
         },
-        else { return NULL; },
-        else { return NULL; },
-        with
+        { RETURN(bool, false); },
+        { RETURN(bool, true); },
+        { RETURN(bool, isPartialType(next)) }
+    )
+}
+
+bool containsErrorType(Type* type) {
+    STRUCTURAL_TYPE_CHECK_HELPER(
+        if (type->kind == TYPE_ERROR) {
+            RETURN(bool, true);
+        } else if (type->kind == TYPE_VOID || type->kind == TYPE_BOOL || type->kind == TYPE_INT || type->kind == TYPE_UINT || type->kind == TYPE_REAL) {
+            RETURN(bool, false);
+        } else if (type->kind == TYPE_POINTER) {
+            TypePointer* t = (TypePointer*)type;
+            RETURN(bool, containsErrorType(t->base));
+        } else if (type->kind == TYPE_FUNCTION) {
+            TypeFunction* t = (TypeFunction*)type;
+            for (size_t i = 0; i < t->arg_count; i++) {
+                if (containsErrorType(t->arguments[i])) {
+                    RETURN(bool, true);
+                }
+            }
+            RETURN(bool, containsErrorType(t->ret_type));
+        } else if (type->kind == TYPE_ARRAY) {
+            TypeArray* array = (TypeArray*)type;
+            RETURN(bool, containsErrorType(array->base));
+        } else if (type->kind == TYPE_STRUCT) {
+            TypeStruct* s = (TypeStruct*)type;
+            for (size_t i = 0; i < s->count; i++) {
+                if (containsErrorType(s->types[i])) {
+                    RETURN(bool, true);
+                }
+            }
+            RETURN(bool, false);
+        },
+        { RETURN(bool, false); },
+        { RETURN(bool, false); },
+        { RETURN(bool, containsErrorType(next)) }
     )
 }
 
 void fillPartialType(Type* type, Type* with) {
-    fillPartialTypeHelper(type, NULL, with);
+    STRUCTURAL_TYPE_CHECK_HELPER( 
+        if (
+            type->kind == TYPE_ERROR || type->kind == TYPE_VOID || type->kind == TYPE_BOOL
+            || type->kind == TYPE_INT || type->kind == TYPE_UINT || type->kind == TYPE_REAL
+        ) {
+            RETURN_VOID;
+        } else if (type->kind == TYPE_POINTER) {
+            TypePointer* t = (TypePointer*)type;
+            fillPartialType(t->base, with);
+            RETURN_VOID;
+        } else if (type->kind == TYPE_FUNCTION) {
+            TypeFunction* t = (TypeFunction*)type;
+            for (size_t i = 0; i < t->arg_count; i++) {
+                fillPartialType(t->arguments[i], with);
+            }
+            fillPartialType(t->ret_type, with);
+            RETURN_VOID;
+        } else if (type->kind == TYPE_ARRAY) {
+            TypeArray* array = (TypeArray*)type;
+            fillPartialType(array->base, with);
+            RETURN_VOID;
+        } else if (type->kind == TYPE_STRUCT) {
+            TypeStruct* s = (TypeStruct*)type;
+            for (size_t i = 0; i < s->count; i++) {
+                fillPartialType(s->types[i], with);
+            }
+            RETURN_VOID;
+        } else if (type->kind == TYPE_UNSURE) {
+            TypeUnsure* t = (TypeUnsure*)type;
+            if (t->actual != NULL) {
+                fillPartialType(t->actual, with);
+            } else if (t->fallback != NULL) {
+                fillPartialType(t->fallback, with);
+            } else {
+                t->fallback = with;
+            }
+            RETURN_VOID;
+        },
+        { RETURN_VOID; },
+        { RETURN_VOID; },
+        {
+            fillPartialType(next, with);
+            RETURN_VOID;
+        }
+    )
 }
 
 AstNode* getTypeReason(Type* type) {
-    if (type->kind == TYPE_UNSURE) {
-        TypeUnsure* t = (TypeUnsure*)type;
-        if (t->actual != NULL) {
-            return getTypeReason(t->actual);
-        } else if (t->fallback != NULL) {
-            return getTypeReason(t->fallback);
-        } else {
-            return NULL;
-        }
-    } else {
-        return type->def;
-    }
+    STRUCTURAL_TYPE_CHECK_HELPER( 
+        if (type->kind != TYPE_UNSURE) {
+            RETURN(AstNode*, type->def);
+        },
+        { RETURN(AstNode*, NULL); },
+        { RETURN(AstNode*, NULL); },
+        { RETURN(AstNode*, getTypeReason(next)); }
+    )
 }
 
-STRUCTURAL_TYPE_CHECK(
-    bool, isValidType,
-    if (
-        type->kind == TYPE_ERROR || type->kind == TYPE_VOID || type->kind == TYPE_BOOL || type->kind == TYPE_INT
-        || type->kind == TYPE_UINT || type->kind == TYPE_REAL || type->kind == TYPE_POINTER || type->kind == TYPE_FUNCTION
-    ) {
-        return true;
-    } else if (type->kind == TYPE_ARRAY) {
-        TypeArray* array = (TypeArray*)type;
-        return isValidTypeHelper(array->base, stack, NULL);
-    } else if (type->kind == TYPE_STRUCT) {
-        TypeStruct* s = (TypeStruct*)type;
-        for (size_t i = 0; i < s->count; i++) {
-            if (!isValidTypeHelper(s->types[i], stack, NULL)) {
-                return false;
+bool isValidType(Type* type) {
+    STRUCTURAL_TYPE_CHECK_HELPER( 
+        if (
+            type->kind == TYPE_ERROR || type->kind == TYPE_VOID || type->kind == TYPE_BOOL || type->kind == TYPE_INT
+            || type->kind == TYPE_UINT || type->kind == TYPE_REAL || type->kind == TYPE_POINTER
+        ) {
+            RETURN(bool, true);
+        } else if (type->kind == TYPE_ARRAY) {
+            TypeArray* array = (TypeArray*)type;
+            RETURN(bool, isValidType(array->base));
+        } else if (type->kind == TYPE_STRUCT) {
+            TypeStruct* s = (TypeStruct*)type;
+            for (size_t i = 0; i < s->count; i++) {
+                if (!isValidType(s->types[i])) {
+                    RETURN(bool, false);
+                }
             }
-        }
-        return true;
-    },
-    else { return false; },
-    else { return false; }
-)
+            RETURN(bool, true);
+        } else if (type->kind == TYPE_FUNCTION) {
+            TypeFunction* t = (TypeFunction*)type;
+            for (size_t i = 0; i < t->arg_count; i++) {
+                if (!isValidType(t->arguments[i])) {
+                    RETURN(bool, false);
+                }
+            }
+            RETURN(bool, true);
+        },
+        { RETURN(bool, false); },
+        { RETURN(bool, false); },
+        { RETURN(bool, isValidType(next)); }
+    )
+}
 
-STRUCTURAL_TYPE_CHECK(
-    bool, isEffectivelyVoidType,
-    if (type->kind == TYPE_VOID) {
-        return true;
-    } else if (
-        type->kind == TYPE_ERROR || type->kind == TYPE_BOOL || type->kind == TYPE_INT || type->kind == TYPE_UINT
-        || type->kind == TYPE_REAL || type->kind == TYPE_POINTER || type->kind == TYPE_FUNCTION
-    ) {
-        return false;
-    } else if (type->kind == TYPE_ARRAY) {
-        TypeArray* array = (TypeArray*)type;
-        return array->size == 0 || isEffectivelyVoidTypeHelper(array->base, stack, NULL);
-    } else if (type->kind == TYPE_STRUCT) {
-        TypeStruct* s = (TypeStruct*)type;
-        for (size_t i = 0; i < s->count; i++) {
-            if (!isEffectivelyVoidTypeHelper(s->types[i], stack, NULL)) {
-                return false;
+bool isEffectivelyVoidType(Type* type) {
+    STRUCTURAL_TYPE_CHECK_HELPER( 
+        if (type->kind == TYPE_VOID) {
+            RETURN(bool, true);
+        } else if (
+            type->kind == TYPE_ERROR || type->kind == TYPE_BOOL || type->kind == TYPE_INT || type->kind == TYPE_UINT
+            || type->kind == TYPE_REAL || type->kind == TYPE_POINTER || type->kind == TYPE_FUNCTION
+        ) {
+            RETURN(bool, false);
+        } else if (type->kind == TYPE_ARRAY) {
+            TypeArray* array = (TypeArray*)type;
+            RETURN(bool, isEffectivelyVoidType(array->base));
+        } else if (type->kind == TYPE_STRUCT) {
+            TypeStruct* s = (TypeStruct*)type;
+            for (size_t i = 0; i < s->count; i++) {
+                if (!isEffectivelyVoidType(s->types[i])) {
+                    RETURN(bool, false);
+                }
             }
-        }
-        return true;
-    },
-    else { return true; },
-    else { return false; }
-)
+            RETURN(bool, true);
+        },
+        { RETURN(bool, true); },
+        { RETURN(bool, false); },
+        { RETURN(bool, isEffectivelyVoidType(next)); }
+    )
+}
 
-STRUCTURAL_TYPE_CHECK(
-    bool, isSizedType,
-    if (type->kind == TYPE_VOID) {
-        return true;
-    } else if (type->kind == TYPE_FUNCTION) {
-        return false;
-    } else if (
-        type->kind == TYPE_ERROR || type->kind == TYPE_BOOL || type->kind == TYPE_INT
-        || type->kind == TYPE_UINT || type->kind == TYPE_REAL || type->kind == TYPE_POINTER
-    ) {
-        return true;
-    } else if (type->kind == TYPE_ARRAY) {
-        TypeArray* array = (TypeArray*)type;
-        return isSizedTypeHelper(array->base, stack, NULL);
-    } else if (type->kind == TYPE_STRUCT) {
-        TypeStruct* s = (TypeStruct*)type;
-        for (size_t i = 0; i < s->count; i++) {
-            if (!isSizedTypeHelper(s->types[i], stack, NULL)) {
-                return false;
+bool isSizedType(Type* type) {
+    STRUCTURAL_TYPE_CHECK_HELPER( 
+        if (type->kind == TYPE_VOID) {
+            RETURN(bool, true);
+        } else if (type->kind == TYPE_FUNCTION) {
+            RETURN(bool, false);
+        } else if (
+            type->kind == TYPE_ERROR || type->kind == TYPE_BOOL || type->kind == TYPE_INT
+            || type->kind == TYPE_UINT || type->kind == TYPE_REAL || type->kind == TYPE_POINTER
+        ) {
+            RETURN(bool, true);
+        } else if (type->kind == TYPE_ARRAY) {
+            TypeArray* array = (TypeArray*)type;
+            RETURN(bool, isSizedType(array->base));
+        } else if (type->kind == TYPE_STRUCT) {
+            TypeStruct* s = (TypeStruct*)type;
+            for (size_t i = 0; i < s->count; i++) {
+                if (!isSizedType(s->types[i])) {
+                    RETURN(bool, false);
+                }
             }
-        }
-        return true;
-    },
-    else { return false; },
-    else { return false; }
-)
+            RETURN(bool, true);
+        },
+        { RETURN(bool, false); },
+        { RETURN(bool, false); },
+        { RETURN(bool, isSizedType(next)); }
+    )
+}
 
 static Type* getEquivType(Type* type) {
     if (type->equiv != type) {

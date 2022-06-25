@@ -26,6 +26,7 @@ typedef enum {
 
 #define TYPE_BASE           \
     TypeKind kind;          \
+    bool visited;           \
     struct Type* next;      \
     struct Type* equiv;     \
     struct AstNode* def;    \
