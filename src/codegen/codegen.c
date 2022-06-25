@@ -55,6 +55,11 @@ static String getLinkerCommand(CompilerContext* context) {
     if (!context->settings.startfiles) {
         pushFormattedString(&command, " -nostartfiles");
     }
+    FOR_ALL_FILES({
+        if (file->type == FILE_OBJECT) {
+            pushFormattedString(&command, " %s", cstr(file->absolute_path));
+        }
+    })
     for (size_t i = 0; i < context->settings.lib_dirs.count; i++) {
         pushFormattedString(&command, " -L%s", cstr(context->settings.lib_dirs.strings[i]));
     }
@@ -74,15 +79,15 @@ void runCodeGeneration(CompilerContext* context) {
             context->settings.emit = COMPILER_EMIT_NONE;
         } else {
             ConstString ext = getExtention(toConstString(context->settings.output_file));
-            if (strcmp("ast", toCString(ext)) == 0) {
+            if (compareStrings(ext, str("ast")) == 0) {
                 context->settings.emit = COMPILER_EMIT_AST;
-            } else if (strcmp("ll", toCString(ext)) == 0) {
+            } else if (compareStrings(ext, str("ll")) == 0) {
                 context->settings.emit = COMPILER_EMIT_LLVM_IR;
-            } else if (strcmp("bc", toCString(ext)) == 0) {
+            } else if (compareStrings(ext, str("bc")) == 0) {
                 context->settings.emit = COMPILER_EMIT_LLVM_BC;
-            } else if (strcmp("S", toCString(ext)) == 0) {
+            } else if (compareStrings(ext, str("S")) == 0) {
                 context->settings.emit = COMPILER_EMIT_ASM;
-            } else if (strcmp("o", toCString(ext)) == 0) {
+            } else if (compareStrings(ext, str("o")) == 0) {
                 context->settings.emit = COMPILER_EMIT_OBJ;
             } else {
                 context->settings.emit = COMPILER_EMIT_BIN;

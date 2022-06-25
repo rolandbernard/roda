@@ -1,6 +1,8 @@
 
 #include <llvm-c/Analysis.h>
 #include <llvm-c/BitWriter.h>
+#include <llvm-c/BitReader.h>
+#include <llvm-c/IRReader.h>
 #include <llvm-c/Core.h>
 #include <llvm-c/Linker.h>
 #include <llvm-c/Target.h>
@@ -105,21 +107,55 @@ static LLVMModuleRef generateLinkedModule(LlvmCodegenContext* context) {
     linked_module = LLVMModuleCreateWithNameInContext(cstr(builderToString(&name)), context->llvm_cxt);
     deinitStringBuilder(&name);
     LLVMSetModuleDataLayout(linked_module, context->target_data);
-    FOR_ALL_MODULES_IN(context->cxt, {
-        LLVMModuleRef module = generateSingleModule(context, file);
+    FOR_ALL_FILES_IN(context->cxt, {
+        LLVMModuleRef module = NULL;
+        if (file->type == FILE_RODA) {
+            module = generateSingleModule(context, file);
 #ifdef DEBUG
-        if (LLVMVerifyModule(module, LLVMReturnStatusAction, &context->error_msg)) {
-            trimErrorMessage(context->error_msg);
-            addMessageToContext(
-                &context->cxt->msgs,
-                createMessage(
-                    ERROR_LLVM_BACKEND_ERROR,
-                    createFormattedString("generated an invalid llvm module: %s", context->error_msg), 0
-                )
-            );
-        }
-        LLVMDisposeMessage(context->error_msg);
+            if (LLVMVerifyModule(module, LLVMReturnStatusAction, &context->error_msg)) {
+                trimErrorMessage(context->error_msg);
+                addMessageToContext(
+                    &context->cxt->msgs,
+                    createMessage(
+                        ERROR_LLVM_BACKEND_ERROR,
+                        createFormattedString("generated an invalid LLVM module: %s", context->error_msg), 0
+                    )
+                );
+            }
+            LLVMDisposeMessage(context->error_msg);
 #endif
+        } else if (file->type == FILE_LLVM_IR || file->type == FILE_LLVM_BC) {
+            LLVMMemoryBufferRef memory = NULL;
+            if (LLVMCreateMemoryBufferWithContentsOfFile(cstr(file->original_path), &memory, &context->error_msg)) {
+                trimErrorMessage(context->error_msg);
+                addMessageToContext(
+                    &context->cxt->msgs,
+                    createMessage(
+                        ERROR_LLVM_BACKEND_ERROR,
+                        createFormattedString("failed to load file '%s': %s", cstr(file->original_path), context->error_msg), 0
+                    )
+                );
+                LLVMDisposeMessage(context->error_msg);
+            } else {
+                if (
+                    (file->type == FILE_LLVM_IR && LLVMParseIRInContext(context->llvm_cxt, memory, &module, &context->error_msg))
+                    || (file->type == FILE_LLVM_BC && LLVMParseBitcodeInContext(context->llvm_cxt, memory, &module, &context->error_msg))
+                ) {
+                    trimErrorMessage(context->error_msg);
+                    addMessageToContext(
+                        &context->cxt->msgs,
+                        createMessage(
+                            ERROR_LLVM_BACKEND_ERROR,
+                            createFormattedString("failed to parse LLVM IR file '%s': %s", cstr(file->original_path), context->error_msg), 0
+                        )
+                    );
+                    LLVMDisposeMessage(context->error_msg);
+                }
+                if (file->type == FILE_LLVM_BC) {
+                    LLVMDisposeMemoryBuffer(memory);
+                }
+            }
+        }
         if (module != NULL) {
             if (linked_module != NULL) {
                 if (LLVMLinkModules2(linked_module, module)) {
@@ -144,7 +180,7 @@ static LLVMModuleRef generateLinkedModule(LlvmCodegenContext* context) {
             &context->cxt->msgs,
             createMessage(
                 ERROR_LLVM_BACKEND_ERROR,
-                createFormattedString("generated an invalid llvm module: %s", context->error_msg), 0
+                createFormattedString("generated an invalid LLVM module: %s", context->error_msg), 0
             )
         );
     }

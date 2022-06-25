@@ -10,6 +10,7 @@
 
 void initFileSet(FileSet* fileset) {
     fileset->files = NULL;
+    fileset->files_last = NULL;
     fileset->file_count = 0;
     fileset->hashed = NULL;
     fileset->hashed_capacity = 0;
@@ -80,9 +81,14 @@ File* createFileInSet(FileSet* fileset, ConstPath relative_or_absolute_path) {
         return fileset->hashed[idx];
     } else {
         fileset->hashed[idx] = file;
-        file->next = fileset->files;
-        fileset->files = file;
         fileset->file_count++;
+        if (fileset->files == NULL) {
+            fileset->files = file;
+            fileset->files_last = file;
+        } else {
+            fileset->files_last->next = file;
+            fileset->files_last = file;
+        }
         return file;
     }
 }

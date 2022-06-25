@@ -1,5 +1,5 @@
 run: cmp %.out %.expected
-cleanup: #rm -f %.out
+cleanup: rm -f %.out
 
 exit: = 0
 stderr: =

@@ -34,7 +34,7 @@ void addMessageToContext(MessageContext* message_context, Message* message) {
         message_context->error_count++;
     }
     if (use_msg) {
-        if (message_context->messages_last == NULL) {
+        if (message_context->messages == NULL) {
             message_context->messages = message;
         } else {
             message_context->messages_last->next = message;
@@ -46,13 +46,15 @@ void addMessageToContext(MessageContext* message_context, Message* message) {
 }
 
 void addAllMessagesFromContext(MessageContext* dest_context, MessageContext* src_context) {
-    Message* cur = src_context->messages;
-    while (cur != NULL) {
-        Message* next = cur->next;
-        addMessageToContext(dest_context, cur);
-        cur = next;
+    if (dest_context->messages == NULL) {
+        dest_context->messages = src_context->messages;
+        dest_context->messages_last = src_context->messages_last;
+    } else {
+        dest_context->messages_last->next = src_context->messages;
+        dest_context->messages_last = src_context->messages_last;
     }
     src_context->messages = NULL;
+    src_context->messages_last = NULL;
 }
 
 void initMessageFilter(MessageFilter* filter) {

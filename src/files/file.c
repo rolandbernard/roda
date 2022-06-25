@@ -20,6 +20,15 @@ void initFile(File* file, ConstPath file_path) {
     file->extention = getExtention(toConstPath(file->absolute_path));
     file->name = getFilename(toConstPath(file->absolute_path));
     file->ast = NULL;
+    if (compareStrings(file->extention, str("ll")) == 0) {
+        file->type = FILE_LLVM_IR;
+    } else if (compareStrings(file->extention, str("bc")) == 0) {
+        file->type = FILE_LLVM_BC;
+    } else if (compareStrings(file->extention, str("o")) == 0) {
+        file->type = FILE_OBJECT;
+    } else {
+        file->type = FILE_RODA;
+    }
 }
 
 File* copyFile(const File* file) {

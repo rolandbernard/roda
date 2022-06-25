@@ -5,6 +5,7 @@
 
 typedef struct {
     File* files;
+    File* files_last;
     size_t file_count;
     File** hashed;
     size_t hashed_capacity;

@@ -7,8 +7,16 @@
 #include "text/string.h"
 #include "files/path.h"
 
+typedef enum {
+    FILE_RODA,
+    FILE_LLVM_IR,
+    FILE_LLVM_BC,
+    FILE_OBJECT,
+} FileType;
+
 typedef struct File {
     struct File* next;
+    FileType type;
     Path original_path;
     Path absolute_path;
     ConstPath directory;

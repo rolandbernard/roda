@@ -13,9 +13,11 @@
 
 void runCompilation(CompilerContext* context) {
     FOR_ALL_FILES({
-        file->ast = parseFile(file, context);
-        DEBUG_DO(context, COMPILER_DEBUG_PARSE_AST, { printAst(stderr, file->ast); });
-        printAndClearMessages(context, stderr);
+        if (file->type == FILE_RODA) {
+            file->ast = parseFile(file, context);
+            DEBUG_DO(context, COMPILER_DEBUG_PARSE_AST, { printAst(stderr, file->ast); });
+            printAndClearMessages(context, stderr);
+        }
     })
     DEBUG_LOG(context, "finished parsing all files");
     if (context->msgs.error_count == 0) {
