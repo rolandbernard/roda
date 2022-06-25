@@ -7,7 +7,7 @@
 #include "compiler/consteval.h"
 
 ConstValue createConstError(CompilerContext* context) {
-    ConstValue ret = { .type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR) };
+    ConstValue ret = { .type = getErrorType(&context->types) };
     return ret;
 }
 
@@ -21,7 +21,7 @@ static intmax_t wrapSignedInteger(intmax_t value, size_t size) {
 
 ConstValue createConstInt(CompilerContext* context, size_t size, intmax_t value) {
     ConstValue ret = {
-        .type = createSizedPrimitiveType(&context->types, TYPE_INT, size),
+        .type = createSizedPrimitiveType(&context->types, NULL, TYPE_INT, size),
         .sint = wrapSignedInteger(value, size),
     };
     return ret;
@@ -37,24 +37,24 @@ static uintmax_t wrapUnsignedInteger(uintmax_t value, size_t size) {
 
 ConstValue createConstUInt(CompilerContext* context, size_t size, uintmax_t value) {
     ConstValue ret = {
-        .type = createSizedPrimitiveType(&context->types, TYPE_UINT, size),
+        .type = createSizedPrimitiveType(&context->types, NULL, TYPE_UINT, size),
         .uint = wrapUnsignedInteger(value, size),
     };
     return ret;
 }
 
 ConstValue createConstF32(CompilerContext* context, float value) {
-    ConstValue ret = { .type = createSizedPrimitiveType(&context->types, TYPE_REAL, 32), .f32 = value };
+    ConstValue ret = { .type = createSizedPrimitiveType(&context->types, NULL, TYPE_REAL, 32), .f32 = value };
     return ret;
 }
 
 ConstValue createConstF64(CompilerContext* context, double value) {
-    ConstValue ret = { .type = createSizedPrimitiveType(&context->types, TYPE_REAL, 64), .f64 = value };
+    ConstValue ret = { .type = createSizedPrimitiveType(&context->types, NULL, TYPE_REAL, 64), .f64 = value };
     return ret;
 }
 
 ConstValue createConstBool(CompilerContext* context, bool value) {
-    ConstValue ret = { .type = createUnsizedPrimitiveType(&context->types, TYPE_BOOL), .boolean = value };
+    ConstValue ret = { .type = createUnsizedPrimitiveType(&context->types, NULL, TYPE_BOOL), .boolean = value };
     return ret;
 }
 
@@ -158,9 +158,9 @@ static ConstValue raiseTypeErrorNotInConst(CompilerContext* context, AstNode* no
     AstBinary* n = (AstBinary*)node;                                                                \
     ConstValue left = evaluateConstExpr(context, n->left);                                          \
     ConstValue right = evaluateConstExpr(context, n->right);                                        \
-    if (left.type->kind == TYPE_ERROR) {                                                            \
+    if (isErrorType(left.type)) {                                                                   \
         res = left;                                                                                 \
-    } else if (right.type->kind == TYPE_ERROR) {                                                    \
+    } else if (isErrorType(right.type)) {                                                           \
         res = right;                                                                                \
     } else if (!compareStructuralTypes(left.type, right.type)) {                                    \
         res = raiseTypeErrorDifferent(context, node, n->left, n->right, left.type, right.type);     \
@@ -206,7 +206,7 @@ static ConstValue raiseTypeErrorNotInConst(CompilerContext* context, AstNode* no
 #define UNARY_OP(ACTION) {                              \
     AstUnary* n = (AstUnary*)node;                      \
     ConstValue op = evaluateConstExpr(context, n->op);  \
-    if (op.type->kind == TYPE_ERROR) {                  \
+    if (isErrorType(op.type)) {                         \
         res = op;                                       \
     } else { ACTION }                                   \
     break;                                              \
@@ -355,9 +355,9 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
             case AST_CHAR:
             case AST_INT: {
                 AstInt* n = (AstInt*)node;
-                if (n->res_type == NULL || n->res_type->kind != TYPE_ERROR) {
+                if (!isErrorType(n->res_type)) {
                     if (n->res_type == NULL) {
-                        n->res_type = createSizedPrimitiveType(&context->types, TYPE_INT, 64);
+                        n->res_type = createSizedPrimitiveType(&context->types, NULL, TYPE_INT, 64);
                     }
                     TypeSizedPrimitive* t = isIntegerType(n->res_type);
                     ASSERT(t != NULL);
@@ -375,9 +375,9 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
             }
             case AST_REAL: {
                 AstReal* n = (AstReal*)node;
-                if (n->res_type == NULL || n->res_type->kind != TYPE_ERROR) {
+                if (!isErrorType(n->res_type)) {
                     if (n->res_type == NULL) {
-                        n->res_type = createSizedPrimitiveType(&context->types, TYPE_REAL, 64);
+                        n->res_type = createSizedPrimitiveType(&context->types, NULL, TYPE_REAL, 64);
                     }
                     TypeSizedPrimitive* t = isRealType(n->res_type);
                     ASSERT(t != NULL);
@@ -395,9 +395,9 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
             }
             case AST_BOOL: {
                 AstBool* n = (AstBool*)node;
-                if (n->res_type == NULL || n->res_type->kind != TYPE_ERROR) {
+                if (!isErrorType(n->res_type)) {
                     if (n->res_type == NULL) {
-                        n->res_type = createUnsizedPrimitiveType(&context->types, TYPE_BOOL);
+                        n->res_type = createUnsizedPrimitiveType(&context->types, NULL, TYPE_BOOL);
                     }
                     Type* t = isBooleanType(n->res_type);
                     ASSERT(t != NULL);

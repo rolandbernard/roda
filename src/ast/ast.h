@@ -91,7 +91,6 @@ typedef enum {
     size_t parent_idx;                  \
     Span location;                      \
     Type* res_type;                     \
-    struct AstNode* res_type_reasoning; \
     void* codegen;
 
 typedef struct AstNode {

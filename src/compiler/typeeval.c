@@ -68,11 +68,11 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
     } else {
         switch (node->kind) {
             case AST_VOID: {
-                node->res_type = createUnsizedPrimitiveType(&context->types, TYPE_VOID);
+                node->res_type = createUnsizedPrimitiveType(&context->types, node, TYPE_VOID);
                 break;
             }
             case AST_ERROR: {
-                node->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
+                node->res_type = getErrorType(&context->types);
                 break;
             }
             case AST_IF_ELSE:
@@ -135,13 +135,13 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
             case AST_VAR: {
                 AstVar* n = (AstVar*)node;
                 if (n->binding == NULL) {
-                    n->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
+                    n->res_type = getErrorType(&context->types);
                 } else {
                     SymbolType* var = (SymbolType*)n->binding;
-                    n->res_type = createTypeReference(&context->types, var);
+                    n->res_type = createTypeReference(&context->types, node, var);
                     if (var->type == NULL) {
                         AstTypeDef* def = (AstTypeDef*)var->def->parent;
-                        var->type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
+                        var->type = getErrorType(&context->types);
                         var->type = evaluateTypeExpr(context, def->value);
                     }
                 }
@@ -150,28 +150,22 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
             case AST_ADDR: {
                 AstUnary* n = (AstUnary*)node;
                 Type* base = evaluateTypeExpr(context, n->op);
-                if (base->kind == TYPE_ERROR) {
-                    n->res_type = base;
-                } else {
-                    n->res_type = createPointerType(&context->types, base);
-                }
+                n->res_type = createPointerType(&context->types, node, base);
                 break;
             }
             case AST_ARRAY: {
                 AstBinary* n = (AstBinary*)node;
                 Type* base = evaluateTypeExpr(context, n->right);
                 if (checkValidInConstExpr(context, n->left)) {
-                    typeInferExpr(context, n->left, createSizedPrimitiveType(&context->types, TYPE_UINT, SIZE_SIZE));
+                    typeInferExpr(context, n->left, createSizedPrimitiveType(&context->types, node, TYPE_UINT, SIZE_SIZE));
                     typeCheckExpr(context, n->left);
                 }
                 if (context->msgs.error_count != 0) {
-                    n->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
+                    n->res_type = getErrorType(&context->types);
                 } else {
                     ConstValue size = evaluateConstExpr(context, n->left);
                     TypeSizedPrimitive* size_type = isIntegerType(size.type);
-                    if (base->kind == TYPE_ERROR) {
-                        n->res_type = base;
-                    } else if (size.type->kind == TYPE_ERROR) {
+                    if (isErrorType(size.type)) {
                         n->res_type = size.type;
                     } else if (size_type == NULL) {
                         String idx_type = buildTypeName(size.type);
@@ -184,7 +178,7 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
                             )
                         );
                         freeString(idx_type);
-                        n->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
+                        n->res_type = getErrorType(&context->types);
                     } else if (size_type->kind == TYPE_INT && size.sint < 0) {
                         addMessageToContext(
                             &context->msgs,
@@ -194,10 +188,10 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
                                 createMessageFragment(MESSAGE_ERROR, createFormattedString("array length of `%i` not allowed here", size.sint), n->left->location)
                             )
                         );
-                        n->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
+                        n->res_type = getErrorType(&context->types);
                     } else {
                         size_t len = size_type->kind == TYPE_INT ? (size_t)size.sint : (size_t)size.uint;
-                        n->res_type = createArrayType(&context->types, base, len);
+                        n->res_type = createArrayType(&context->types, node, base, len);
                     }
                 }
                 break;
@@ -212,9 +206,9 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
                 if (n->ret_type != NULL) {
                     ret_type = evaluateTypeExpr(context, n->ret_type);
                 } else {
-                    ret_type = createUnsizedPrimitiveType(&context->types, TYPE_VOID);
+                    ret_type = createUnsizedPrimitiveType(&context->types, node, TYPE_VOID);
                 }
-                n->res_type = createFunctionType(&context->types, ret_type, n->arguments->count, args, n->vararg);
+                n->res_type = createFunctionType(&context->types, node, ret_type, n->arguments->count, args, n->vararg);
                 break;
             }
             case AST_STRUCT_TYPE: {
@@ -227,12 +221,11 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
                         names[i] = field->name->name;
                         types[i] = evaluateTypeExpr(context, field->type);
                     }
-                    n->res_type = createTypeStruct(&context->types, names, types, n->count);
+                    n->res_type = createTypeStruct(&context->types, node, names, types, n->count);
                 }
                 break;
             }
         }
-        node->res_type_reasoning = node;
         return node->res_type;
     }
 }

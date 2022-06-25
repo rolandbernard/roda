@@ -16,12 +16,7 @@
 
 void initTypeContext(TypeContext* cxt) {
     cxt->types = NULL;
-    cxt->count = 0;
-    cxt->capacity = 0;
-}
-
-static bool isIndexValid(const TypeContext* table, size_t idx) {
-    return table->types[idx] != NULL;
+    cxt->error = createUnsizedPrimitiveType(cxt, NULL, TYPE_ERROR);
 }
 
 static void freeType(Type* type) {
@@ -55,218 +50,61 @@ static void freeType(Type* type) {
 }
 
 void deinitTypeContext(TypeContext* cxt) {
-    for (size_t i = 0; i < cxt->capacity; i++) {
-        if (isIndexValid(cxt, i)) {
-            freeType(cxt->types[i]);
-        }
-    }
-    FREE(cxt->types);
-}
-
-static bool shallowCompareTypes(const Type* a, const Type* b) {
-    ASSERT(a != NULL);
-    ASSERT(b != NULL);
-    if (a->kind != b->kind) {
-        return false;
-    } else {
-        switch (a->kind) {
-            case TYPE_ERROR:
-            case TYPE_VOID:
-            case TYPE_BOOL:
-                return true;
-            case TYPE_INT:
-            case TYPE_UINT:
-            case TYPE_REAL: {
-                TypeSizedPrimitive* ta = (TypeSizedPrimitive*)a;
-                TypeSizedPrimitive* tb = (TypeSizedPrimitive*)b;
-                return ta->size == tb->size;
-            }
-            case TYPE_POINTER: {
-                TypePointer* ta = (TypePointer*)a;
-                TypePointer* tb = (TypePointer*)b;
-                return ta->base == tb->base;
-            }
-            case TYPE_ARRAY: {
-                TypeArray* ta = (TypeArray*)a;
-                TypeArray* tb = (TypeArray*)b;
-                return ta->base == tb->base && ta->size == tb->size;
-            }
-            case TYPE_FUNCTION: {
-                TypeFunction* ta = (TypeFunction*)a;
-                TypeFunction* tb = (TypeFunction*)b;
-                if (ta->arg_count != tb->arg_count || ta->ret_type != tb->ret_type || ta->vararg != tb->vararg) {
-                    return false;
-                } else {
-                    for (size_t i = 0; i < ta->arg_count; i++) {
-                        if (ta->arguments[i] != tb->arguments[i]) {
-                            return false;
-                        }
-                    }
-                    return true;
-                }
-            }
-            case TYPE_REFERENCE: {
-                TypeReference* ta = (TypeReference*)a;
-                TypeReference* tb = (TypeReference*)b;
-                return ta->binding == tb->binding;
-            }
-            case TYPE_STRUCT: {
-                TypeStruct* ta = (TypeStruct*)a;
-                TypeStruct* tb = (TypeStruct*)b;
-                if (ta->count != tb->count) {
-                    return false;
-                } else {
-                    for (size_t i = 0; i < ta->count; i++) {
-                        if (ta->names[i] != tb->names[i] || ta->types[i] != tb->types[i]) {
-                            return false;
-                        }
-                    }
-                    return true;
-                }
-            }
-            case TYPE_UNSURE: {
-                return a == b; // Note: unsure types are not uniqued
-            }
-        }
-        UNREACHABLE("unhandled type kind");
+    Type* cur = cxt->types;
+    while (cur != NULL) {
+        Type* next = cur->next;
+        freeType(cur);
+        cur = next;
     }
 }
 
-static size_t shallowHashType(const Type* type) {
-    ASSERT(type != NULL);
-    switch (type->kind) {
-        case TYPE_ERROR:
-        case TYPE_VOID:
-        case TYPE_BOOL:
-            return hashInt(type->kind);
-        case TYPE_INT:
-        case TYPE_UINT:
-        case TYPE_REAL: {
-            TypeSizedPrimitive* t = (TypeSizedPrimitive*)type;
-            return hashCombine(hashInt(t->kind), hashInt(t->size));
-        }
-        case TYPE_POINTER: {
-            TypePointer* t = (TypePointer*)type;
-            return hashCombine(hashInt(t->kind), hashInt((size_t)t->base));
-        }
-        case TYPE_ARRAY: {
-            TypeArray* t = (TypeArray*)type;
-            return hashCombine(hashCombine(hashInt(t->kind), hashInt((size_t)t->base)), hashInt(t->size));
-        }
-        case TYPE_FUNCTION: {
-            TypeFunction* t = (TypeFunction*)type;
-            size_t hash = hashCombine(
-                hashCombine(hashInt(t->kind), hashInt((size_t)t->ret_type)),
-                hashCombine(hashInt(t->arg_count), hashInt(t->vararg))
-            );
-            for (size_t i = 0; i < t->arg_count; i++) {
-                hash = hashCombine(hash, hashInt((size_t)t->arguments[i]));
-            }
-            return hash;
-        }
-        case TYPE_REFERENCE: {
-            TypeReference* t = (TypeReference*)type;
-            return hashCombine(hashInt(t->kind), hashInt((size_t)t->binding));
-        }
-        case TYPE_STRUCT: {
-            TypeStruct* t = (TypeStruct*)type;
-            size_t hash = hashCombine(hashInt(t->kind), hashInt((size_t)t->count));
-            for (size_t i = 0; i < t->count; i++) {
-                hash = hashCombine(hash, hashInt((size_t)t->names[i]));
-                hash = hashCombine(hash, hashInt((size_t)t->types[i]));
-            }
-            return hash;
-        }
-        case TYPE_UNSURE: {
-            return hashInt((size_t)type); // Note: unsure types are not uniqued
-        }
-    }
-    UNREACHABLE("unhandled type kind");
+Type* getErrorType(TypeContext* cxt) {
+    return cxt->error;
 }
 
-static bool continueSearch(const TypeContext* table, size_t idx, const Type* key) {
-    return table->types[idx] != NULL && !shallowCompareTypes(table->types[idx], key);
+static Type* addAndInitType(TypeContext* context, Type* type, TypeKind kind, AstNode* def) {
+    type->kind = kind;
+    type->codegen = NULL;
+    type->equiv = type;
+    type->def = def;
+    type->next = context->types;
+    context->types = type;
+    return type;
 }
 
-static size_t findIndexHashTable(const TypeContext* table, const Type* key) {
-    size_t idx = shallowHashType(key) % table->capacity;
-    while (continueSearch(table, idx, key)) {
-        idx = (idx + 1) % table->capacity;
-    }
-    return idx;
+Type* createUnsizedPrimitiveType(TypeContext* cxt, struct AstNode* def, TypeKind kind) {
+    Type* type = NEW(Type);
+    return addAndInitType(cxt, type, kind, def);
 }
 
-static void rebuildHashTable(TypeContext* table, size_t size) {
-    TypeContext new;
-    new.capacity = size;
-    new.types = ALLOC(Type*, size);
-    for (size_t i = 0; i < size; i++) {
-        new.types[i] = NULL;
-    }
-    for (size_t i = 0; i < table->capacity; i++) {
-        if (isIndexValid(table, i)) {
-            size_t idx = findIndexHashTable(&new, table->types[i]);
-            new.types[idx] = table->types[i];
-        }
-    }
-    FREE(table->types);
-    table->types = new.types;
-    table->capacity = new.capacity;
+Type* createSizedPrimitiveType(TypeContext* cxt, struct AstNode* def, TypeKind kind, size_t size) {
+    TypeSizedPrimitive* type = NEW(TypeSizedPrimitive);
+    type->size = size;
+    return addAndInitType(cxt, (Type*)type, kind, def);
 }
 
-static void tryResizingHashTable(TypeContext* table) {
-    if (table->capacity == 0 || 2 * table->capacity < 3 * table->count) {
-        rebuildHashTable(table, (table->capacity == 0 ? INITIAL_CAPACITY : 3 * table->capacity / 2));
-    }
-}
-
-static Type* createTypeIfAbsent(TypeContext* context, Type* type, size_t size, bool* new) {
-    tryResizingHashTable(context);
-    size_t idx = findIndexHashTable(context, type);
-    if (!isIndexValid(context, idx)) {
-        context->types[idx] = checkedAlloc(size);
-        memcpy(context->types[idx], type, size);
-        context->count++;
-        if (new != NULL) {
-            *new = true;
-        }
-        context->types[idx]->codegen = NULL;
-        context->types[idx]->equiv = context->types[idx];
-    } else if (new != NULL) {
-        *new = false;
-    }
-    return context->types[idx];
-}
-
-Type* createUnsizedPrimitiveType(TypeContext* cxt, TypeKind kind) {
-    Type type = { .kind = kind };
-    return createTypeIfAbsent(cxt, &type, sizeof(Type), NULL);
-}
-
-Type* createSizedPrimitiveType(TypeContext* cxt, TypeKind kind, size_t size) {
-    TypeSizedPrimitive type = { .kind = kind, .size = size };
-    return createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeSizedPrimitive), NULL);
-}
-
-Type* createPointerType(TypeContext* cxt, Type* base) {
+Type* createPointerType(TypeContext* cxt, struct AstNode* def, Type* base) {
     if (isErrorType(base)) {
         return base;
     } else {
-        TypePointer type = { .kind = TYPE_POINTER, .base = base };
-        return createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypePointer), NULL);
+        TypePointer* type = NEW(TypePointer);
+        type->base = base;
+        return addAndInitType(cxt, (Type*)type, TYPE_POINTER, def);
     }
 }
 
-Type* createArrayType(TypeContext* cxt, Type* base, size_t size) {
+Type* createArrayType(TypeContext* cxt, struct AstNode* def, Type* base, size_t size) {
     if (isErrorType(base)) {
         return base;
     } else {
-        TypeArray type = { .kind = TYPE_ARRAY, .base = base, .size = size };
-        return createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeArray), NULL);
+        TypeArray* type = NEW(TypeArray);
+        type->base = base;
+        type->size = size;
+        return addAndInitType(cxt, (Type*)type, TYPE_ARRAY, def);
     }
 }
 
-Type* createFunctionType(TypeContext* cxt, Type* ret_type, size_t arg_count, Type** arguments, bool vararg) {
+Type* createFunctionType(TypeContext* cxt, struct AstNode* def, Type* ret_type, size_t arg_count, Type** arguments, bool vararg) {
     if (isErrorType(ret_type)) {
         FREE(arguments);
         return ret_type;
@@ -278,28 +116,22 @@ Type* createFunctionType(TypeContext* cxt, Type* ret_type, size_t arg_count, Typ
                 return ret;
             }
         }
-        TypeFunction type = {
-            .kind = TYPE_FUNCTION,
-            .ret_type = ret_type,
-            .arguments = arguments,
-            .arg_count = arg_count,
-            .vararg = vararg,
-        };
-        bool new;
-        Type* ret = createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeFunction), &new);
-        if (!new) {
-            FREE(arguments);
-        }
-        return ret;
+        TypeFunction* type = NEW(TypeFunction);
+        type->ret_type = ret_type;
+        type->arguments = arguments;
+        type->arg_count = arg_count;
+        type->vararg = vararg;
+        return addAndInitType(cxt, (Type*)type, TYPE_FUNCTION, def);
     }
 }
 
-Type* createTypeReference(TypeContext* cxt, struct SymbolType* binding) {
-    TypeReference type = { .kind = TYPE_REFERENCE, .binding = binding };
-    return createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeReference), NULL);
+Type* createTypeReference(TypeContext* cxt, struct AstNode* def, struct SymbolType* binding) {
+    TypeReference* type = NEW(TypeReference);
+    type->binding = binding;
+    return addAndInitType(cxt, (Type*)type, TYPE_REFERENCE, def);
 }
 
-Type* createTypeStruct(TypeContext* cxt, Symbol* names, Type** types, size_t count) {
+Type* createTypeStruct(TypeContext* cxt, struct AstNode* def, Symbol* names, Type** types, size_t count) {
     for (size_t i = 0; i < count; i++) {
         if (isErrorType(types[i])) {
             Type* ret = types[i];
@@ -308,31 +140,18 @@ Type* createTypeStruct(TypeContext* cxt, Symbol* names, Type** types, size_t cou
             return ret;
         }
     }
-    TypeStruct type = {
-        .kind = TYPE_STRUCT, .names = names, .types = types, .count = count,
-    };
-    bool new;
-    Type* ret = createTypeIfAbsent(cxt, (Type*)&type, sizeof(TypeStruct), &new);
-    if (!new) {
-        FREE(names);
-        FREE(types);
-    }
-    return ret;
+    TypeStruct* type = NEW(TypeStruct);
+    type->names = names;
+    type->types = types;
+    type->count = count;
+    return addAndInitType(cxt, (Type*)type, TYPE_STRUCT, def);
 }
 
-Type* createUnsureType(TypeContext* cxt, Type* fallback) {
+Type* createUnsureType(TypeContext* cxt, struct AstNode* def, Type* fallback) {
     TypeUnsure* type = NEW(TypeUnsure);
-    type->kind = TYPE_UNSURE;
-    type->equiv = (Type*)type;
-    type->codegen = NULL;
     type->fallback = fallback;
     type->actual = NULL;
-    tryResizingHashTable(cxt);
-    size_t idx = findIndexHashTable(cxt, (Type*)type);
-    ASSERT(!isIndexValid(cxt, idx));
-    cxt->types[idx] = (Type*)type;
-    cxt->count++;
-    return (Type*)type;
+    return addAndInitType(cxt, (Type*)type, TYPE_UNSURE, def);
 }
 
 static void buildTypeNameInto(String* dst, const Type* type) {
@@ -444,8 +263,6 @@ typedef struct TypeReferenceStack {
     struct TypeReferenceStack* last;
     const SymbolType* binding;
 } TypeReferenceStack;
-
-#define DEF_CALL(NAME, TYPE, STACK) NAME (TYPE, STACK)
 
 #define STRUCTURAL_TYPE_CHECK_HELPER(NAME, TRUE, DEFAULT, ON_NULL, CXT)     \
     if (type != NULL) {                                                     \
@@ -694,6 +511,21 @@ void fillPartialType(Type* type, Type* with) {
     fillPartialTypeHelper(type, NULL, with);
 }
 
+AstNode* getTypeReason(Type* type) {
+    if (type->kind == TYPE_UNSURE) {
+        TypeUnsure* t = (TypeUnsure*)type;
+        if (t->actual != NULL) {
+            return getTypeReason(t->actual);
+        } else if (t->fallback != NULL) {
+            return getTypeReason(t->fallback);
+        } else {
+            return NULL;
+        }
+    } else {
+        return type->def;
+    }
+}
+
 STRUCTURAL_TYPE_CHECK(
     bool, isValidType,
     if (
@@ -918,7 +750,7 @@ static bool compareStructuralTypesHelper(Type* a, Type* b, bool change, bool* ch
                     TypeFunction* tb = (TypeFunction*)b;
                     if (
                         ta->arg_count != tb->arg_count || ta->vararg != tb->vararg
-                        || compareStructuralTypesHelper(ta->ret_type, tb->ret_type, change, changed, stack)
+                        || !compareStructuralTypesHelper(ta->ret_type, tb->ret_type, change, changed, stack)
                     ) {
                         equal = false;
                     } else {

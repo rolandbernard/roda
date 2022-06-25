@@ -6,7 +6,7 @@
 
 #include "compiler/typeinfer.h"
 
-static void raiseConflictingTypes(CompilerContext* context, AstNode* node, Type* other, AstNode* other_reason) {
+static void raiseConflictingTypes(CompilerContext* context, AstNode* node, Type* other) {
     String fst_type = buildTypeName(node->res_type);
     String snd_type = buildTypeName(other);
     String message = createFormattedString("type error, conflicting types `%s` and `%s`", cstr(fst_type), cstr(snd_type));
@@ -15,17 +15,17 @@ static void raiseConflictingTypes(CompilerContext* context, AstNode* node, Type*
     );
     MessageFragment* notes[2];
     size_t note_count = 0;
-    if (node->res_type_reasoning != NULL) {
+    if (getTypeReason(node->res_type) != NULL) {
         notes[note_count] = createMessageFragment(MESSAGE_NOTE,
             createFormattedString("note: expecting `%s` because of this", cstr(fst_type)),
-            node->res_type_reasoning->location
+            getTypeReason(node->res_type)->location
         );
         note_count++;
     }
-    if (other_reason != NULL) {
+    if (getTypeReason(other) != NULL) {
         notes[note_count] = createMessageFragment(MESSAGE_NOTE,
             createFormattedString("note: expecting `%s` because of this", cstr(snd_type)),
-            other_reason->location
+            getTypeReason(other)->location
         );
         note_count++;
     }
@@ -40,19 +40,15 @@ static void raiseConflictingTypes(CompilerContext* context, AstNode* node, Type*
     freeString(snd_type);
 }
 
-static bool propagateTypeIntoAstNode(
-    CompilerContext* context, AstNode* node, Type* type, AstNode* reasoning, bool* changed
-) {
+static bool propagateTypeIntoAstNode(CompilerContext* context, AstNode* node, Type* type, bool* changed) {
     bool changed_this = false;
     if (node->res_type == NULL) {
         node->res_type = type;
-        node->res_type_reasoning = reasoning;
         *changed = true;
         return true;
     } else if (!assertStructuralTypesEquality(node->res_type, type, &changed_this)) {
-        raiseConflictingTypes(context, node, type, reasoning);
-        node->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
-        node->res_type_reasoning = NULL;
+        raiseConflictingTypes(context, node, type);
+        node->res_type = getErrorType(&context->types);
         *changed = true;
         return true;
     } else if (changed_this) {
@@ -64,76 +60,7 @@ static bool propagateTypeIntoAstNode(
 }
 
 static bool propagateTypeFromIntoAstNode(CompilerContext* context, AstNode* into, AstNode* from, bool* changed) {
-    return propagateTypeIntoAstNode(context, into, from->res_type, from->res_type_reasoning, changed);
-}
-
-static AstNode* getStructFieldReasoning(AstNode* type_reason, Symbol name) {
-    if (type_reason != NULL && (type_reason->kind == AST_STRUCT_TYPE || type_reason->kind == AST_STRUCT_LIT)) {
-        AstList* strct_node = (AstList*)type_reason;
-        for (size_t i = 0; i < strct_node->count; i++) {
-            AstStructField* field = (AstStructField*)strct_node->nodes[i];
-            if (field->name->name == name) {
-                return field->type->res_type_reasoning;
-            }
-        }
-    }
-    return type_reason;
-}
-
-static AstNode* getArrayElementReasoning(AstNode* type_reason) {
-    if (type_reason != NULL && type_reason->kind == AST_ARRAY) {
-        AstBinary* arr_node = (AstBinary*)type_reason;
-        return arr_node->right;
-    } else if (type_reason != NULL && type_reason->kind == AST_ARRAY_LIT) {
-        AstList* arr_node = (AstList*)type_reason;
-        if (arr_node->count > 0) {
-            return arr_node->nodes[0]->res_type_reasoning;
-        }
-    }
-    return type_reason;
-}
-
-static AstNode* getPointerElementReasoning(AstNode* type_reason) {
-    if (type_reason != NULL && type_reason->kind == AST_ADDR) {
-        AstUnary* addr_node = (AstUnary*)type_reason;
-        return addr_node->op->res_type_reasoning;
-    }
-    return type_reason;
-}
-
-static AstNode* getFunctionReturnReasoning(AstNode* type_reason) {
-    if (type_reason != NULL && type_reason->kind == AST_FN) {
-        AstFn* fn_node = (AstFn*)type_reason;
-        if (fn_node->ret_type == NULL) {
-            return (AstNode*)fn_node->name;
-        } else {
-            return fn_node->ret_type;
-        }
-    } else if (type_reason != NULL && type_reason->kind == AST_FN_TYPE) {
-        AstFnType* fn_node = (AstFnType*)type_reason;
-        if (fn_node->ret_type == NULL) {
-            return (AstNode*)fn_node;
-        } else {
-            return fn_node->ret_type;
-        }
-    }
-    return type_reason;
-}
-
-static AstNode* getFunctionParamReasoning(AstNode* type_reason, size_t i) {
-    if (type_reason != NULL && type_reason->kind == AST_FN) {
-        AstFn* fn_node = (AstFn*)type_reason;
-        AstArgDef* arg_node = (AstArgDef*)fn_node->arguments->nodes[i];
-        if (arg_node->type == NULL) {
-            return (AstNode*)arg_node;
-        } else {
-            return arg_node->type;
-        }
-    } else if (type_reason != NULL && type_reason->kind == AST_FN_TYPE) {
-        AstFnType* fn_node = (AstFnType*)type_reason;
-        return fn_node->arguments->nodes[i];
-    }
-    return type_reason;
+    return propagateTypeIntoAstNode(context, into, from->res_type, changed);
 }
 
 static void propagateTypes(CompilerContext* context, AstNode* node, bool* changed) {
@@ -169,12 +96,11 @@ static void propagateTypes(CompilerContext* context, AstNode* node, bool* change
                 SymbolVariable* var = (SymbolVariable*)n->binding;
                 if (var != NULL) {
                     if (var->type != NULL) {
-                        if (propagateTypeIntoAstNode(context, node, var->type, var->type_reasoning, changed)) {
+                        if (propagateTypeIntoAstNode(context, node, var->type, changed)) {
                             propagateTypes(context, node->parent, changed);
                         }
                     } else if (n->res_type != NULL) {
                         var->type = n->res_type;
-                        var->type_reasoning = n->res_type_reasoning;
                         FOR_ALL_VAR_REFS(var, {
                             if (n != ref) {
                                 propagateTypes(context, (AstNode*)ref, changed);
@@ -289,14 +215,12 @@ static void propagateTypes(CompilerContext* context, AstNode* node, bool* change
                     TypeArray* arr_type = isArrayType(n->left->res_type);
                     TypePointer* ptr_type = isPointerType(n->left->res_type);
                     if (arr_type != NULL) {
-                        AstNode* type_reason = getArrayElementReasoning(n->left->res_type_reasoning);
-                        if (propagateTypeIntoAstNode(context, node, arr_type->base, type_reason, changed)) {
+                        if (propagateTypeIntoAstNode(context, node, arr_type->base, changed)) {
                             propagateTypes(context, node->parent, changed);
                         }
                     }
                     if (ptr_type != NULL) {
-                        AstNode* type_reason = getPointerElementReasoning(n->left->res_type_reasoning);
-                        if (propagateTypeIntoAstNode(context, node, ptr_type->base, type_reason, changed)) {
+                        if (propagateTypeIntoAstNode(context, node, ptr_type->base, changed)) {
                             propagateTypes(context, node->parent, changed);
                         }
                     }
@@ -327,15 +251,14 @@ static void propagateTypes(CompilerContext* context, AstNode* node, bool* change
             case AST_ADDR: {
                 AstUnary* n = (AstUnary*)node;
                 if (n->op->res_type != NULL) {
-                    if (propagateTypeIntoAstNode(context, node, createPointerType(&context->types, n->op->res_type), node, changed)) {
+                    if (propagateTypeIntoAstNode(context, node, createPointerType(&context->types, node, n->op->res_type), changed)) {
                         propagateTypes(context, node->parent, changed);
                     }
                 }
                 if (n->res_type != NULL) {
                     TypePointer* type = isPointerType(n->res_type);
                     if (type != NULL) {
-                        AstNode* type_reason = getPointerElementReasoning(n->res_type_reasoning);
-                        if (propagateTypeIntoAstNode(context, n->op, type->base, type_reason, changed)) {
+                        if (propagateTypeIntoAstNode(context, n->op, type->base, changed)) {
                             propagateTypes(context, n->op, changed);
                         }
                     }
@@ -345,15 +268,14 @@ static void propagateTypes(CompilerContext* context, AstNode* node, bool* change
             case AST_DEREF: {
                 AstUnary* n = (AstUnary*)node;
                 if (n->res_type != NULL) {
-                    if (propagateTypeIntoAstNode(context, n->op, createPointerType(&context->types, n->res_type), node->res_type_reasoning, changed)) {
+                    if (propagateTypeIntoAstNode(context, n->op, createPointerType(&context->types, node, n->res_type), changed)) {
                         propagateTypes(context, n->op, changed);
                     }
                 }
                 if (n->op->res_type != NULL) {
                     TypePointer* type = isPointerType(n->op->res_type);
                     if (type != NULL) {
-                        AstNode* type_reason = getPointerElementReasoning(n->op->res_type_reasoning);
-                        if (propagateTypeIntoAstNode(context, node, type->base, type_reason, changed)) {
+                        if (propagateTypeIntoAstNode(context, node, type->base, changed)) {
                             propagateTypes(context, node->parent, changed);
                         }
                     }
@@ -370,13 +292,11 @@ static void propagateTypes(CompilerContext* context, AstNode* node, bool* change
                             || (type->vararg && type->arg_count < n->arguments->count)
                         )
                     ) {
-                        AstNode* type_reason = getFunctionReturnReasoning(n->function->res_type_reasoning);
-                        if (propagateTypeIntoAstNode(context, node, type->ret_type, type_reason, changed)) {
+                        if (propagateTypeIntoAstNode(context, node, type->ret_type, changed)) {
                             propagateTypes(context, node->parent, changed);
                         }
                         for (size_t i = 0; i < type->arg_count; i++) {
-                            type_reason = getFunctionParamReasoning(n->function->res_type_reasoning, i);
-                            if (propagateTypeIntoAstNode(context, n->arguments->nodes[i], type->arguments[i], type_reason, changed)) {
+                            if (propagateTypeIntoAstNode(context, n->arguments->nodes[i], type->arguments[i], changed)) {
                                 propagateTypes(context, n->arguments->nodes[i], changed);
                             }
                         }
@@ -393,8 +313,7 @@ static void propagateTypes(CompilerContext* context, AstNode* node, bool* change
                             AstStructField* field = (AstStructField*)n->nodes[i];
                             size_t idx = lookupIndexOfStructField(type, field->name->name);
                             if (idx != NO_POS) {
-                                AstNode* type_reason = getStructFieldReasoning(n->res_type_reasoning, field->name->name);
-                                if (propagateTypeIntoAstNode(context, field->field_value, type->types[idx], type_reason, changed)) {
+                                if (propagateTypeIntoAstNode(context, field->field_value, type->types[idx], changed)) {
                                     propagateTypes(context, field->field_value, changed);
                                 }
                             }
@@ -418,8 +337,8 @@ static void propagateTypes(CompilerContext* context, AstNode* node, bool* change
                             names[i] = field->name->name;
                             types[i] = field->field_value->res_type;
                         }
-                        Type* type = createTypeStruct(&context->types, names, types, n->count);
-                        if (propagateTypeIntoAstNode(context, node, type, node, changed)) {
+                        Type* type = createTypeStruct(&context->types, node, names, types, n->count);
+                        if (propagateTypeIntoAstNode(context, node, type, changed)) {
                             propagateTypes(context, node->parent, changed);
                         }
                     }
@@ -431,31 +350,28 @@ static void propagateTypes(CompilerContext* context, AstNode* node, bool* change
                 if (n->res_type != NULL) {
                     TypeArray* type = isArrayType(n->res_type);
                     if (type != NULL) {
-                        AstNode* type_reason = getArrayElementReasoning(n->res_type_reasoning);
                         for (size_t i = 0; i < n->count; i++) {
-                            if (propagateTypeIntoAstNode(context, n->nodes[i], type->base, type_reason, changed)) {
+                            if (propagateTypeIntoAstNode(context, n->nodes[i], type->base, changed)) {
                                 propagateTypes(context, n->nodes[i], changed);
                             }
                         }
                     }
                 }
                 Type* type = NULL;
-                AstNode* reasoning = NULL;
                 for (size_t i = 0; i < n->count; i++) {
                     if (n->nodes[i]->res_type != NULL) {
                         type = n->nodes[i]->res_type;
-                        reasoning = n->nodes[i]->res_type_reasoning;
                         break;
                     }
                 }
                 if (type != NULL) {
                     for (size_t i = 0; i < n->count; i++) {
-                        if (propagateTypeIntoAstNode(context, n->nodes[i], type, reasoning, changed)) {
+                        if (propagateTypeIntoAstNode(context, n->nodes[i], type, changed)) {
                             propagateTypes(context, n->nodes[i], changed);
                         }
                     }
-                    Type* arr_type = createArrayType(&context->types, type, n->count);
-                    if (propagateTypeIntoAstNode(context, node, arr_type, node, changed)) {
+                    Type* arr_type = createArrayType(&context->types, node, type, n->count);
+                    if (propagateTypeIntoAstNode(context, node, arr_type, changed)) {
                         propagateTypes(context, node->parent, changed);
                     }
                 }
@@ -467,8 +383,7 @@ static void propagateTypes(CompilerContext* context, AstNode* node, bool* change
                     TypeFunction* func = isFunctionType(n->function->name->res_type);
                     if (func != NULL) {
                         if (n->value != NULL) {
-                            AstNode* type_reason = getFunctionReturnReasoning(n->function->name->res_type_reasoning);
-                            if (propagateTypeIntoAstNode(context, n->value, func->ret_type, type_reason, changed)) {
+                            if (propagateTypeIntoAstNode(context, n->value, func->ret_type, changed)) {
                                 propagateTypes(context, n->value, changed);
                             }
                         }
@@ -483,8 +398,7 @@ static void propagateTypes(CompilerContext* context, AstNode* node, bool* change
                     if (type != NULL) {
                         size_t idx = lookupIndexOfStructField(type, n->field->name);
                         if (idx != NO_POS) {
-                            AstNode* type_reason = getStructFieldReasoning(n->strct->res_type_reasoning, n->field->name);
-                            if (propagateTypeIntoAstNode(context, node, type->types[idx], type_reason, changed)) {
+                            if (propagateTypeIntoAstNode(context, node, type->types[idx], changed)) {
                                 propagateTypes(context, node->parent, changed);
                             }
                         }
@@ -558,7 +472,7 @@ static void checkTypeDefinitions(CompilerContext* context, AstNode* node) {
                             createMessageFragment(MESSAGE_ERROR, createFormattedString("this type is invalid"), n->value->location)
                         ));
                         freeString(type_name);
-                        type->type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
+                        type->type = getErrorType(&context->types);
                         n->name->res_type = type->type;
                     }
                 }
@@ -575,13 +489,10 @@ static void propagateToVariableReferences(AstVar* node) {
     SymbolVariable* var = (SymbolVariable*)node->binding;
     if (var != NULL) {
         var->type = node->res_type;
-        var->type_reasoning = node->res_type_reasoning;
         FOR_ALL_VAR_REFS(var, {
             ref->res_type = node->res_type;
-            ref->res_type_reasoning = node->res_type_reasoning;
         })
         var->def->res_type = node->res_type;
-        var->def->res_type_reasoning = node->res_type_reasoning;
     }
 }
 
@@ -594,7 +505,7 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                 UNREACHABLE("should not evaluate");
             }
             case AST_ERROR: {
-                node->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
+                node->res_type = getErrorType(&context->types);
                 break;
             }
             case AST_VAR:
@@ -617,7 +528,7 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
             case AST_BXOR_ASSIGN:
             case AST_ASSIGN: {
                 AstBinary* n = (AstBinary*)node;
-                n->res_type = createUnsizedPrimitiveType(&context->types, TYPE_VOID);
+                n->res_type = createUnsizedPrimitiveType(&context->types, node, TYPE_VOID);
                 evaluateTypeHints(context, n->right);
                 evaluateTypeHints(context, n->left);
                 break;
@@ -625,7 +536,6 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
             case AST_AS: {
                 AstBinary* n = (AstBinary*)node;
                 n->right->res_type = evaluateTypeExpr(context, n->right);
-                n->right->res_type_reasoning = n->right;
                 if (!isValidType(n->right->res_type)) {
                     String type_name = buildTypeName(n->right->res_type);
                     addMessageToContext(&context->msgs, createMessage(ERROR_INVALID_TYPE,
@@ -633,11 +543,9 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                         createMessageFragment(MESSAGE_ERROR, createFormattedString("this type is invalid"), n->right->location)
                     ));
                     freeString(type_name);
-                    n->right->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
-                    n->right->res_type_reasoning = NULL;
+                    n->right->res_type = getErrorType(&context->types);
                 }
                 n->res_type = n->right->res_type;
-                n->res_type_reasoning = n->right->res_type_reasoning;
                 evaluateTypeHints(context, n->left);
                 break;
             }
@@ -665,12 +573,9 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
             case AST_OR:
             case AST_AND: {
                 AstBinary* n = (AstBinary*)node;
-                n->res_type = createUnsizedPrimitiveType(&context->types, TYPE_BOOL);
-                n->res_type_reasoning = node;
-                n->left->res_type = createUnsizedPrimitiveType(&context->types, TYPE_BOOL);
-                n->left->res_type_reasoning = node;
-                n->right->res_type = createUnsizedPrimitiveType(&context->types, TYPE_BOOL);
-                n->right->res_type_reasoning = node;
+                n->res_type = createUnsizedPrimitiveType(&context->types, node, TYPE_BOOL);
+                n->left->res_type = createUnsizedPrimitiveType(&context->types, node, TYPE_BOOL);
+                n->right->res_type = createUnsizedPrimitiveType(&context->types, node, TYPE_BOOL);
                 evaluateTypeHints(context, n->left);
                 evaluateTypeHints(context, n->right);
                 break;
@@ -682,8 +587,7 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
             case AST_LT:
             case AST_GT: {
                 AstBinary* n = (AstBinary*)node;
-                n->res_type = createUnsizedPrimitiveType(&context->types, TYPE_BOOL);
-                n->res_type_reasoning = node;
+                n->res_type = createUnsizedPrimitiveType(&context->types, node, TYPE_BOOL);
                 evaluateTypeHints(context, n->left);
                 evaluateTypeHints(context, n->right);
                 break;
@@ -700,7 +604,6 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
             case AST_SIZEOF: {
                 AstUnary* n = (AstUnary*)node;
                 n->op->res_type = evaluateTypeExpr(context, n->op);
-                n->op->res_type_reasoning = n->op;
                 if (!isValidType(n->op->res_type)) {
                     String type_name = buildTypeName(n->op->res_type);
                     addMessageToContext(&context->msgs, createMessage(ERROR_INVALID_TYPE,
@@ -708,8 +611,7 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                         createMessageFragment(MESSAGE_ERROR, createFormattedString("this type is invalid"), n->op->location)
                     ));
                     freeString(type_name);
-                    n->op->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
-                    n->op->res_type_reasoning = NULL;
+                    n->op->res_type = getErrorType(&context->types);
                 } else if (!isSizedType(n->op->res_type)) {
                     String type_name = buildTypeName(n->op->res_type);
                     addMessageToContext(&context->msgs, createMessage(ERROR_UNSIZED_TYPE,
@@ -717,14 +619,13 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                         createMessageFragment(MESSAGE_ERROR, createFormattedString("this type is unsized"), n->op->location)
                     ));
                     freeString(type_name);
-                    n->op->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
-                    n->op->res_type_reasoning = NULL;
+                    n->op->res_type = getErrorType(&context->types);
                 }
                 break;
             }
             case AST_RETURN: {
                 AstReturn* n = (AstReturn*)node;
-                n->res_type = createUnsizedPrimitiveType(&context->types, TYPE_VOID);
+                n->res_type = createUnsizedPrimitiveType(&context->types, node, TYPE_VOID);
                 evaluateTypeHints(context, n->value);
                 break;
             }
@@ -745,7 +646,7 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
             }
             case AST_LIST: {
                 AstList* n = (AstList*)node;
-                n->res_type = createUnsizedPrimitiveType(&context->types, TYPE_VOID);
+                n->res_type = createUnsizedPrimitiveType(&context->types, node, TYPE_VOID);
                 for (size_t i = 0; i < n->count; i++) {
                     evaluateTypeHints(context, n->nodes[i]);
                 }
@@ -753,22 +654,21 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
             }
             case AST_ROOT: {
                 AstRoot* n = (AstRoot*)node;
-                n->res_type = createUnsizedPrimitiveType(&context->types, TYPE_VOID);
+                n->res_type = createUnsizedPrimitiveType(&context->types, node, TYPE_VOID);
                 evaluateTypeHints(context, (AstNode*)n->nodes);
                 break;
             }
             case AST_BLOCK: {
                 AstBlock* n = (AstBlock*)node;
-                n->res_type = createUnsizedPrimitiveType(&context->types, TYPE_VOID);
+                n->res_type = createUnsizedPrimitiveType(&context->types, node, TYPE_VOID);
                 evaluateTypeHints(context, (AstNode*)n->nodes);
                 break;
             }
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
-                n->res_type = createUnsizedPrimitiveType(&context->types, TYPE_VOID);
+                n->res_type = createUnsizedPrimitiveType(&context->types, node, TYPE_VOID);
                 if (n->type != NULL) {
                     n->name->res_type = evaluateTypeExpr(context, n->type);
-                    n->name->res_type_reasoning = n->type;
                     if (!isValidType(n->name->res_type)) {
                         String type_name = buildTypeName(n->name->res_type);
                         addMessageToContext(&context->msgs, createMessage(ERROR_INVALID_TYPE,
@@ -776,8 +676,7 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                             createMessageFragment(MESSAGE_ERROR, createFormattedString("this type is invalid"), n->type->location)
                         ));
                         freeString(type_name);
-                        n->name->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
-                        n->name->res_type_reasoning = NULL;
+                        n->name->res_type = getErrorType(&context->types);
                     }
                     propagateToVariableReferences(n->name);
                 }
@@ -786,9 +685,8 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
             }
             case AST_IF_ELSE: {
                 AstIfElse* n = (AstIfElse*)node;
-                n->res_type = createUnsizedPrimitiveType(&context->types, TYPE_VOID);
-                n->condition->res_type = createUnsizedPrimitiveType(&context->types, TYPE_BOOL);
-                n->condition->res_type_reasoning = n->condition;
+                n->res_type = createUnsizedPrimitiveType(&context->types, node, TYPE_VOID);
+                n->condition->res_type = createUnsizedPrimitiveType(&context->types, n->condition, TYPE_BOOL);
                 evaluateTypeHints(context, n->condition);
                 evaluateTypeHints(context, n->if_block);
                 evaluateTypeHints(context, n->else_block);
@@ -796,8 +694,8 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
             }
             case AST_WHILE: {
                 AstWhile* n = (AstWhile*)node;
-                n->res_type = createUnsizedPrimitiveType(&context->types, TYPE_VOID);
-                n->condition->res_type = createUnsizedPrimitiveType(&context->types, TYPE_BOOL);
+                n->res_type = createUnsizedPrimitiveType(&context->types, node, TYPE_VOID);
+                n->condition->res_type = createUnsizedPrimitiveType(&context->types, n->condition, TYPE_BOOL);
                 evaluateTypeHints(context, n->condition);
                 evaluateTypeHints(context, n->block);
                 break;
@@ -810,18 +708,18 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
             }
             case AST_TYPEDEF:{
                 AstTypeDef* n = (AstTypeDef*)node;
-                n->res_type = createUnsizedPrimitiveType(&context->types, TYPE_VOID);
+                n->res_type = createUnsizedPrimitiveType(&context->types, node, TYPE_VOID);
                 break;
             }
             case AST_FN: {
                 AstFn* n = (AstFn*)node;
-                n->res_type = createUnsizedPrimitiveType(&context->types, TYPE_VOID);
+                n->res_type = createUnsizedPrimitiveType(&context->types, node, TYPE_VOID);
                 evaluateTypeHints(context, (AstNode*)n->arguments);
                 Type* ret_type;
                 if (n->ret_type != NULL) {
                     ret_type = evaluateTypeExpr(context, n->ret_type);
                 } else {
-                    ret_type = createUnsizedPrimitiveType(&context->types, TYPE_VOID);
+                    ret_type = createUnsizedPrimitiveType(&context->types, (AstNode*)n->name, TYPE_VOID);
                 }
                 Type** arg_types = ALLOC(Type*, n->arguments->count);
                 for (size_t i = 0; i < n->arguments->count; i++) {
@@ -829,10 +727,9 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                     arg_types[i] = def->name->res_type;
                 }
                 n->name->res_type = createFunctionType(
-                    &context->types, ret_type, n->arguments->count, arg_types,
+                    &context->types, (AstNode*)n->name, ret_type, n->arguments->count, arg_types,
                     (n->flags & AST_FN_FLAG_VARARG) != 0
                 );
-                n->name->res_type_reasoning = node;
                 if (!isValidType(ret_type)) {
                     String type_name = buildTypeName(ret_type);
                     addMessageToContext(&context->msgs, createMessage(ERROR_INVALID_TYPE,
@@ -840,8 +737,7 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                         createMessageFragment(MESSAGE_ERROR, createFormattedString("this type is invalid"), n->ret_type->location)
                     ));
                     freeString(type_name);
-                    n->name->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
-                    n->name->res_type_reasoning = NULL;
+                    n->name->res_type = getErrorType(&context->types);
                 }
                 propagateToVariableReferences(n->name);
                 evaluateTypeHints(context, n->body);
@@ -849,10 +745,9 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
             }
             case AST_ARGDEF: {
                 AstArgDef* n = (AstArgDef*)node;
-                n->res_type = createUnsizedPrimitiveType(&context->types, TYPE_VOID);
+                n->res_type = createUnsizedPrimitiveType(&context->types, node, TYPE_VOID);
                 if (n->type != NULL) {
                     n->name->res_type = evaluateTypeExpr(context, n->type);
-                    n->name->res_type_reasoning = (AstNode*)n->type;
                     if (!isValidType(n->name->res_type)) {
                         String type_name = buildTypeName(n->name->res_type);
                         addMessageToContext(&context->msgs, createMessage(ERROR_INVALID_TYPE,
@@ -860,8 +755,7 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                             createMessageFragment(MESSAGE_ERROR, createFormattedString("this type is invalid"), n->type->location)
                         ));
                         freeString(type_name);
-                        n->name->res_type = createUnsizedPrimitiveType(&context->types, TYPE_ERROR);
-                        n->name->res_type_reasoning = NULL;
+                        n->name->res_type = getErrorType(&context->types);
                     }
                     propagateToVariableReferences(n->name);
                 }
@@ -1055,65 +949,65 @@ static void assumeAmbiguousTypes(CompilerContext* context, AssumeAmbiguousPhase 
                 break;
             case AST_STR:
                 if ((phase & ASSUME_LITERALS) != 0 && node->res_type == NULL) {
-                    Type* type = createPointerType(&context->types,
-                        createSizedPrimitiveType(&context->types, TYPE_UINT, 8)
+                    Type* type = createPointerType(&context->types, node,
+                        createSizedPrimitiveType(&context->types, node, TYPE_UINT, 8)
                     );
-                    type = createUnsureType(&context->types, type);
-                    if (propagateTypeIntoAstNode(context, node, type, node, changed)) {
+                    type = createUnsureType(&context->types, node, type);
+                    if (propagateTypeIntoAstNode(context, node, type, changed)) {
                         propagateTypes(context, node->parent, changed);
                     }
                 }
                 break;
             case AST_VOID:
                 if ((phase & ASSUME_LITERALS) != 0 && node->res_type == NULL) {
-                    Type* type = createUnsizedPrimitiveType(&context->types, TYPE_VOID);
-                    type = createUnsureType(&context->types, type);
-                    if (propagateTypeIntoAstNode(context, node, type, node, changed)) {
+                    Type* type = createUnsizedPrimitiveType(&context->types, node, TYPE_VOID);
+                    type = createUnsureType(&context->types, node, type);
+                    if (propagateTypeIntoAstNode(context, node, type, changed)) {
                         propagateTypes(context, node->parent, changed);
                     }
                 }
                 break;
             case AST_CHAR:
                 if ((phase & ASSUME_LITERALS) != 0 && node->res_type == NULL) {
-                    Type* type = createSizedPrimitiveType(&context->types, TYPE_UINT, 8);
-                    type = createUnsureType(&context->types, type);
-                    if (propagateTypeIntoAstNode(context, node, type, node, changed)) {
+                    Type* type = createSizedPrimitiveType(&context->types, node, TYPE_UINT, 8);
+                    type = createUnsureType(&context->types, node, type);
+                    if (propagateTypeIntoAstNode(context, node, type, changed)) {
                         propagateTypes(context, node->parent, changed);
                     }
                 }
                 break;
             case AST_INT:
                 if ((phase & ASSUME_LITERALS) != 0 && node->res_type == NULL) {
-                    Type* type = createSizedPrimitiveType(&context->types, TYPE_INT, 64);
-                    type = createUnsureType(&context->types, type);
-                    if (propagateTypeIntoAstNode(context, node, type, node, changed)) {
+                    Type* type = createSizedPrimitiveType(&context->types, node, TYPE_INT, 64);
+                    type = createUnsureType(&context->types, node, type);
+                    if (propagateTypeIntoAstNode(context, node, type, changed)) {
                         propagateTypes(context, node->parent, changed);
                     }
                 }
                 break;
             case AST_BOOL:
                 if ((phase & ASSUME_LITERALS) != 0 && node->res_type == NULL) {
-                    Type* type = createUnsizedPrimitiveType(&context->types, TYPE_BOOL);
-                    type = createUnsureType(&context->types, type);
-                    if (propagateTypeIntoAstNode(context, node, type, node, changed)) {
+                    Type* type = createUnsizedPrimitiveType(&context->types, node, TYPE_BOOL);
+                    type = createUnsureType(&context->types, node, type);
+                    if (propagateTypeIntoAstNode(context, node, type, changed)) {
                         propagateTypes(context, node->parent, changed);
                     }
                 }
                 break;
             case AST_REAL:
                 if ((phase & ASSUME_LITERALS) != 0 && node->res_type == NULL) {
-                    Type* type = createSizedPrimitiveType(&context->types, TYPE_REAL, 64);
-                    type = createUnsureType(&context->types, type);
-                    if (propagateTypeIntoAstNode(context, node, type, node, changed)) {
+                    Type* type = createSizedPrimitiveType(&context->types, node, TYPE_REAL, 64);
+                    type = createUnsureType(&context->types, node, type);
+                    if (propagateTypeIntoAstNode(context, node, type, changed)) {
                         propagateTypes(context, node->parent, changed);
                     }
                 }
                 break;
             case AST_SIZEOF:
                 if ((phase & ASSUME_SIZEOF) != 0 && node->res_type == NULL) {
-                    Type* type = createSizedPrimitiveType(&context->types, TYPE_UINT, SIZE_SIZE);
-                    type = createUnsureType(&context->types, type);
-                    if (propagateTypeIntoAstNode(context, node, type, node, changed)) {
+                    Type* type = createSizedPrimitiveType(&context->types, node, TYPE_UINT, SIZE_SIZE);
+                    type = createUnsureType(&context->types, node, type);
+                    if (propagateTypeIntoAstNode(context, node, type, changed)) {
                         propagateTypes(context, node->parent, changed);
                     }
                 }
@@ -1123,8 +1017,8 @@ static void assumeAmbiguousTypes(CompilerContext* context, AssumeAmbiguousPhase 
                 assumeAmbiguousTypes(context, phase, n->left, changed);
                 if ((phase & ASSUME_CASTS) != 0 && n->left->res_type == NULL && n->right->res_type != NULL) {
                     Type* type = n->right->res_type;
-                    type = createUnsureType(&context->types, type);
-                    if (propagateTypeIntoAstNode(context, n->left, type, n->right, changed)) {
+                    type = createUnsureType(&context->types, node, type);
+                    if (propagateTypeIntoAstNode(context, n->left, type, changed)) {
                         propagateTypes(context, n->left, changed);
                     }
                 }
@@ -1135,9 +1029,9 @@ static void assumeAmbiguousTypes(CompilerContext* context, AssumeAmbiguousPhase 
                 assumeAmbiguousTypes(context, phase, n->left, changed);
                 assumeAmbiguousTypes(context, phase, n->right, changed);
                 if ((phase & ASSUME_INDEX) != 0 && n->right->res_type == NULL) {
-                    Type* type = createSizedPrimitiveType(&context->types, TYPE_UINT, SIZE_SIZE);
-                    type = createUnsureType(&context->types, type);
-                    if (propagateTypeIntoAstNode(context, n->right, type, n->right, changed)) {
+                    Type* type = createSizedPrimitiveType(&context->types, n->right, TYPE_UINT, SIZE_SIZE);
+                    type = createUnsureType(&context->types, node, type);
+                    if (propagateTypeIntoAstNode(context, n->right, type, changed)) {
                         propagateTypes(context, n->right, changed);
                     }
                 }
@@ -1147,12 +1041,12 @@ static void assumeAmbiguousTypes(CompilerContext* context, AssumeAmbiguousPhase 
                 AstVarDef* n = (AstVarDef*)node;
                 assumeAmbiguousTypes(context, phase, n->val, changed);
                 if ((phase & ASSUME_VARS) != 0 && n->name->res_type == NULL) {
-                    Type* type = createUnsureType(&context->types, NULL);
-                    if (propagateTypeIntoAstNode(context, (AstNode*)n->name, type, NULL, changed)) {
+                    Type* type = createUnsureType(&context->types, node, NULL);
+                    if (propagateTypeIntoAstNode(context, (AstNode*)n->name, type, changed)) {
                         propagateTypes(context, (AstNode*)n->name, changed);
                     }
                     if (n->val != NULL) {
-                        if (propagateTypeIntoAstNode(context, n->val, type, NULL, changed)) {
+                        if (propagateTypeIntoAstNode(context, n->val, type, changed)) {
                             propagateTypes(context, n->val, changed);
                         }
                     }
@@ -1279,8 +1173,8 @@ void typeInferExpr(CompilerContext* context, AstNode* node, Type* assumption) {
     assumeAmbiguousTypes(context, ASSUME_LITERALS, node, &changed);
     assumeAmbiguousTypes(context, ASSUME_CASTS, node, &changed);
     if (assumption != NULL && node->res_type == NULL) {
-        Type* type = createUnsureType(&context->types, assumption);
-        if (propagateTypeIntoAstNode(context, node, type, node, &changed)) {
+        Type* type = createUnsureType(&context->types, node, assumption);
+        if (propagateTypeIntoAstNode(context, node, type, &changed)) {
             propagateTypes(context, node->parent, &changed);
         }
     }

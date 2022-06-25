@@ -24,9 +24,11 @@ typedef enum {
     TYPE_UNSURE,
 } TypeKind;
 
-#define TYPE_BASE       \
-    TypeKind kind;      \
-    struct Type* equiv; \
+#define TYPE_BASE           \
+    TypeKind kind;          \
+    struct Type* next;      \
+    struct Type* equiv;     \
+    struct AstNode* def;    \
     void* codegen;
 
 typedef struct Type {
@@ -76,30 +78,31 @@ typedef struct {
 } TypeUnsure;
 
 typedef struct {
-    Type** types;
-    size_t count;
-    size_t capacity;
+    Type* types;
+    Type* error;
 } TypeContext;
 
 void initTypeContext(TypeContext* cxt);
 
 void deinitTypeContext(TypeContext* cxt);
 
-Type* createUnsizedPrimitiveType(TypeContext* cxt, TypeKind kind);
+Type* getErrorType(TypeContext* cxt);
 
-Type* createSizedPrimitiveType(TypeContext* cxt, TypeKind kind, size_t size);
+Type* createUnsizedPrimitiveType(TypeContext* cxt, struct AstNode* def, TypeKind kind);
 
-Type* createPointerType(TypeContext* cxt, Type* base);
+Type* createSizedPrimitiveType(TypeContext* cxt, struct AstNode* def, TypeKind kind, size_t size);
 
-Type* createArrayType(TypeContext* cxt, Type* base, size_t size);
+Type* createPointerType(TypeContext* cxt, struct AstNode* def, Type* base);
 
-Type* createFunctionType(TypeContext* cxt, Type* ret_type, size_t arg_count, Type** arguments, bool vararg);
+Type* createArrayType(TypeContext* cxt, struct AstNode* def, Type* base, size_t size);
 
-Type* createTypeReference(TypeContext* cxt, struct SymbolType* binding);
+Type* createFunctionType(TypeContext* cxt, struct AstNode* def, Type* ret_type, size_t arg_count, Type** arguments, bool vararg);
 
-Type* createTypeStruct(TypeContext* cxt, Symbol* name, Type** types, size_t count);
+Type* createTypeReference(TypeContext* cxt, struct AstNode* def, struct SymbolType* binding);
 
-Type* createUnsureType(TypeContext* cxt, Type* fallback);
+Type* createTypeStruct(TypeContext* cxt, struct AstNode* def, Symbol* name, Type** types, size_t count);
+
+Type* createUnsureType(TypeContext* cxt, struct AstNode* def, Type* fallback);
 
 String buildTypeName(const Type* type);
 
@@ -138,6 +141,8 @@ size_t lookupIndexOfStructField(TypeStruct* type, Symbol name);
 bool isPartialType(Type* type);
 
 void fillPartialType(Type* type, Type* with);
+
+struct AstNode* getTypeReason(Type* type);
 
 bool isValidType(Type* type);
 
