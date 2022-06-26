@@ -13,6 +13,8 @@
 
 LLVMMetadataRef generateLlvmTypeDebugInfo(LlvmCodegenContext* context, LlvmCodegenModuleContext* data, Type* type, size_t line) {
     if (CODEGEN(type)->debug == NULL) {
+        LLVMMetadataRef tmp = LLVMTemporaryMDNode(context->llvm_cxt, NULL, 0);
+        CODEGEN(type)->debug = tmp;
         String name = buildTypeName(type);
         LLVMTypeRef llvm_type = generateLlvmType(context, type);
         LLVMMetadataRef result = NULL;
@@ -21,7 +23,6 @@ LLVMMetadataRef generateLlvmTypeDebugInfo(LlvmCodegenContext* context, LlvmCodeg
                 UNREACHABLE();
             case TYPE_STRUCT: {
                 TypeStruct* t = (TypeStruct*)type;
-                LLVMMetadataRef tmp = LLVMTemporaryMDNode(context->llvm_cxt, NULL, 0);
                 LLVMMetadataRef* fields = ALLOC(LLVMMetadataRef, t->count);
                 for (size_t i = 0; i < t->count; i++) {
                     LLVMTypeRef field_type = generateLlvmType(context, t->types[i]);
@@ -41,7 +42,6 @@ LLVMMetadataRef generateLlvmTypeDebugInfo(LlvmCodegenContext* context, LlvmCodeg
                     8 * LLVMABIAlignmentOfType(context->target_data, llvm_type), 0, NULL, fields,
                     t->count, 0, NULL, NULL, 0
                 );
-                LLVMMetadataReplaceAllUsesWith(tmp, result);
                 FREE(fields);
                 break;
             }
@@ -112,26 +112,24 @@ LLVMMetadataRef generateLlvmTypeDebugInfo(LlvmCodegenContext* context, LlvmCodeg
             }
             case TYPE_REFERENCE: {
                 TypeReference* t = (TypeReference*)type;
-                if (t->binding->codegen != NULL) {
+                SymbolType* binding = (SymbolType*)t->binding;
+                if (binding->codegen != NULL) {
                     result = t->binding->codegen;
                 } else {
-                    SymbolType* type = (SymbolType*)t->binding;
                     AstTypeDef* n = (AstTypeDef*)type->def;
-                    LLVMMetadataRef tmp = LLVMTemporaryMDNode(context->llvm_cxt, NULL, 0);
-                    type->codegen = tmp;
+                    binding->codegen = tmp;
                     if (n != NULL) {
                         result = LLVMDIBuilderCreateTypedef(
                             data->debug_bulder,
-                            generateLlvmTypeDebugInfo(context, data, type->type, line), type->name,
-                            strlen(type->name), data->file_metadata, n->location.begin.line + 1,
+                            generateLlvmTypeDebugInfo(context, data, binding->type, line), binding->name,
+                            strlen(binding->name), data->file_metadata, n->location.begin.line + 1,
                             data->file_metadata,
                             8 * LLVMABIAlignmentOfType(context->target_data, llvm_type)
                         );
                     } else {
-                        result = generateLlvmTypeDebugInfo(context, data, type->type, line);
+                        result = generateLlvmTypeDebugInfo(context, data, binding->type, line);
                     }
-                    LLVMMetadataReplaceAllUsesWith(tmp, result);
-                    type->codegen = result;
+                    binding->codegen = result;
                 }
                 break;
             }
@@ -146,6 +144,7 @@ LLVMMetadataRef generateLlvmTypeDebugInfo(LlvmCodegenContext* context, LlvmCodeg
             }
         }
         freeString(name);
+        LLVMMetadataReplaceAllUsesWith(tmp, result);
         CODEGEN(type)->debug = result;
     }
     return CODEGEN(type)->debug;

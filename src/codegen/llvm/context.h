@@ -22,6 +22,7 @@ typedef struct {
     LLVMTargetDataRef target_data;
     LLVMTargetMachineRef target_machine;
     LlvmCodegenData* type_data;
+    LLVMTypeRef opaque_type;
 } LlvmCodegenContext;
 
 typedef struct {

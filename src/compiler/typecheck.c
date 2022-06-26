@@ -618,7 +618,7 @@ static void checkNodeIsAddressable(CompilerContext* context, AstNode* node) {
 }
 
 static bool isNodeWritable(AstNode* node) {
-    return isAddressableValue(node) && isSizedType(node->res_type);
+    return isAddressableValue(node) && (node->res_type == NULL || isSizedType(node->res_type));
 }
 
 static void checkNodeIsWritable(CompilerContext* context, AstNode* node) {

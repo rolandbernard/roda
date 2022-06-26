@@ -106,7 +106,7 @@ Type* createTypeStruct(TypeContext* cxt, struct AstNode* def, bool ordered, Symb
 
 Type* createUnsureType(TypeContext* cxt, struct AstNode* def, Type* fallback);
 
-String buildTypeName(const Type* type);
+String buildTypeName(Type* type);
 
 TypeSizedPrimitive* isSignedIntegerType(Type* type);
 

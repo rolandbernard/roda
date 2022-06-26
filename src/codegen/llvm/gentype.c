@@ -31,13 +31,9 @@ static bool structSortCompare(size_t i, size_t j, void* cxt) {
     }
 }
 
-typedef struct TypeReferenceStack {
-    struct TypeReferenceStack* last;
-    const SymbolType* binding;
-} TypeReferenceStack;
-
-static LLVMTypeRef generateLlvmTypeHelper(LlvmCodegenContext* context, Type* type, TypeReferenceStack* stack) {
+LLVMTypeRef generateLlvmType(LlvmCodegenContext* context, Type* type) {
     if (CODEGEN(type)->type == NULL) {
+        CODEGEN(type)->type = context->opaque_type;
         LLVMTypeRef result = NULL;
         switch (type->kind) {
             case TYPE_ERROR:
@@ -48,7 +44,7 @@ static LLVMTypeRef generateLlvmTypeHelper(LlvmCodegenContext* context, Type* typ
                 cxt.struc = (TypeStruct*)type;
                 cxt.types = ALLOC(LLVMTypeRef, cxt.struc->count);
                 for (size_t i = 0; i < cxt.struc->count; i++) {
-                    cxt.types[i] = generateLlvmTypeHelper(context, cxt.struc->types[i], stack);
+                    cxt.types[i] = generateLlvmType(context, cxt.struc->types[i]);
                 }
                 if (!cxt.struc->ordered) {
                     heapSort(cxt.struc->count, structSortSwap, structSortCompare, &cxt);
@@ -86,20 +82,20 @@ static LLVMTypeRef generateLlvmTypeHelper(LlvmCodegenContext* context, Type* typ
             }
             case TYPE_POINTER: {
                 TypePointer* t = (TypePointer*)type;
-                result = LLVMPointerType(generateLlvmTypeHelper(context, t->base, stack), 0);
+                result = LLVMPointerType(generateLlvmType(context, t->base), 0);
                 break;
             }
             case TYPE_ARRAY: {
                 TypeArray* t = (TypeArray*)type;
-                result = LLVMArrayType(generateLlvmTypeHelper(context, t->base, stack), t->size);
+                result = LLVMArrayType(generateLlvmType(context, t->base), t->size);
                 break;
             }
             case TYPE_FUNCTION: {
                 TypeFunction* t = (TypeFunction*)type;
-                LLVMTypeRef ret_type = generateLlvmTypeHelper(context, t->ret_type, stack);
+                LLVMTypeRef ret_type = generateLlvmType(context, t->ret_type);
                 LLVMTypeRef* param_types = ALLOC(LLVMTypeRef, t->arg_count);
                 for (size_t i = 0; i < t->arg_count; i++) {
-                    param_types[i] = generateLlvmTypeHelper(context, t->arguments[i], stack);
+                    param_types[i] = generateLlvmType(context, t->arguments[i]);
                 }
                 result = LLVMFunctionType(ret_type, param_types, t->arg_count, t->vararg);
                 FREE(param_types);
@@ -107,24 +103,15 @@ static LLVMTypeRef generateLlvmTypeHelper(LlvmCodegenContext* context, Type* typ
             }
             case TYPE_REFERENCE: {
                 TypeReference* t = (TypeReference*)type;
-                TypeReferenceStack elem = { .last = stack, .binding = t->binding };
-                TypeReferenceStack* cur = stack;
-                while (cur != NULL) {
-                    if (cur->binding != elem.binding) {
-                        cur = cur->last;
-                    } else {
-                        return LLVMStructCreateNamed(context->llvm_cxt, t->binding->name);
-                    }
-                }
-                result = generateLlvmTypeHelper(context, t->binding->type, &elem);
+                result = generateLlvmType(context, t->binding->type);
                 break;
             }
             case TYPE_UNSURE: {
                 TypeUnsure* t = (TypeUnsure*)type;
                 if (t->actual != NULL) {
-                    result = generateLlvmTypeHelper(context, t->actual, stack);
+                    result = generateLlvmType(context, t->actual);
                 } else {
-                    result = generateLlvmTypeHelper(context, t->fallback, stack);
+                    result = generateLlvmType(context, t->fallback);
                 }
                 break;
             }
@@ -132,9 +119,5 @@ static LLVMTypeRef generateLlvmTypeHelper(LlvmCodegenContext* context, Type* typ
         CODEGEN(type)->type = result;
     }
     return CODEGEN(type)->type;
-}
-
-LLVMTypeRef generateLlvmType(LlvmCodegenContext* context, Type* type) {
-    return generateLlvmTypeHelper(context, type, NULL);
 }
 

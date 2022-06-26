@@ -168,8 +168,8 @@ static LLVMValueRef buildLlvmIntrinsicCall(
 }
 
 static void buildLlvmStore(LlvmCodegenContext* context, LlvmCodegenModuleContext* data, Type* type, LLVMValueRef value, LLVMValueRef ptr) {
-    LLVMTypeRef llvm_type = generateLlvmType(context, type);
-    LLVMValueRef cast_ptr = LLVMBuildPointerCast(data->builder, ptr, LLVMPointerType(llvm_type, 0), "ptr_cast");
+    LLVMTypeRef ptr_type = LLVMPointerType(LLVMTypeOf(value), 0);
+    LLVMValueRef cast_ptr = LLVMBuildPointerCast(data->builder, ptr, ptr_type, "ptr_cast");
     LLVMBuildStore(data->builder, value, cast_ptr);
 }
 
@@ -288,7 +288,7 @@ static LlvmCodegenValue buildFunctionBodyHelper(LlvmCodegenContext* context, Llv
         case AST_STR: {
             AstStr* n = (AstStr*)node;
             LLVMValueRef value = LLVMConstStringInContext(context->llvm_cxt, n->string.data, n->string.length, false);
-            LLVMValueRef global = LLVMAddGlobal(data->module, LLVMTypeOf(value), ".string");
+            LLVMValueRef global = LLVMAddGlobal(data->module, LLVMTypeOf(value), ".str");
             LLVMSetInitializer(global, value);
             LLVMSetGlobalConstant(global, true);
             LLVMSetLinkage(global, LLVMPrivateLinkage);

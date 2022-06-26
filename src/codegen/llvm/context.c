@@ -9,7 +9,8 @@
 static LLVMCodeGenOptLevel getLlvmCodeGenOptLevel(LlvmCodegenContext* context) {
     switch (context->cxt->settings.opt_level) {
         case COMPILER_OPT_DEFAULT:
-            return LLVMCodeGenLevelDefault;
+            return context->cxt->settings.emit_debug
+                ? LLVMCodeGenLevelNone : LLVMCodeGenLevelDefault;
         case COMPILER_OPT_NONE:
             return LLVMCodeGenLevelNone;
         case COMPILER_OPT_SOME:
@@ -80,6 +81,7 @@ void initLlvmCodegenContext(LlvmCodegenContext* context, CompilerContext* cxt) {
         context->target_data = LLVMCreateTargetDataLayout(context->target_machine);
     }
     LLVMDisposeMessage(llvm_target);
+    context->opaque_type = LLVMStructCreateNamed(context->llvm_cxt, "");
 }
 
 void deinitLlvmCodegenContext(LlvmCodegenContext* context) {
