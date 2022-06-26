@@ -9,6 +9,7 @@
 
 #define YY_EXTRA_TYPE ParserContext*
 #define PARSER_CONTEXT yyget_extra(yyscanner)
+#define COPY_LEXEME { yylval->lexeme = copyToTemporaryString(PARSER_CONTEXT, yytext, yyleng); }
 
 #define YY_FATAL_ERROR(MSG) fatalError(str(MSG))
 
@@ -103,12 +104,12 @@ REAL    [0-9][_0-9]*(\.[0-9][_0-9]*)?([eE][-+]?[0-9][_0-9]*)?
 "{"             { return '{'; }
 "}"             { return '}'; }
 
-{INT}           { yylval->lexeme = yytext; return INT; }
-{REAL}          { yylval->lexeme = yytext; return REAL; }
-{STR}           { yylval->lexeme = yytext; return STR; }
-{CHAR}          { yylval->lexeme = yytext; return CHAR; }
+{INT}           { COPY_LEXEME; return INT; }
+{REAL}          { COPY_LEXEME; return REAL; }
+{STR}           { COPY_LEXEME; return STR; }
+{CHAR}          { COPY_LEXEME; return CHAR; }
 
-{ID}            { yylval->lexeme = yytext; return ID; }
+{ID}            { COPY_LEXEME; return ID; }
 
 {POINT}         { return YYUNDEF; }
 

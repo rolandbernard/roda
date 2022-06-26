@@ -112,6 +112,7 @@ static void deinitCompilerSettings(CompilerSettings* settings) {
 }
 
 static void initCompilerContext(CompilerContext* context) {
+    initTempAlloc(&context->tmpalloc);
     initCompilerSettings(&context->settings);
     initMessageFilter(&context->msgfilter);
     initFileSet(&context->files);
@@ -123,6 +124,7 @@ static void initCompilerContext(CompilerContext* context) {
 }
 
 static void deinitCompilerContext(CompilerContext* context) {
+    deinitTempAlloc(&context->tmpalloc);
     deinitCompilerSettings(&context->settings);
     deinitFileSet(&context->files);
     deinitMessageContext(&context->msgs);

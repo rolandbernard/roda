@@ -33,8 +33,8 @@ extern void yyerror(YYLTYPE* yyllocp, yyscan_t scanner, ParserContext* context, 
 %parse-param { yyscan_t scanner } { ParserContext* context }
 
 %union {
-    const char* lexeme;
-    AstVar* ident;
+    char* lexeme;
+    AstVar* var;
     AstNode* ast;
     struct {
         AstList* list;
@@ -43,14 +43,15 @@ extern void yyerror(YYLTYPE* yyllocp, yyscan_t scanner, ParserContext* context, 
     AstList* list;
 }
 
+%destructor { freeTemporaryString(context, $$); } <lexeme>
+%destructor { freeAstNode((AstNode*)$$); } <var>
 %destructor { freeAstNode($$); } <ast>
-%destructor { freeAstNode((AstNode*)$$); } <ident>
 %destructor { freeAstNode((AstNode*)$$.list); } <arg_defs>
 %destructor { freeAstNode((AstNode*)$$); } <list>
 
 %type <ast> root block stmt block_stmt type expr root_stmt if
 %type <ast> arg_def opt_type assign integer real string bool field_val
-%type <ident> ident
+%type <var> var
 %type <arg_defs> arg_defs arg_types
 %type <list> arg_def_list stmts root_stmts list
 %type <list> type_list_nonempty list_nonempty field_vals arg_type_list
@@ -124,10 +125,10 @@ root_stmts : %empty                     { $$ = createEmptyAstList(); $$->locatio
            ;
 
 root_stmt : error                                                   { $$ = createAstSimple(@$, AST_ERROR); }
-          | "pub" "fn" ident '(' arg_defs ')' opt_type block       { $$ = (AstNode*)createAstFn(@$, $3, $5.list, $7, $8, AST_FN_FLAG_EXPORT | $5.flags); }
-          | "extern" "fn" ident '(' arg_defs ')' opt_type ';'      { $$ = (AstNode*)createAstFn(@$, $3, $5.list, $7, NULL, AST_FN_FLAG_IMPORT | $5.flags); }
-          | "fn" ident '(' arg_defs ')' opt_type block             { $$ = (AstNode*)createAstFn(@$, $2, $4.list, $6, $7, $4.flags); }
-          | "type" ident '=' type ';'                               { $$ = (AstNode*)createAstTypeDef(@$, $2, $4); }
+          | "pub" "fn" var '(' arg_defs ')' opt_type block          { $$ = (AstNode*)createAstFn(@$, $3, $5.list, $7, $8, AST_FN_FLAG_EXPORT | $5.flags); }
+          | "extern" "fn" var '(' arg_defs ')' opt_type ';'         { $$ = (AstNode*)createAstFn(@$, $3, $5.list, $7, NULL, AST_FN_FLAG_IMPORT | $5.flags); }
+          | "fn" var '(' arg_defs ')' opt_type block                { $$ = (AstNode*)createAstFn(@$, $2, $4.list, $6, $7, $4.flags); }
+          | "type" var '=' type ';'                                 { $$ = (AstNode*)createAstTypeDef(@$, $2, $4); }
           ;
 
 opt_type : %empty   { $$ = NULL; }
@@ -144,8 +145,8 @@ arg_def_list : arg_def                      { $$ = createEmptyAstList(); addToAs
              | arg_def_list ',' arg_def     { $$ = $1; addToAstList($1, $3); $$->location = @$; }
              ;
 
-arg_def : error          { $$ = createAstSimple(@$, AST_ERROR); }
-        | ident ':' type { $$ = (AstNode*)createAstArgDef(@$, $1, $3); }
+arg_def : error             { $$ = createAstSimple(@$, AST_ERROR); }
+        | var ':' type      { $$ = (AstNode*)createAstArgDef(@$, $1, $3); }
         ;
 
 block   : '{' stmts '}'  { fitAstList($2); $$ = (AstNode*)createAstBlock(@$, $2); }
@@ -168,12 +169,12 @@ if  : "if" expr block                  { $$ = (AstNode*)createAstIfElse(@$, $2, 
     | "if" expr block "else" if        { $$ = (AstNode*)createAstIfElse(@$, $2, $3, $5); }
     ;
 
-stmt    : expr                           { $$ = $1; }
-        | assign                         { $$ = $1; }
-        | "return"                       { $$ = (AstNode*)createAstReturn(@$, NULL); }
-        | "return" expr                  { $$ = (AstNode*)createAstReturn(@$, $2); }
-        | "let" ident opt_type '=' expr  { $$ = (AstNode*)createAstVarDef(@$, $2, $3, $5); }
-        | "let" ident opt_type           { $$ = (AstNode*)createAstVarDef(@$, $2, $3, NULL); }
+stmt    : expr                              { $$ = $1; }
+        | assign                            { $$ = $1; }
+        | "return"                          { $$ = (AstNode*)createAstReturn(@$, NULL); }
+        | "return" expr                     { $$ = (AstNode*)createAstReturn(@$, $2); }
+        | "let" var opt_type '=' expr       { $$ = (AstNode*)createAstVarDef(@$, $2, $3, $5); }
+        | "let" var opt_type                { $$ = (AstNode*)createAstVarDef(@$, $2, $3, NULL); }
         ;
 
 assign : expr '=' expr      { $$ = (AstNode*)createAstBinary(@$, AST_ASSIGN, $1, $3); }
@@ -189,7 +190,7 @@ assign : expr '=' expr      { $$ = (AstNode*)createAstBinary(@$, AST_ASSIGN, $1,
        | expr "^=" expr     { $$ = (AstNode*)createAstBinary(@$, AST_BXOR_ASSIGN, $1, $3); }
        ; 
 
-type    : ident                                 { $$ = (AstNode*)$1; }
+type    : var                                   { $$ = (AstNode*)$1; }
         | '(' ')'                               { $$ = createAstSimple(@$, AST_VOID); }
         | '(' arg_def_list ')'                  { fitAstList($2); $$ = (AstNode*)$2; $$->kind = AST_STRUCT_TYPE; $$->location = @$; }
         | '(' arg_def_list ',' ')'              { fitAstList($2); $$ = (AstNode*)$2; $$->kind = AST_STRUCT_TYPE; $$->location = @$; }
@@ -212,16 +213,16 @@ type_list_nonempty  : type                          { $$ = createEmptyAstList();
                     | type_list_nonempty ',' type   { $$ = $1; addToAstList($1, $3); $$->location = @$; }
                     ;
 
-arg_type_list   : ident ':' type                       { $$ = createEmptyAstList(); addToAstList($$, $3); $$->location = @$; freeAstNode((AstNode*)$1); }
-                | arg_type_list ',' ident ':' type     { $$ = $1; addToAstList($1, $5); $$->location = @$; freeAstNode((AstNode*)$3); }
+arg_type_list   : ident ':' type                       { $$ = createEmptyAstList(); addToAstList($$, $3); $$->location = @$; }
+                | arg_type_list ',' ident ':' type     { $$ = $1; addToAstList($1, $5); $$->location = @$; }
                 ;
 
-expr    : ident                         { $$ = (AstNode*)$1; }
+expr    : var                           { $$ = (AstNode*)$1; }
         | integer                       { $$ = $1; }
         | real                          { $$ = $1; }
         | string                        { $$ = $1; }
         | bool                          { $$ = $1; }
-        | expr '.' ident                { $$ = (AstNode*)createAstStructIndex(@$, $1, $3); }
+        | expr '.' var                  { $$ = (AstNode*)createAstStructIndex(@$, $1, $3); }
         | "sizeof" type                 { $$ = (AstNode*)createAstUnary(@$, AST_SIZEOF, $2); }
         | '(' ')'                       { $$ = createAstSimple(@$, AST_VOID); }
         | '[' list ']'                  { fitAstList($2); $$ = (AstNode*)$2; $$->kind = AST_ARRAY_LIT; $$->location = @$; }
@@ -260,11 +261,11 @@ expr    : ident                         { $$ = (AstNode*)$1; }
         | expr '(' error ')'            { $$ = createAstSimple(@$, AST_ERROR); freeAstNode($1); }
         ;
 
-field_vals  : field_val                      { $$ = createEmptyAstList(); addToAstList($$, $1); $$->location = @$; }
-            | field_vals ',' field_val     { $$ = $1; addToAstList($1, $3); $$->location = @$; }
+field_vals  : field_val                     { $$ = createEmptyAstList(); addToAstList($$, $1); $$->location = @$; }
+            | field_vals ',' field_val      { $$ = $1; addToAstList($1, $3); $$->location = @$; }
             ;
 
-field_val : ident '=' expr { $$ = (AstNode*)createAstArgDef(@$, $1, $3); }
+field_val : var '=' expr    { $$ = (AstNode*)createAstArgDef(@$, $1, $3); }
           ;
 
 list    : %empty                { $$ = createEmptyAstList(); $$->location = @$; }
@@ -276,21 +277,24 @@ list_nonempty : expr                    { $$ = createEmptyAstList(); addToAstLis
               | list_nonempty ',' expr  { $$ = $1; addToAstList($$, $3); $$->location = @$; }
               ;
 
-integer : INT   { $$ = parseIntLiteralIn(context, @1, $1); }
-        | CHAR  { $$ = parseCharLiteralIn(context, @1, $1); }
+integer : INT   { $$ = parseIntLiteralIn(context, @1, $1); freeTemporaryString(context, $1); }
+        | CHAR  { $$ = parseCharLiteralIn(context, @1, $1); freeTemporaryString(context, $1); }
         ;
 
-real    : REAL  { $$ = parseRealLiteralIn(context, @1, $1); }
+real    : REAL  { $$ = parseRealLiteralIn(context, @1, $1); freeTemporaryString(context, $1); }
         ;
 
-string  : STR   { $$ = parseStringLiteralIn(context, @1, $1); }
+string  : STR   { $$ = parseStringLiteralIn(context, @1, $1); freeTemporaryString(context, $1); }
+        ;
+
+var     : ID    { $$ = createAstVar(@$, getSymbol(&context->context->syms, str($1))); freeTemporaryString(context, $1); }
+        ;
+
+ident   : ID    { freeTemporaryString(context, $1); }
         ;
 
 bool    : "true"    { $$ = (AstNode*)createAstBool(@$, true); }
         | "false"   { $$ = (AstNode*)createAstBool(@$, false); }
-        ;
-
-ident   : ID    { $$ = createAstVar(@$, getSymbol(&context->context->syms, str($1))); }
         ;
 
 %%

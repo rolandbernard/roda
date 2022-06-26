@@ -6,6 +6,7 @@
 #include "errors/msgcontext.h"
 #include "files/fileset.h"
 #include "text/symbol.h"
+#include "util/tmpalloc.h"
 
 typedef enum {
     COMPILER_DEBUG_NONE = 0,
@@ -86,6 +87,7 @@ typedef struct {
 } CompilerSettings;
 
 typedef struct {
+    TempAlloc tmpalloc;
     CompilerSettings settings;
     MessageFilter msgfilter;
     FileSet files;

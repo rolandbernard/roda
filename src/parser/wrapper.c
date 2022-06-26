@@ -4,8 +4,10 @@
 
 #include "parser/parser.tab.h"
 #include "parser/lexer.yy.h"
-#include "text/format.h"
+
 #include "files/file.h"
+#include "text/format.h"
+#include "util/alloc.h"
 
 #include "parser/wrapper.h"
 
@@ -99,5 +101,16 @@ void reportSyntaxError(ParserContext* context, Span loc, const char* actual, siz
     addMessageToContext(&context->context->msgs, createMessage(ERROR_SYNTAX, builderToString(&complete), 1,
         createMessageFragment(MESSAGE_ERROR, createFormattedString("unexpected %s", tokenName(name, actual)), loc)
     ));
+}
+
+char* copyToTemporaryString(ParserContext* context, const char* str, size_t length) {
+    char* buffer = allocTempBuffer(&context->context->tmpalloc, length + 1);
+    memcpy(buffer, str, length);
+    buffer[length] = 0;
+    return buffer;
+}
+
+void freeTemporaryString(ParserContext* context, char* str) {
+    freeTempBuffer(&context->context->tmpalloc, str);
 }
 
