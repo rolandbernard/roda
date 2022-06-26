@@ -8,6 +8,7 @@
 
 typedef struct SymbolTable {
     struct SymbolTable* parent;
+    SymbolEntry* symbols;
     SymbolEntry** hashed;
     size_t count;
     size_t capacity;

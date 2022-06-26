@@ -5,6 +5,7 @@
 #include "compiler/variable.h"
 
 static void initSymbolEntry(SymbolEntry* entry, SymbolEntryKind kind, Symbol name, struct AstVar* def) {
+    entry->next = NULL;
     entry->kind = kind;
     entry->name = name;
     entry->def = def;

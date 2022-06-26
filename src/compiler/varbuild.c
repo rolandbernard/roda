@@ -147,10 +147,8 @@ static void buildLocalSymbolTables(CompilerContext* context, AstNode* node, Symb
                 AstVarDef* n = (AstVarDef*)node;
                 buildLocalSymbolTables(context, n->type, scope, true);
                 buildLocalSymbolTables(context, n->val, scope, type);
-                if (checkNotExisting(context, scope, n->name, SYMBOL_VARIABLE)) {
-                    n->name->binding = (SymbolEntry*)createVariableSymbol(n->name->name, n->name);
-                    addSymbolToTable(scope, n->name->binding);
-                }
+                n->name->binding = (SymbolEntry*)createVariableSymbol(n->name->name, n->name);
+                addSymbolToTable(scope, n->name->binding);
                 break;
             }
             case AST_IF_ELSE: {

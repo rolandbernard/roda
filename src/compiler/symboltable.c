@@ -10,16 +10,18 @@
 
 void initSymbolTable(SymbolTable* self, SymbolTable* parent) {
     self->parent = parent;
+    self->symbols = NULL;
     self->hashed = NULL;
     self->count = 0;
     self->capacity = 0;
 }
 
 void deinitSymbolTable(SymbolTable* self) {
-    for (size_t i = 0; i < self->capacity; i++) {
-        if (self->hashed[i] != NULL) {
-            freeSymbolEntry(self->hashed[i]);
-        }
+    SymbolEntry* cur = self->symbols;
+    while (cur != NULL) {
+        SymbolEntry* next = cur->next;
+        freeSymbolEntry(cur);
+        cur = next;
     }
     FREE(self->hashed);
 }
@@ -71,6 +73,8 @@ void addSymbolToTable(SymbolTable* self, SymbolEntry* var) {
         self->count++;
     }
     self->hashed[idx] = var;
+    var->next = self->symbols;
+    self->symbols = var;
 }
 
 SymbolEntry* findImmediateEntryInTable(const SymbolTable* self, Symbol name, SymbolEntryKind kind) {

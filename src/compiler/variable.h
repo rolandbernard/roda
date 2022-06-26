@@ -12,13 +12,14 @@ typedef enum {
 } SymbolEntryKind;
 
 #define SYMBOL_ENTRY_BASE       \
+    struct SymbolEntry* next;   \
     SymbolEntryKind kind;       \
     Symbol name;                \
     struct AstVar* def;         \
     struct AstVar* refs;        \
     void* codegen;
 
-typedef struct {
+typedef struct SymbolEntry {
     SYMBOL_ENTRY_BASE
 } SymbolEntry;
 
