@@ -104,47 +104,47 @@ Type* createTypeReference(TypeContext* cxt, struct AstNode* def, struct SymbolTy
 
 Type* createTypeStruct(TypeContext* cxt, struct AstNode* def, bool ordered, Symbol* name, Type** types, size_t count);
 
+size_t lookupIndexOfStructField(TypeStruct* type, Symbol name);
+
 Type* createUnsureType(TypeContext* cxt, struct AstNode* def, Type* fallback);
 
 String buildTypeName(Type* type);
 
-TypeSizedPrimitive* isSignedIntegerType(Type* type);
+struct AstNode* getTypeReason(Type* type);
 
-TypeSizedPrimitive* isUnsignedIntegerType(Type* type);
+Type* getTypeOfKind(Type* type, TypeKind kind);
 
-TypeSizedPrimitive* isIntegerType(Type* type);
+bool isSignedIntegerType(Type* type);
 
-TypeSizedPrimitive* isFloatType(Type* type);
+bool isUnsignedIntegerType(Type* type);
 
-TypeSizedPrimitive* isDoubleType(Type* type);
+bool isIntegerType(Type* type);
 
-TypeSizedPrimitive* isRealType(Type* type);
+bool isFloatType(Type* type);
 
-TypeSizedPrimitive* isNumericType(Type* type);
+bool isDoubleType(Type* type);
 
-Type* isBooleanType(Type* type);
+bool isRealType(Type* type);
 
-Type* isVoidType(Type* type);
+bool isNumericType(Type* type);
 
-TypePointer* isPointerType(Type* type);
+bool isBooleanType(Type* type);
 
-TypeArray* isArrayType(Type* type);
+bool isVoidType(Type* type);
 
-TypeFunction* isFunctionType(Type* type);
+bool isPointerType(Type* type);
 
-TypeStruct* isStructType(Type* type);
+bool isArrayType(Type* type);
 
-TypeReference* isTypeReference(Type* type);
+bool isFunctionType(Type* type);
 
-TypeUnsure* isUnsureType(Type* type);
+bool isStructType(Type* type);
 
-size_t lookupIndexOfStructField(TypeStruct* type, Symbol name);
+bool isTypeReference(Type* type);
+
+bool isUnsureType(Type* type);
 
 bool isPartialType(Type* type);
-
-void fillPartialType(Type* type, Type* with);
-
-struct AstNode* getTypeReason(Type* type);
 
 bool isValidType(Type* type);
 
@@ -157,6 +157,10 @@ bool isErrorType(Type* type);
 bool containsErrorType(Type* type);
 
 bool compareStructuralTypes(Type* a, Type* b);
+
+size_t getIntRealTypeSize(Type* type);
+
+void fillPartialType(Type* type, Type* with);
 
 bool assertStructuralTypesEquality(Type* a, Type* b, bool* changed);
 

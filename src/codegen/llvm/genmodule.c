@@ -41,33 +41,33 @@ static LLVMValueRef getCodegenReference(LlvmCodegenContext* context, LlvmCodegen
 static LLVMValueRef buildBinaryOperation(LLVMBuilderRef builder, LLVMValueRef lhs, LLVMValueRef rhs, Type* type, AstNodeKind kind) {
     switch (kind) {
         case AST_ADD:
-            if (isRealType(type) != NULL) {
+            if (isRealType(type)) {
                 return LLVMBuildFAdd(builder, lhs, rhs, "add");
             } else {
                 return LLVMBuildAdd(builder, lhs, rhs, "add");
             }
         case AST_SUB:
-            if (isRealType(type) != NULL) {
+            if (isRealType(type)) {
                 return LLVMBuildFSub(builder, lhs, rhs, "sub");
             } else {
                 return LLVMBuildSub(builder, lhs, rhs, "sub");
             }
         case AST_MUL:
-            if (isRealType(type) != NULL) {
+            if (isRealType(type)) {
                 return LLVMBuildFMul(builder, lhs, rhs, "mul");
             } else {
                 return LLVMBuildMul(builder, lhs, rhs, "mul");
             }
         case AST_DIV:
-            if (isRealType(type) != NULL) {
+            if (isRealType(type)) {
                 return LLVMBuildFDiv(builder, lhs, rhs, "div");
-            } else if (isSignedIntegerType(type) != NULL) {
+            } else if (isSignedIntegerType(type)) {
                 return LLVMBuildSDiv(builder, lhs, rhs, "div");
             } else {
                 return LLVMBuildUDiv(builder, lhs, rhs, "div");
             }
         case AST_MOD:
-            if (isSignedIntegerType(type) != NULL) {
+            if (isSignedIntegerType(type)) {
                 return LLVMBuildSRem(builder, lhs, rhs, "mod");
             } else {
                 return LLVMBuildURem(builder, lhs, rhs, "mod");
@@ -75,7 +75,7 @@ static LLVMValueRef buildBinaryOperation(LLVMBuilderRef builder, LLVMValueRef lh
         case AST_SHL:
             return LLVMBuildShl(builder, lhs, rhs, "shl");
         case AST_SHR:
-            if (isSignedIntegerType(type) != NULL) {
+            if (isSignedIntegerType(type)) {
                 return LLVMBuildAShr(builder, lhs, rhs, "shr");
             } else {
                 return LLVMBuildLShr(builder, lhs, rhs, "shr");
@@ -192,7 +192,7 @@ static LlvmCodegenValue buildFunctionBodyHelper(LlvmCodegenContext* context, Llv
         case AST_STRUCT_LIT: {
             AstList* n = (AstList*)node;
             LLVMTypeRef llvm_type = generateLlvmType(context, n->res_type);
-            TypeStruct* type = isStructType(n->res_type);
+            TypeStruct* type = (TypeStruct*)getTypeOfKind(n->res_type, TYPE_STRUCT);
             LLVMValueRef* fields = ALLOC(LLVMValueRef, type->count);
             bool all_const = true;
             for (size_t i = 0; i < type->count; i++) {
@@ -225,7 +225,7 @@ static LlvmCodegenValue buildFunctionBodyHelper(LlvmCodegenContext* context, Llv
         case AST_ARRAY_LIT: {
             AstList* n = (AstList*)node;
             LLVMTypeRef llvm_type = generateLlvmType(context, n->res_type);
-            TypeArray* type = isArrayType(node->res_type);
+            TypeArray* type = (TypeArray*)getTypeOfKind(node->res_type, TYPE_ARRAY);
             LLVMValueRef* values = ALLOC(LLVMValueRef, type->size);
             bool all_const = true;
             for (size_t i = 0; i < type->size; i++) {
@@ -299,7 +299,7 @@ static LlvmCodegenValue buildFunctionBodyHelper(LlvmCodegenContext* context, Llv
         case AST_CHAR:
         case AST_INT: {
             AstInt* n = (AstInt*)node;
-            LLVMValueRef value = LLVMConstInt(generateLlvmType(context, n->res_type), n->number, isSignedIntegerType(n->res_type) != NULL);
+            LLVMValueRef value = LLVMConstInt(generateLlvmType(context, n->res_type), n->number, isSignedIntegerType(n->res_type));
             return createLlvmCodegenValue(value, false);
         }
         case AST_BOOL: {
@@ -388,7 +388,7 @@ static LlvmCodegenValue buildFunctionBodyHelper(LlvmCodegenContext* context, Llv
             LLVMValueRef left = getCodegenValue(context, data, n->left);
             LLVMValueRef right = getCodegenValue(context, data, n->right);
             LLVMValueRef value = NULL;
-            if (isIntegerType(n->left->res_type) != NULL || isBooleanType(n->left->res_type)) {
+            if (isIntegerType(n->left->res_type) || isBooleanType(n->left->res_type)) {
                 value = buildIntComparison(data->builder, left, right, n->kind, n->left->res_type);
             } else if (isPointerType(n->left->res_type)) {
                 left = LLVMBuildPtrToInt(data->builder, left, LLVMIntPtrTypeInContext(context->llvm_cxt, context->target_data), "tmp");
@@ -407,7 +407,7 @@ static LlvmCodegenValue buildFunctionBodyHelper(LlvmCodegenContext* context, Llv
             AstUnary* n = (AstUnary*)node;
             LLVMValueRef op = getCodegenValue(context, data, n->op);
             LLVMValueRef value;
-            if (isIntegerType(n->op->res_type) != NULL) {
+            if (isIntegerType(n->op->res_type)) {
                 value = LLVMBuildNeg(data->builder, op, "neg");
             } else {
                 value = LLVMBuildFNeg(data->builder, op, "neg");
@@ -513,33 +513,33 @@ static LlvmCodegenValue buildFunctionBodyHelper(LlvmCodegenContext* context, Llv
                 LLVMValueRef op = getCodegenValue(context, data, n->left);
                 LLVMTypeRef type = generateLlvmType(context, n->res_type);
                 LLVMValueRef value = NULL;
-                if (isIntegerType(n->res_type) != NULL) {
-                    if (isIntegerType(n->left->res_type) != NULL) {
-                        bool sign = isSignedIntegerType(n->left->res_type) != NULL;
+                if (isIntegerType(n->res_type)) {
+                    if (isIntegerType(n->left->res_type)) {
+                        bool sign = isSignedIntegerType(n->left->res_type);
                         value = LLVMBuildIntCast2(data->builder, op, type, sign, "cast");
-                    } else if (isRealType(n->left->res_type) != NULL) {
-                        if (isSignedIntegerType(n->res_type) != NULL) {
+                    } else if (isRealType(n->left->res_type)) {
+                        if (isSignedIntegerType(n->res_type)) {
                             value = LLVMBuildFPToSI(data->builder, op, type, "cast");
                         } else {
                             value = LLVMBuildFPToUI(data->builder, op, type, "cast");
                         }
-                    } else if (isPointerType(n->left->res_type) != NULL) {
+                    } else if (isPointerType(n->left->res_type)) {
                         value = LLVMBuildPtrToInt(data->builder, op, type, "cast");
                     }
-                } else if (isRealType(n->res_type) != NULL) {
-                    if (isRealType(n->left->res_type) != NULL) {
+                } else if (isRealType(n->res_type)) {
+                    if (isRealType(n->left->res_type)) {
                         value = LLVMBuildFPCast(data->builder, op, type, "cast");
-                    } else if (isIntegerType(n->left->res_type) != NULL) {
-                        if (isSignedIntegerType(n->left->res_type) != NULL) {
+                    } else if (isIntegerType(n->left->res_type)) {
+                        if (isSignedIntegerType(n->left->res_type)) {
                             value = LLVMBuildSIToFP(data->builder, op, type, "cast");
                         } else {
                             value = LLVMBuildUIToFP(data->builder, op, type, "cast");
                         }
                     }
-                } else if (isPointerType(n->res_type) != NULL) {
-                    if (isPointerType(n->left->res_type) != NULL) {
+                } else if (isPointerType(n->res_type)) {
+                    if (isPointerType(n->left->res_type)) {
                         value = LLVMBuildPointerCast(data->builder, op, type, "cast");
-                    } else if (isIntegerType(n->left->res_type) != NULL) {
+                    } else if (isIntegerType(n->left->res_type)) {
                         value = LLVMBuildIntToPtr(data->builder, op, type, "cast");
                     }
                 }
@@ -548,7 +548,7 @@ static LlvmCodegenValue buildFunctionBodyHelper(LlvmCodegenContext* context, Llv
         }
         case AST_INDEX: {
             AstBinary* n = (AstBinary*)node;
-            if (isPointerType(n->left->res_type) != NULL) {
+            if (isPointerType(n->left->res_type)) {
                 LLVMValueRef pointer = getCodegenValue(context, data, n->left);
                 LLVMValueRef index = getCodegenValue(context, data, n->right);
                 LLVMValueRef value = LLVMBuildGEP2(data->builder, generateLlvmType(context, n->res_type), pointer, &index, 1, "index");
@@ -595,7 +595,7 @@ static LlvmCodegenValue buildFunctionBodyHelper(LlvmCodegenContext* context, Llv
         }
         case AST_STRUCT_INDEX: {
             AstStructIndex* n = (AstStructIndex*)node;
-            TypeStruct* type = isStructType(n->strct->res_type);
+            TypeStruct* type = (TypeStruct*)getTypeOfKind(n->strct->res_type, TYPE_STRUCT);
             LLVMTypeRef strct_type = generateLlvmType(context, n->strct->res_type);
             LlvmCodegenValue strct = buildFunctionBodyHelper(context, data, n->strct);
             size_t idx = lookupIndexOfStructField(type, n->field->name);

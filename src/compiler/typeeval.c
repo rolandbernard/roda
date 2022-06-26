@@ -164,10 +164,9 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
                     n->res_type = getErrorType(&context->types);
                 } else {
                     ConstValue size = evaluateConstExpr(context, n->left);
-                    TypeSizedPrimitive* size_type = isIntegerType(size.type);
                     if (isErrorType(size.type)) {
                         n->res_type = size.type;
-                    } else if (size_type == NULL) {
+                    } else if (!isIntegerType(size.type)) {
                         String idx_type = buildTypeName(size.type);
                         addMessageToContext(
                             &context->msgs,
@@ -179,7 +178,7 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
                         );
                         freeString(idx_type);
                         n->res_type = getErrorType(&context->types);
-                    } else if (size_type->kind == TYPE_INT && size.sint < 0) {
+                    } else if (isSignedIntegerType(size.type) && size.sint < 0) {
                         addMessageToContext(
                             &context->msgs,
                             createMessage(
@@ -190,7 +189,7 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
                         );
                         n->res_type = getErrorType(&context->types);
                     } else {
-                        size_t len = size_type->kind == TYPE_INT ? (size_t)size.sint : (size_t)size.uint;
+                        size_t len = isSignedIntegerType(size.type) ? (size_t)size.sint : (size_t)size.uint;
                         n->res_type = createArrayType(&context->types, node, base, len);
                     }
                 }

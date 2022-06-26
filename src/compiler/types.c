@@ -324,101 +324,113 @@ String buildTypeName(Type* type) {
         ON_NULL                                                     \
     }
 
-static Type* isTypeOfKind(Type* type, TypeKind kind) {
+Type* getTypeOfKind(Type* type, TypeKind kind) {
     STRUCTURAL_TYPE_CHECK_HELPER(
         if (type->kind == kind) { RETURN(Type*, type); },
         { RETURN(Type*, NULL); },
         { RETURN(Type*, NULL); },
-        { RETURN(Type*, isTypeOfKind(next, kind)); }
+        { RETURN(Type*, getTypeOfKind(next, kind)); }
     )
 }
 
-TypeSizedPrimitive* isSignedIntegerType(Type* type) {
-    return (TypeSizedPrimitive*)isTypeOfKind(type, TYPE_INT);
+bool isSignedIntegerType(Type* type) {
+    return getTypeOfKind(type, TYPE_INT) != NULL;
 }
 
-TypeSizedPrimitive* isUnsignedIntegerType(Type* type) {
-    return (TypeSizedPrimitive*)isTypeOfKind(type, TYPE_UINT);
+bool isUnsignedIntegerType(Type* type) {
+    return getTypeOfKind(type, TYPE_UINT) != NULL;
 }
 
-TypeSizedPrimitive* isIntegerType(Type* type) {
+bool isIntegerType(Type* type) {
     STRUCTURAL_TYPE_CHECK_HELPER(
         if (type->kind == TYPE_INT || type->kind == TYPE_UINT) {
-            RETURN(TypeSizedPrimitive*, (TypeSizedPrimitive*)type);
+            RETURN(bool, true);
         },
-        { RETURN(TypeSizedPrimitive*, NULL); },
-        { RETURN(TypeSizedPrimitive*, NULL); },
-        { RETURN(TypeSizedPrimitive*, isIntegerType(next)) }
+        { RETURN(bool, false); },
+        { RETURN(bool, false); },
+        { RETURN(bool, isIntegerType(next)) }
     )
 }
 
-TypeSizedPrimitive* isFloatType(Type* type) {
+bool isFloatType(Type* type) {
     STRUCTURAL_TYPE_CHECK_HELPER(
         if (type->kind == TYPE_REAL && ((TypeSizedPrimitive*)type)->size == 32) {
-            RETURN(TypeSizedPrimitive*, (TypeSizedPrimitive*)type);
+            RETURN(bool, true);
         },
-        { RETURN(TypeSizedPrimitive*, NULL); },
-        { RETURN(TypeSizedPrimitive*, NULL); },
-        { RETURN(TypeSizedPrimitive*, isFloatType(next)) }
+        { RETURN(bool, false); },
+        { RETURN(bool, false); },
+        { RETURN(bool, isFloatType(next)) }
     )
 }
 
-TypeSizedPrimitive* isDoubleType(Type* type) {
+bool isDoubleType(Type* type) {
     STRUCTURAL_TYPE_CHECK_HELPER(
         if (type->kind == TYPE_REAL && ((TypeSizedPrimitive*)type)->size == 64) {
-            RETURN(TypeSizedPrimitive*, (TypeSizedPrimitive*)type);
+            RETURN(bool, true);
         },
-        { RETURN(TypeSizedPrimitive*, NULL); },
-        { RETURN(TypeSizedPrimitive*, NULL); },
-        { RETURN(TypeSizedPrimitive*, isDoubleType(next)) }
+        { RETURN(bool, false); },
+        { RETURN(bool, false); },
+        { RETURN(bool, isDoubleType(next)) }
     )
 }
 
-TypeSizedPrimitive* isRealType(Type* type) {
-    return (TypeSizedPrimitive*)isTypeOfKind(type, TYPE_REAL);
+bool isRealType(Type* type) {
+    return getTypeOfKind(type, TYPE_REAL) != NULL;
 }
 
-TypeSizedPrimitive* isNumericType(Type* type) {
+bool isNumericType(Type* type) {
     STRUCTURAL_TYPE_CHECK_HELPER(
         if (type->kind == TYPE_REAL || type->kind == TYPE_INT || type->kind == TYPE_UINT) {
-            RETURN(TypeSizedPrimitive*, (TypeSizedPrimitive*)type);
+            RETURN(bool, true);
         },
-        { RETURN(TypeSizedPrimitive*, NULL); },
-        { RETURN(TypeSizedPrimitive*, NULL); },
-        { RETURN(TypeSizedPrimitive*, isNumericType(next)) }
+        { RETURN(bool, false); },
+        { RETURN(bool, false); },
+        { RETURN(bool, isNumericType(next)) }
     )
 }
 
-Type* isBooleanType(Type* type) {
-    return isTypeOfKind(type, TYPE_BOOL);
+bool isBooleanType(Type* type) {
+    return getTypeOfKind(type, TYPE_BOOL) != NULL;
 }
 
-Type* isVoidType(Type* type) {
-    return isTypeOfKind(type, TYPE_VOID);
+bool isVoidType(Type* type) {
+    return getTypeOfKind(type, TYPE_VOID) != NULL;
 }
 
-TypePointer* isPointerType(Type* type) {
-    return (TypePointer*)isTypeOfKind(type, TYPE_POINTER);
+bool isPointerType(Type* type) {
+    return getTypeOfKind(type, TYPE_POINTER) != NULL;
 }
 
-TypeArray* isArrayType(Type* type) {
-    return (TypeArray*)isTypeOfKind(type, TYPE_ARRAY);
+bool isArrayType(Type* type) {
+    return getTypeOfKind(type, TYPE_ARRAY) != NULL;
 }
 
-TypeFunction* isFunctionType(Type* type) {
-    return (TypeFunction*)isTypeOfKind(type, TYPE_FUNCTION);
+bool isFunctionType(Type* type) {
+    return getTypeOfKind(type, TYPE_FUNCTION) != NULL;
 }
 
-TypeStruct* isStructType(Type* type) {
-    return (TypeStruct*)isTypeOfKind(type, TYPE_STRUCT);
+bool isStructType(Type* type) {
+    return getTypeOfKind(type, TYPE_STRUCT) != NULL;
 }
 
-TypeReference* isTypeReference(Type* type) {
-    return (TypeReference*)isTypeOfKind(type, TYPE_REFERENCE);
+bool isTypeReference(Type* type) {
+    return getTypeOfKind(type, TYPE_REFERENCE) != NULL;
 }
 
-TypeUnsure* isUnsureType(Type* type) {
-    return (TypeUnsure*)isTypeOfKind(type, TYPE_UNSURE);
+bool isUnsureType(Type* type) {
+    return getTypeOfKind(type, TYPE_UNSURE) != NULL;
+}
+
+size_t getIntRealTypeSize(Type* type) {
+    STRUCTURAL_TYPE_CHECK_HELPER(
+        if (type->kind == TYPE_REAL || type->kind == TYPE_INT || type->kind == TYPE_UINT) {
+            TypeSizedPrimitive* t = (TypeSizedPrimitive*)type;
+            RETURN(size_t, t->size);
+        },
+        { RETURN(size_t, 0); },
+        { RETURN(size_t, 0); },
+        { RETURN(size_t, getIntRealTypeSize(next)) }
+    )
 }
 
 size_t lookupIndexOfStructField(TypeStruct* type, Symbol name) {

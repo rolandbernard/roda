@@ -591,7 +591,7 @@ static bool isAddressableValue(AstNode* node) {
         return true;
     } else if (node->kind == AST_INDEX) {
         AstBinary* n = (AstBinary*)node;
-        if (isPointerType(n->left->res_type) != NULL) {
+        if (isPointerType(n->left->res_type)) {
             return true;
         } else {
             return isAddressableValue(n->left);
@@ -647,7 +647,7 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                 break;
             case AST_VOID: {
                 if (node->res_type != NULL && !isErrorType(node->res_type)) {
-                    if (isVoidType(node->res_type) == NULL) {
+                    if (!isVoidType(node->res_type)) {
                         raiseLiteralTypeError(context, node, "`()`");
                     }
                 }
@@ -655,12 +655,8 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             }
             case AST_STR: {
                 if (node->res_type != NULL && !isErrorType(node->res_type)) {
-                    TypePointer* ptr_type = isPointerType(node->res_type);
-                    TypeSizedPrimitive* int_type = NULL;
-                    if (ptr_type != NULL) {
-                        int_type = isUnsignedIntegerType(ptr_type->base);
-                    }
-                    if (int_type == NULL || int_type->size != 8) {
+                    TypePointer* ptr_type = (TypePointer*)getTypeOfKind(node->res_type, TYPE_POINTER);
+                    if (ptr_type == NULL || !isUnsignedIntegerType(ptr_type->base) || getIntRealTypeSize(ptr_type->base) != 8) {
                         raiseLiteralTypeError(context, node, "string literal");
                     }
                 }
@@ -669,8 +665,7 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             case AST_CHAR:
             case AST_INT: {
                 if (node->res_type != NULL && !isErrorType(node->res_type)) {
-                    TypeSizedPrimitive* int_type = isIntegerType(node->res_type);
-                    if (int_type == NULL) {
+                    if (!isIntegerType(node->res_type)) {
                         raiseLiteralTypeError(context, node, node->kind == AST_INT ? "integer literal" : "character literal");
                     }
                 }
@@ -678,7 +673,7 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             }
             case AST_BOOL: {
                 if (node->res_type != NULL && !isErrorType(node->res_type)) {
-                    if (isBooleanType(node->res_type) == NULL) {
+                    if (!isBooleanType(node->res_type)) {
                         raiseLiteralTypeError(context, node, "boolean literal");
                     }
                 }
@@ -686,7 +681,7 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             }
             case AST_SIZEOF: {
                 if (node->res_type != NULL && !isErrorType(node->res_type)) {
-                    if (isIntegerType(node->res_type) == NULL) {
+                    if (!isIntegerType(node->res_type)) {
                         raiseLiteralTypeError(context, node, "sizeof expression");
                     }
                 }
@@ -694,8 +689,7 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             }
             case AST_REAL: {
                 if (node->res_type != NULL && !isErrorType(node->res_type)) {
-                    TypeSizedPrimitive* real_type = isRealType(node->res_type);
-                    if (real_type == NULL) {
+                    if (!isRealType(node->res_type)) {
                         raiseLiteralTypeError(context, node, "real literal");
                     }
                 }
@@ -707,8 +701,7 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             case AST_DIV_ASSIGN: {
                 AstBinary* n = (AstBinary*)node;
                 if (n->left->res_type != NULL && !isErrorType(n->left->res_type)) {
-                    TypeSizedPrimitive* type = isNumericType(n->left->res_type);
-                    if (type == NULL) {
+                    if (!isNumericType(n->left->res_type)) {
                         raiseOpTypeError(context, node, n->left, n->left->res_type, ", must be a numeric value");
                     }
                 }
@@ -725,8 +718,7 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             case AST_BXOR_ASSIGN: {
                 AstBinary* n = (AstBinary*)node;
                 if (n->left->res_type != NULL && !isErrorType(n->left->res_type)) {
-                    TypeSizedPrimitive* type = isIntegerType(n->left->res_type);
-                    if (type == NULL) {
+                    if (!isIntegerType(n->left->res_type)) {
                         raiseOpTypeError(context, node, n->left, n->left->res_type, ", must be an integer value");
                     }
                 }
@@ -745,20 +737,16 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             case AST_AS: {
                 AstBinary* n = (AstBinary*)node;
                 if (n->left->res_type != NULL && n->res_type != NULL && !compareStructuralTypes(n->left->res_type, n->res_type)) {
-                    if (isIntegerType(n->res_type) != NULL) {
-                        if (
-                            isIntegerType(n->left->res_type) == NULL
-                            && isPointerType(n->left->res_type) == NULL
-                            && isRealType(n->left->res_type) == NULL
-                        ) {
+                    if (isIntegerType(n->res_type)) {
+                        if (!isIntegerType(n->left->res_type) && !isPointerType(n->left->res_type) && !isRealType(n->left->res_type)) {
                             raiseUnsupportedCast(context, node, n->left->res_type, n->res_type);
                         }
-                    } else if (isRealType(n->res_type) != NULL) {
-                        if (isRealType(n->left->res_type) == NULL && isIntegerType(n->left->res_type) == NULL) {
+                    } else if (isRealType(n->res_type)) {
+                        if (!isRealType(n->left->res_type) && !isIntegerType(n->left->res_type)) {
                             raiseUnsupportedCast(context, node, n->left->res_type, n->res_type);
                         }
-                    } else if (isPointerType(n->res_type) != NULL) {
-                        if (isPointerType(n->left->res_type) == NULL && isIntegerType(n->left->res_type) == NULL) {
+                    } else if (isPointerType(n->res_type)) {
+                        if (!isPointerType(n->left->res_type) && !isIntegerType(n->left->res_type)) {
                             raiseUnsupportedCast(context, node, n->left->res_type, n->res_type);
                         }
                     } else {
@@ -771,11 +759,11 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             case AST_INDEX: {
                 AstBinary* n = (AstBinary*)node;
                 if (n->left->res_type != NULL && !isErrorType(n->left->res_type)) {
-                    if (isArrayType(n->left->res_type) == NULL && isPointerType(n->left->res_type) == NULL) {
+                    if (!isArrayType(n->left->res_type) && !isPointerType(n->left->res_type)) {
                         raiseOpTypeError(context, node, n->left, n->left->res_type, ", must be an array or pointer");
                     }
                 }
-                if (n->right->res_type != NULL && !isErrorType(n->right->res_type) && isIntegerType(n->right->res_type) == NULL) {
+                if (n->right->res_type != NULL && !isErrorType(n->right->res_type) && !isIntegerType(n->right->res_type)) {
                     raiseOpTypeError(context, node, n->right, n->right->res_type, ", must be an integer value");
                 }
                 checkTypeConstraints(context, n->left);
@@ -787,7 +775,7 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             case AST_DIV:
             case AST_ADD: {
                 AstBinary* n = (AstBinary*)node;
-                if (n->res_type != NULL && !isErrorType(n->res_type) && isNumericType(n->res_type) == NULL) {
+                if (n->res_type != NULL && !isErrorType(n->res_type) && !isNumericType(n->res_type)) {
                     raiseOpTypeError(context, node, n->left, n->res_type, ", must be a numeric value");
                 }
                 checkTypeConstraints(context, n->left);
@@ -801,7 +789,7 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             case AST_BOR:
             case AST_BXOR: {
                 AstBinary* n = (AstBinary*)node;
-                if (n->res_type != NULL && !isErrorType(n->res_type) && isIntegerType(n->res_type) == NULL) {
+                if (n->res_type != NULL && !isErrorType(n->res_type) && !isIntegerType(n->res_type)) {
                     raiseOpTypeError(context, node, n->left, n->res_type, ", must be an integer value");
                 }
                 checkTypeConstraints(context, n->left);
@@ -819,7 +807,7 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             case AST_NE: {
                 AstBinary* n = (AstBinary*)node;
                 if (n->left->res_type != NULL && !isErrorType(n->left->res_type)) {
-                    if (isNumericType(n->left->res_type) == NULL && isBooleanType(n->left->res_type) == NULL && isPointerType(n->left->res_type) == NULL) {
+                    if (!isNumericType(n->left->res_type) && !isBooleanType(n->left->res_type) && !isPointerType(n->left->res_type)) {
                         raiseOpTypeError(context, node, n->left, n->left->res_type, ", must be a numeric value, boolean or pointer");
                     }
                 }
@@ -833,7 +821,7 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             case AST_GT: {
                 AstBinary* n = (AstBinary*)node;
                 if (n->left->res_type != NULL && !isErrorType(n->left->res_type)) {
-                    if (isNumericType(n->left->res_type) == NULL && isPointerType(n->left->res_type) == NULL) {
+                    if (!isNumericType(n->left->res_type) && !isPointerType(n->left->res_type)) {
                         raiseOpTypeError(context, node, n->left, n->left->res_type, ", must be a numeric value or pointer");
                     }
                 }
@@ -843,7 +831,7 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             }
             case AST_POS: {
                 AstUnary* n = (AstUnary*)node;
-                if (n->res_type != NULL && !isErrorType(n->res_type) && isNumericType(n->res_type) == NULL) {
+                if (n->res_type != NULL && !isErrorType(n->res_type) && !isNumericType(n->res_type)) {
                     raiseOpTypeError(context, node, n->op, n->res_type, ", must be a numeric value");
                 }
                 checkTypeConstraints(context, n->op);
@@ -851,7 +839,7 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             }
             case AST_NEG: {
                 AstUnary* n = (AstUnary*)node;
-                if (n->res_type != NULL && !isErrorType(n->res_type) && isRealType(n->res_type) == NULL && isSignedIntegerType(n->res_type) == NULL) {
+                if (n->res_type != NULL && !isErrorType(n->res_type) && !isRealType(n->res_type) && !isSignedIntegerType(n->res_type)) {
                     raiseOpTypeError(context, node, n->op, n->res_type, ", must be a signed numeric value");
                 }
                 checkTypeConstraints(context, n->op);
@@ -859,7 +847,7 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             }
             case AST_NOT: {
                 AstUnary* n = (AstUnary*)node;
-                if (n->res_type != NULL && !isErrorType(n->res_type) && isIntegerType(n->res_type) == NULL && isBooleanType(n->res_type) == NULL) {
+                if (n->res_type != NULL && !isErrorType(n->res_type) && !isIntegerType(n->res_type) && !isBooleanType(n->res_type)) {
                     raiseOpTypeError(context, node, n->op, n->res_type, ", must be an integer or boolean value");
                 }
                 checkTypeConstraints(context, n->op);
@@ -868,7 +856,7 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             case AST_ADDR: {
                 AstUnary* n = (AstUnary*)node;
                 if (node->res_type != NULL && !isErrorType(node->res_type)) {
-                    if (isPointerType(node->res_type) == NULL) {
+                    if (!isPointerType(node->res_type)) {
                         raiseOpTypeError(context, node, node, node->res_type, ", always returns a pointer");
                     }
                 }
@@ -879,7 +867,7 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             case AST_DEREF: {
                 AstUnary* n = (AstUnary*)node;
                 if (n->op->res_type != NULL && !isErrorType(n->op->res_type)) {
-                    if (isPointerType(n->op->res_type) == NULL) {
+                    if (!isPointerType(n->op->res_type)) {
                         raiseOpTypeError(context, node, n->op, n->op->res_type, ", must be a pointer");
                     }
                 }
@@ -889,9 +877,9 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             case AST_RETURN: {
                 AstReturn* n = (AstReturn*)node;
                 if (n->function->name->res_type != NULL && !isErrorType(n->function->name->res_type)) {
-                    TypeFunction* func = isFunctionType(n->function->name->res_type);
+                    TypeFunction* func = (TypeFunction*)getTypeOfKind(n->function->name->res_type, TYPE_FUNCTION);
                     if (func != NULL) {
-                        if (n->value == NULL && isVoidType(func->ret_type) == NULL) {
+                        if (n->value == NULL && !isVoidType(func->ret_type)) {
                             raiseVoidReturnError(context, n, func->ret_type);
                         }
                     }
@@ -902,7 +890,7 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             case AST_STRUCT_LIT: {
                 AstList* n = (AstList*)node;
                 if (n->res_type != NULL && !isErrorType(n->res_type)) {
-                    TypeStruct* type = isStructType(n->res_type);
+                    TypeStruct* type = (TypeStruct*)getTypeOfKind(n->res_type, TYPE_STRUCT);
                     if (type != NULL) {
                         sortStructFieldsByName(n);
                         if (type->count != n->count) {
@@ -929,7 +917,7 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             case AST_ARRAY_LIT: {
                 AstList* n = (AstList*)node;
                 if (n->res_type != NULL && !isErrorType(n->res_type)) {
-                    TypeArray* type = isArrayType(n->res_type);
+                    TypeArray* type = (TypeArray*)getTypeOfKind(n->res_type, TYPE_ARRAY);
                     if (type != NULL) {
                         if (type->size != n->count) {
                             raiseArrayLengthMismatchError(context, node);
@@ -976,9 +964,9 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             case AST_CALL: {
                 AstCall* n = (AstCall*)node;
                 if (n->function->res_type != NULL && !isErrorType(n->function->res_type)) {
-                    TypeFunction* type = isFunctionType(n->function->res_type);
+                    TypeFunction* type = (TypeFunction*)getTypeOfKind(n->function->res_type, TYPE_FUNCTION);
                     if (type == NULL) {
-                        TypePointer* ptr_type = isPointerType(n->function->res_type);
+                        TypePointer* ptr_type = (TypePointer*)getTypeOfKind(n->function->res_type, TYPE_POINTER);
                         if (ptr_type != NULL && isFunctionType(ptr_type->base)) {
                             raiseOpTypeErrorWithHelp(
                                 context, node, n->function, n->function->res_type, ", must be a function",
@@ -1031,7 +1019,7 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                 AstStructIndex* n = (AstStructIndex*)node;
                 checkTypeConstraints(context, n->strct);
                 if (n->strct->res_type != NULL && !isErrorType(n->strct->res_type)) {
-                    TypeStruct* type = isStructType(n->strct->res_type);
+                    TypeStruct* type = (TypeStruct*)getTypeOfKind(n->strct->res_type, TYPE_STRUCT);
                     if (type == NULL) {
                         raiseOpTypeError(
                             context, node, n->strct, n->strct->res_type, ", must be a struct"

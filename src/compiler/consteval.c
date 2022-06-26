@@ -106,29 +106,29 @@ static ConstValue raiseTypeErrorNotInConst(CompilerContext* context, AstNode* no
 }
 
 #define BACTION_INTS(ACTION)                                \
-    if (isSignedIntegerType(left.type) != NULL) {           \
+    if (isSignedIntegerType(left.type)) {                   \
         intmax_t l = left.sint;                             \
         intmax_t r = right.sint;                            \
         res = createConstInt(context, t->size, ACTION);     \
-    } else if (isUnsignedIntegerType(left.type) != NULL) {  \
+    } else if (isUnsignedIntegerType(left.type)) {          \
         uintmax_t l = left.uint;                            \
         uintmax_t r = right.uint;                           \
         res = createConstUInt(context, t->size, ACTION);    \
     }
 
 #define BACTION_FLOATS(ACTION)                              \
-    if (isFloatType(left.type) != NULL) {                   \
+    if (isFloatType(left.type)) {                           \
         float l = left.f32;                                 \
         float r = right.f32;                                \
         res = createConstF32(context, ACTION);              \
-    } else if (isDoubleType(left.type) != NULL) {           \
+    } else if (isDoubleType(left.type)) {                   \
         double l = left.f64;                                \
         double r = right.f64;                               \
         res = createConstF64(context, ACTION);              \
     }
 
 #define BACTION_BOOLS(ACTION)                       \
-    if (isBooleanType(left.type) != NULL) {         \
+    if (isBooleanType(left.type)) {                 \
         bool l = left.boolean;                      \
         bool r = right.boolean;                     \
         res = createConstBool(context, ACTION);     \
@@ -169,25 +169,25 @@ static ConstValue raiseTypeErrorNotInConst(CompilerContext* context, AstNode* no
 }
 
 #define UACTION_INTS(ACTION)                                \
-    if (isSignedIntegerType(op.type) != NULL) {             \
+    if (isSignedIntegerType(op.type)) {                     \
         intmax_t o = op.sint;                               \
         res = createConstInt(context, t->size, ACTION);     \
-    } else if (isUnsignedIntegerType(op.type) != NULL) {    \
+    } else if (isUnsignedIntegerType(op.type)) {            \
         uintmax_t o = op.uint;                              \
         res = createConstUInt(context, t->size, ACTION);    \
     }
 
 #define UACTION_FLOATS(ACTION)                              \
-    if (isFloatType(op.type) != NULL) {                     \
+    if (isFloatType(op.type)) {                             \
         float o = op.f32;                                   \
         res = createConstF32(context, ACTION);              \
-    } else if (isDoubleType(op.type) != NULL) {             \
+    } else if (isDoubleType(op.type)) {                     \
         double o = op.f64;                                  \
         res = createConstF64(context, ACTION);              \
     }
 
 #define UACTION_BOOLS(ACTION)                       \
-    if (isBooleanType(op.type) != NULL) {           \
+    if (isBooleanType(op.type)) {                   \
         bool o = op.boolean;                        \
         res = createConstBool(context, ACTION);     \
     }
@@ -264,67 +264,63 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
                     n->res_type = evaluateTypeExpr(context, n->right);
                 }
                 ConstValue op = evaluateConstExpr(context, n->left);
-                TypeSizedPrimitive* type = isRealType(n->res_type);
-                if (type != NULL) {
-                    TypeSizedPrimitive* op_type = isRealType(n->left->res_type);
-                    if (op_type != NULL && type->size == op_type->size) {
-                        res = op;
-                        break;
-                    } else if (op_type != NULL && type->size == 32) {
-                        res = createConstF32(context, (float)op.f64);
-                        break;
-                    } else if (op_type != NULL && type->size == 64) {
-                        res = createConstF64(context, (double)op.f32);
-                        break;
-                    } else if (isSignedIntegerType(n->left->res_type) != NULL) {
-                        if (type->size == 32) {
+                size_t size = getIntRealTypeSize(n->res_type);
+                if (isRealType(n->res_type)) {
+                    size_t op_size = getIntRealTypeSize(n->left->res_type);
+                    if (isRealType(n->left->res_type)) {
+                        if (size == op_size) {
+                            res = op;
+                            break;
+                        } else if (size == 32) {
+                            res = createConstF32(context, (float)op.f64);
+                            break;
+                        } else if (size == 64) {
+                            res = createConstF64(context, (double)op.f32);
+                            break;
+                        }
+                    } else if (isSignedIntegerType(n->left->res_type)) {
+                        if (size == 32) {
                             res = createConstF32(context, (float)op.sint);
                             break;
-                        } else if (type->size == 64) {
+                        } else if (size == 64) {
                             res = createConstF64(context, (double)op.sint);
                             break;
                         }
-                    } else if (isUnsignedIntegerType(n->left->res_type) != NULL) {
-                        if (type->size == 32) {
+                    } else if (isUnsignedIntegerType(n->left->res_type)) {
+                        if (size == 32) {
                             res = createConstF32(context, (float)op.uint);
                             break;
-                        } else if (type->size == 64) {
+                        } else if (size == 64) {
                             res = createConstF64(context, (double)op.uint);
                             break;
                         }
                     }
-                }
-                type = isSignedIntegerType(n->res_type);
-                if (type != NULL) {
-                    TypeSizedPrimitive* op_type = isRealType(n->left->res_type);
-                    if (op_type != NULL && op_type->size == 32) {
-                        res = createConstInt(context, type->size, (intmax_t)op.f32);
+                } else if (isSignedIntegerType(n->res_type)) {
+                    if (isFloatType(n->left->res_type)) {
+                        res = createConstInt(context, size, (intmax_t)op.f32);
                         break;
-                    } else if (op_type != NULL && op_type->size == 64) {
-                        res = createConstInt(context, type->size, (intmax_t)op.f64);
+                    } else if (isDoubleType(n->left->res_type)) {
+                        res = createConstInt(context, size, (intmax_t)op.f64);
                         break;
-                    } else if (isSignedIntegerType(n->left->res_type) != NULL) {
-                        res = createConstInt(context, type->size, (intmax_t)op.sint);
+                    } else if (isSignedIntegerType(n->left->res_type)) {
+                        res = createConstInt(context, size, (intmax_t)op.sint);
                         break;
-                    } else if (isUnsignedIntegerType(n->left->res_type) != NULL) {
-                        res = createConstInt(context, type->size, (intmax_t)op.uint);
+                    } else if (isUnsignedIntegerType(n->left->res_type)) {
+                        res = createConstInt(context, size, (intmax_t)op.uint);
                         break;
                     }
-                }
-                type = isUnsignedIntegerType(n->res_type);
-                if (type != NULL) {
-                    TypeSizedPrimitive* op_type = isRealType(n->left->res_type);
-                    if (op_type != NULL && op_type->size == 32) {
-                        res = createConstUInt(context, type->size, (uintmax_t)op.f32);
+                } else if (isUnsignedIntegerType(n->res_type)) {
+                    if (isFloatType(n->left->res_type)) {
+                        res = createConstUInt(context, size, (uintmax_t)op.f32);
                         break;
-                    } else if (op_type != NULL && op_type->size == 64) {
-                        res = createConstUInt(context, type->size, (uintmax_t)op.f64);
+                    } else if (isDoubleType(n->left->res_type)) {
+                        res = createConstUInt(context, size, (uintmax_t)op.f64);
                         break;
-                    } else if (isSignedIntegerType(n->left->res_type) != NULL) {
-                        res = createConstUInt(context, type->size, (uintmax_t)op.sint);
+                    } else if (isSignedIntegerType(n->left->res_type)) {
+                        res = createConstUInt(context, size, (uintmax_t)op.sint);
                         break;
-                    } else if (isUnsignedIntegerType(n->left->res_type) != NULL) {
-                        res = createConstUInt(context, type->size, (uintmax_t)op.uint);
+                    } else if (isUnsignedIntegerType(n->left->res_type)) {
+                        res = createConstUInt(context, size, (uintmax_t)op.uint);
                         break;
                     }
                 }
@@ -359,12 +355,10 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
                     if (n->res_type == NULL) {
                         n->res_type = createSizedPrimitiveType(&context->types, NULL, TYPE_INT, 64);
                     }
-                    TypeSizedPrimitive* t = isIntegerType(n->res_type);
-                    ASSERT(t != NULL);
-                    if (t->kind == TYPE_INT) {
-                        res = createConstInt(context, t->size, n->number);
-                    } else if (t->kind == TYPE_UINT) {
-                        res = createConstUInt(context, t->size, n->number);
+                    if (isSignedIntegerType(n->res_type)) {
+                        res = createConstInt(context, getIntRealTypeSize(n->res_type), n->number);
+                    } else if (isUnsignedIntegerType(n->res_type)) {
+                        res = createConstUInt(context, getIntRealTypeSize(n->res_type), n->number);
                     } else {
                         UNREACHABLE("integer type expected");
                     }
@@ -379,11 +373,9 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
                     if (n->res_type == NULL) {
                         n->res_type = createSizedPrimitiveType(&context->types, NULL, TYPE_REAL, 64);
                     }
-                    TypeSizedPrimitive* t = isRealType(n->res_type);
-                    ASSERT(t != NULL);
-                    if (t->size == 32) {
+                    if (isFloatType(n->res_type)) {
                         res = createConstF32(context, n->number);
-                    } else if (t->size == 64) {
+                    } else if (isDoubleType(n->res_type)) {
                         res = createConstF64(context, n->number);
                     } else {
                         UNREACHABLE("unexpected real type size");
@@ -399,9 +391,7 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
                     if (n->res_type == NULL) {
                         n->res_type = createUnsizedPrimitiveType(&context->types, NULL, TYPE_BOOL);
                     }
-                    Type* t = isBooleanType(n->res_type);
-                    ASSERT(t != NULL);
-                    if (t->kind == TYPE_BOOL) {
+                    if (isBooleanType(n->res_type)) {
                         res = createConstBool(context, n->value);
                     } else {
                         UNREACHABLE("integer type expected");

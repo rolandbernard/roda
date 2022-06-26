@@ -212,8 +212,8 @@ static void propagateTypes(CompilerContext* context, AstNode* node, bool* change
             case AST_INDEX: {
                 AstBinary* n = (AstBinary*)node;
                 if (n->left->res_type != NULL) {
-                    TypeArray* arr_type = isArrayType(n->left->res_type);
-                    TypePointer* ptr_type = isPointerType(n->left->res_type);
+                    TypeArray* arr_type = (TypeArray*)getTypeOfKind(n->left->res_type, TYPE_ARRAY);
+                    TypePointer* ptr_type = (TypePointer*)getTypeOfKind(n->left->res_type, TYPE_POINTER);
                     if (arr_type != NULL) {
                         if (propagateTypeIntoAstNode(context, node, arr_type->base, changed)) {
                             propagateTypes(context, node->parent, changed);
@@ -256,7 +256,7 @@ static void propagateTypes(CompilerContext* context, AstNode* node, bool* change
                     }
                 }
                 if (n->res_type != NULL) {
-                    TypePointer* type = isPointerType(n->res_type);
+                    TypePointer* type = (TypePointer*)getTypeOfKind(n->res_type, TYPE_POINTER);
                     if (type != NULL) {
                         if (propagateTypeIntoAstNode(context, n->op, type->base, changed)) {
                             propagateTypes(context, n->op, changed);
@@ -273,7 +273,7 @@ static void propagateTypes(CompilerContext* context, AstNode* node, bool* change
                     }
                 }
                 if (n->op->res_type != NULL) {
-                    TypePointer* type = isPointerType(n->op->res_type);
+                    TypePointer* type = (TypePointer*)getTypeOfKind(n->op->res_type, TYPE_POINTER);
                     if (type != NULL) {
                         if (propagateTypeIntoAstNode(context, node, type->base, changed)) {
                             propagateTypes(context, node->parent, changed);
@@ -285,7 +285,7 @@ static void propagateTypes(CompilerContext* context, AstNode* node, bool* change
             case AST_CALL: {
                 AstCall* n = (AstCall*)node;
                 if (n->function->res_type != NULL) {
-                    TypeFunction* type = isFunctionType(n->function->res_type);
+                    TypeFunction* type = (TypeFunction*)getTypeOfKind(n->function->res_type, TYPE_FUNCTION);
                     if (
                         type != NULL
                         && (type->arg_count == n->arguments->count
@@ -307,7 +307,7 @@ static void propagateTypes(CompilerContext* context, AstNode* node, bool* change
             case AST_STRUCT_LIT: {
                 AstList* n = (AstList*)node;
                 if (n->res_type != NULL) {
-                    TypeStruct* type = isStructType(n->res_type);
+                    TypeStruct* type = (TypeStruct*)getTypeOfKind(n->res_type, TYPE_STRUCT);
                     if (type != NULL) {
                         for (size_t i = 0; i < n->count; i++) {
                             AstStructField* field = (AstStructField*)n->nodes[i];
@@ -348,7 +348,7 @@ static void propagateTypes(CompilerContext* context, AstNode* node, bool* change
             case AST_ARRAY_LIT: {
                 AstList* n = (AstList*)node;
                 if (n->res_type != NULL) {
-                    TypeArray* type = isArrayType(n->res_type);
+                    TypeArray* type = (TypeArray*)getTypeOfKind(n->res_type, TYPE_ARRAY);
                     if (type != NULL) {
                         for (size_t i = 0; i < n->count; i++) {
                             if (propagateTypeIntoAstNode(context, n->nodes[i], type->base, changed)) {
@@ -380,7 +380,7 @@ static void propagateTypes(CompilerContext* context, AstNode* node, bool* change
             case AST_RETURN: {
                 AstReturn* n = (AstReturn*)node;
                 if (n->function->name->res_type != NULL) {
-                    TypeFunction* func = isFunctionType(n->function->name->res_type);
+                    TypeFunction* func = (TypeFunction*)getTypeOfKind(n->function->name->res_type, TYPE_FUNCTION);
                     if (func != NULL) {
                         if (n->value != NULL) {
                             if (propagateTypeIntoAstNode(context, n->value, func->ret_type, changed)) {
@@ -394,7 +394,7 @@ static void propagateTypes(CompilerContext* context, AstNode* node, bool* change
             case AST_STRUCT_INDEX: {
                 AstStructIndex* n = (AstStructIndex*)node;
                 if (n->strct->res_type != NULL) {
-                    TypeStruct* type = isStructType(n->strct->res_type);
+                    TypeStruct* type = (TypeStruct*)getTypeOfKind(n->strct->res_type, TYPE_STRUCT);
                     if (type != NULL) {
                         size_t idx = lookupIndexOfStructField(type, n->field->name);
                         if (idx != NO_POS) {
