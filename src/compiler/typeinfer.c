@@ -510,7 +510,6 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
             }
             case AST_VAR:
             case AST_VOID:
-            case AST_STR:
             case AST_INT:
             case AST_CHAR:
             case AST_BOOL:
@@ -531,6 +530,13 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                 n->res_type = createUnsizedPrimitiveType(&context->types, node, TYPE_VOID);
                 evaluateTypeHints(context, n->right);
                 evaluateTypeHints(context, n->left);
+                break;
+            }
+            case AST_STR: {
+                AstBinary* n = (AstBinary*)node;
+                n->res_type = createPointerType(&context->types, node,
+                    createSizedPrimitiveType(&context->types, node, TYPE_UINT, 8)
+                );
                 break;
             }
             case AST_AS: {
@@ -946,17 +952,7 @@ static void assumeAmbiguousTypes(CompilerContext* context, AssumeAmbiguousPhase 
             case AST_VAR:
             case AST_TYPEDEF:
             case AST_ARGDEF:
-                break;
             case AST_STR:
-                if ((phase & ASSUME_LITERALS) != 0 && node->res_type == NULL) {
-                    Type* type = createPointerType(&context->types, node,
-                        createSizedPrimitiveType(&context->types, node, TYPE_UINT, 8)
-                    );
-                    type = createUnsureType(&context->types, node, type);
-                    if (propagateTypeIntoAstNode(context, node, type, changed)) {
-                        propagateTypes(context, node->parent, changed);
-                    }
-                }
                 break;
             case AST_VOID:
                 if ((phase & ASSUME_LITERALS) != 0 && node->res_type == NULL) {

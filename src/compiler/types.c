@@ -552,7 +552,7 @@ void fillPartialType(Type* type, Type* with) {
             } else if (t->fallback != NULL) {
                 fillPartialType(t->fallback, with);
             } else {
-                t->fallback = with;
+                t->actual = with;
             }
             RETURN_VOID;
         },
