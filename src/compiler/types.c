@@ -163,8 +163,9 @@ Type* createTypeStruct(TypeContext* cxt, struct AstNode* def, bool ordered, Symb
     return addAndInitType(cxt, (Type*)type, TYPE_STRUCT, def);
 }
 
-Type* createUnsureType(TypeContext* cxt, struct AstNode* def, Type* fallback) {
+Type* createUnsureType(TypeContext* cxt, struct AstNode* def, TypeUnsureKind set, Type* fallback) {
     TypeUnsure* type = NEW(TypeUnsure);
+    type->set = set;
     type->fallback = fallback;
     type->actual = NULL;
     return addAndInitType(cxt, (Type*)type, TYPE_UNSURE, def);
@@ -265,6 +266,10 @@ static void buildTypeNameInto(StringBuilder* dst, Type* type) {
                 TypeUnsure* t = (TypeUnsure*)type;
                 if (t->actual != NULL) {
                     buildTypeNameInto(dst, t->actual);
+                } else if (t->set == UNSURE_INTEGER) {
+                    pushToStringBuilder(dst, str("{integer}"));
+                } else if (t->set == UNSURE_REAL) {
+                    pushToStringBuilder(dst, str("{real}"));
                 } else {
                     buildTypeNameInto(dst, t->fallback);
                 }
@@ -343,7 +348,10 @@ bool isUnsignedIntegerType(Type* type) {
 
 bool isIntegerType(Type* type) {
     STRUCTURAL_TYPE_CHECK_HELPER(
-        if (type->kind == TYPE_INT || type->kind == TYPE_UINT) {
+        if (
+            type->kind == TYPE_INT || type->kind == TYPE_UINT
+            || (type->kind == TYPE_UNSURE && ((TypeUnsure*)type)->set == UNSURE_INTEGER)
+        ) {
             RETURN(bool, true);
         },
         { RETURN(bool, false); },
@@ -375,7 +383,14 @@ bool isDoubleType(Type* type) {
 }
 
 bool isRealType(Type* type) {
-    return getTypeOfKind(type, TYPE_REAL) != NULL;
+    STRUCTURAL_TYPE_CHECK_HELPER(
+        if (type->kind == TYPE_REAL || (type->kind == TYPE_UNSURE && ((TypeUnsure*)type)->set == UNSURE_REAL)) {
+            RETURN(bool, true);
+        },
+        { RETURN(bool, false); },
+        { RETURN(bool, false); },
+        { RETURN(bool, isRealType(next)) }
+    )
 }
 
 bool isNumericType(Type* type) {
@@ -567,7 +582,7 @@ void fillPartialType(Type* type, Type* with) {
 
 AstNode* getTypeReason(Type* type) {
     STRUCTURAL_TYPE_CHECK_HELPER( 
-        if (type->kind != TYPE_UNSURE) {
+        if (type->kind != TYPE_UNSURE || ((TypeUnsure*)type)->actual == NULL) {
             RETURN(AstNode*, type->def);
         },
         { RETURN(AstNode*, NULL); },
@@ -677,6 +692,16 @@ typedef struct DoubleTypeReferenceStack {
     Type* types[2];
 } DoubleTypeReferenceStack;
 
+static bool isSubsetOfUnsure(TypeUnsureKind set, Type* type) {
+    if (set == UNSURE_INTEGER) {
+        return isIntegerType(type);
+    } else if (set == UNSURE_REAL) {
+        return isRealType(type);
+    } else {
+        return true;
+    }
+}
+
 static bool compareStructuralTypesHelper(Type* a, Type* b, bool change, bool* changed, DoubleTypeReferenceStack* stack) {
     if (a == b) {
         return true;
@@ -713,7 +738,7 @@ static bool compareStructuralTypesHelper(Type* a, Type* b, bool change, bool* ch
                     TypeUnsure* t = (TypeUnsure*)a;
                     if (t->actual != NULL) {
                         equal = compareStructuralTypesHelper(t->actual, b, change, changed, stack);
-                    } else if (change) {
+                    } else if (change && isSubsetOfUnsure(t->set, b)) {
                         t->actual = b;
                         equal = true;
                         *changed = true;
@@ -724,7 +749,7 @@ static bool compareStructuralTypesHelper(Type* a, Type* b, bool change, bool* ch
                     TypeUnsure* t = (TypeUnsure*)b;
                     if (t->actual != NULL) {
                         equal = compareStructuralTypesHelper(a, t->actual, change, changed, stack);
-                    } else if (change) {
+                    } else if (change && isSubsetOfUnsure(t->set, a)) {
                         t->actual = a;
                         equal = true;
                         *changed = true;
@@ -739,26 +764,20 @@ static bool compareStructuralTypesHelper(Type* a, Type* b, bool change, bool* ch
                     case TYPE_UNSURE: {
                         TypeUnsure* ta = (TypeUnsure*)a;
                         TypeUnsure* tb = (TypeUnsure*)b;
-                        if (ta->actual == NULL) {
-                            if (change) {
-                                ta->actual = b;
-                                equal = true;
-                                *changed = true;
-                            } else if (tb->actual != NULL) {
-                                equal = compareStructuralTypesHelper(ta->fallback, tb->actual, change, changed, stack);
-                            } else {
-                                equal = compareStructuralTypesHelper(ta->fallback, tb->fallback, change, changed, stack);
-                            }
-                        } else if (tb->actual == NULL) {
-                            if (change) {
-                                tb->actual = a;
-                                equal = true;
-                                *changed = true;
-                            } else {
-                                equal = compareStructuralTypesHelper(ta->actual, tb->fallback, change, changed, stack);
-                            }
+                        if (change && ta->actual == NULL && isSubsetOfUnsure(ta->set, b)) {
+                            ta->actual = b;
+                            equal = true;
+                            *changed = true;
+                        } else if (change && tb->actual == NULL && isSubsetOfUnsure(tb->set, a)) {
+                            tb->actual = a;
+                            equal = true;
+                            *changed = true;
+                        } else if (ta->actual != NULL) {
+                            equal = compareStructuralTypesHelper(ta->actual, b, change, changed, stack);
+                        } else if (tb->actual != NULL) {
+                            equal = compareStructuralTypesHelper(a, tb->actual, change, changed, stack);
                         } else {
-                            equal = compareStructuralTypesHelper(ta->actual, tb->actual, change, changed, stack);
+                            equal = compareStructuralTypesHelper(ta->fallback, tb->fallback, change, changed, stack);
                         }
                         break;
                     }

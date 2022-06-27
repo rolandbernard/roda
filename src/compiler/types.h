@@ -73,8 +73,15 @@ typedef struct {
     size_t count;
 } TypeStruct;
 
+typedef enum {
+    UNSURE_ANY,
+    UNSURE_INTEGER,
+    UNSURE_REAL,
+} TypeUnsureKind;
+
 typedef struct {
     TYPE_BASE
+    TypeUnsureKind set;
     Type* fallback;
     Type* actual;
 } TypeUnsure;
@@ -106,7 +113,7 @@ Type* createTypeStruct(TypeContext* cxt, struct AstNode* def, bool ordered, Symb
 
 size_t lookupIndexOfStructField(TypeStruct* type, Symbol name);
 
-Type* createUnsureType(TypeContext* cxt, struct AstNode* def, Type* fallback);
+Type* createUnsureType(TypeContext* cxt, struct AstNode* def, TypeUnsureKind set, Type* fallback);
 
 String buildTypeName(Type* type);
 

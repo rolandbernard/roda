@@ -1,7 +1,7 @@
 // test: Test stuff that is not allowed in a constant expression
-// stderr: = error[E0008]: 5:19-23: type error, expecting expression of type `f64` but found boolean literal\n
+// stderr: = error[E0008]: 5:13-17: type error, incompatible type `bool` for add expession, must be a numeric value\n
 
 pub fn main(): int {
-    let b: [0.5 + false]u8;
+    let b: [false + 0.5]u8;
     return 0;
 }

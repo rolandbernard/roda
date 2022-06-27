@@ -1,5 +1,5 @@
 // test: Compiler should find a type conflict
-// stderr: = error[E0008]: 6:13-16: type error, expecting expression of type `int` but found boolean literal\n
+// stderr: = error[E0008]: 6:13-16: type error, conflicting types `bool` and `int`\n
 
 pub fn foo(a: int): int {
     let b;

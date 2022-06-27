@@ -339,14 +339,14 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │        │  └─array literal (2 elements) [2]*Node [tests/emit/ast.rd:40:19-40:42]
     │        │     ├─type conversion *Node [tests/emit/ast.rd:40:20-40:29]
     │        │     │  │left:
-    │        │     │  ├─integer (value = 0) i64 [tests/emit/ast.rd:40:20]
+    │        │     │  ├─integer (value = 0) {integer} [tests/emit/ast.rd:40:20]
     │        │     │  │right:
     │        │     │  └─address of *Node [tests/emit/ast.rd:40:25-40:29]
     │        │     │     │op:
     │        │     │     └─variable (name = Node) Node [tests/emit/ast.rd:40:26-40:29]
     │        │     └─type conversion *Node [tests/emit/ast.rd:40:32-40:41]
     │        │        │left:
-    │        │        ├─integer (value = 0) i64 [tests/emit/ast.rd:40:32]
+    │        │        ├─integer (value = 0) {integer} [tests/emit/ast.rd:40:32]
     │        │        │right:
     │        │        └─address of *Node [tests/emit/ast.rd:40:37-40:41]
     │        │           │op:
@@ -459,7 +459,7 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │           │  │right:
     │           │  └─type conversion *Node [tests/emit/ast.rd:52:16-52:25]
     │           │     │left:
-    │           │     ├─integer (value = 0) i64 [tests/emit/ast.rd:52:16]
+    │           │     ├─integer (value = 0) {integer} [tests/emit/ast.rd:52:16]
     │           │     │right:
     │           │     └─address of *Node [tests/emit/ast.rd:52:21-52:25]
     │           │        │op:
@@ -483,7 +483,7 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │           │     │        │  │field:
     │           │     │        │  └─variable (name = childs) [tests/emit/ast.rd:53:27-53:32]
     │           │     │        │right:
-    │           │     │        └─integer (value = 0) usize [tests/emit/ast.rd:53:34]
+    │           │     │        └─integer (value = 0) {integer} [tests/emit/ast.rd:53:34]
     │           │     ├─call () [tests/emit/ast.rd:54:9-54:36]
     │           │     │  │function:
     │           │     │  ├─variable (name = free_node) fn (*Node): () [tests/emit/ast.rd:54:9-54:17]
@@ -499,7 +499,7 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │           │     │        │  │field:
     │           │     │        │  └─variable (name = childs) [tests/emit/ast.rd:54:27-54:32]
     │           │     │        │right:
-    │           │     │        └─integer (value = 1) usize [tests/emit/ast.rd:54:34]
+    │           │     │        └─integer (value = 1) {integer} [tests/emit/ast.rd:54:34]
     │           │     └─call () [tests/emit/ast.rd:55:9-55:25]
     │           │        │function:
     │           │        ├─variable (name = free) fn (*()): () [tests/emit/ast.rd:55:9-55:12]
@@ -611,7 +611,7 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │        │  │  │  │right:
     │        │  │  │  └─type conversion *Node [tests/emit/ast.rd:65:16-65:25]
     │        │  │  │     │left:
-    │        │  │  │     ├─integer (value = 0) i64 [tests/emit/ast.rd:65:16]
+    │        │  │  │     ├─integer (value = 0) {integer} [tests/emit/ast.rd:65:16]
     │        │  │  │     │right:
     │        │  │  │     └─address of *Node [tests/emit/ast.rd:65:21-65:25]
     │        │  │  │        │op:
@@ -632,7 +632,7 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │        │  │     │     │left:
     │        │  │     │     ├─variable (name = ops) [2]Char [tests/emit/ast.rd:65:51-65:53]
     │        │  │     │     │right:
-    │        │  │     │     └─integer (value = 0) usize [tests/emit/ast.rd:65:55]
+    │        │  │     │     └─integer (value = 0) {integer} [tests/emit/ast.rd:65:55]
     │        │  │     │right:
     │        │  │     └─equal bool [tests/emit/ast.rd:65:61-65:86]
     │        │  │        │left:
@@ -647,7 +647,7 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │        │  │           │left:
     │        │  │           ├─variable (name = ops) [2]Char [tests/emit/ast.rd:65:81-65:83]
     │        │  │           │right:
-    │        │  │           └─integer (value = 1) usize [tests/emit/ast.rd:65:85]
+    │        │  │           └─integer (value = 1) {integer} [tests/emit/ast.rd:65:85]
     │        │  │block:
     │        │  └─block () [tests/emit/ast.rd:65:89-74:5]
     │        │     │nodes:
@@ -686,7 +686,7 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │        │           │  │right:
     │        │           │  └─type conversion *Node [tests/emit/ast.rd:68:17-68:26]
     │        │           │     │left:
-    │        │           │     ├─integer (value = 0) i64 [tests/emit/ast.rd:68:17]
+    │        │           │     ├─integer (value = 0) {integer} [tests/emit/ast.rd:68:17]
     │        │           │     │right:
     │        │           │     └─address of *Node [tests/emit/ast.rd:68:22-68:26]
     │        │           │        │op:
@@ -835,7 +835,7 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │        │  │  │  │right:
     │        │  │  │  └─type conversion *Node [tests/emit/ast.rd:88:13-88:22]
     │        │  │  │     │left:
-    │        │  │  │     ├─integer (value = 0) i64 [tests/emit/ast.rd:88:13]
+    │        │  │  │     ├─integer (value = 0) {integer} [tests/emit/ast.rd:88:13]
     │        │  │  │     │right:
     │        │  │  │     └─address of *Node [tests/emit/ast.rd:88:18-88:22]
     │        │  │  │        │op:
@@ -881,7 +881,7 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │        │  │        │  │right:
     │        │  │        │  └─type conversion *Node [tests/emit/ast.rd:91:17-91:26]
     │        │  │        │     │left:
-    │        │  │        │     ├─integer (value = 0) i64 [tests/emit/ast.rd:91:17]
+    │        │  │        │     ├─integer (value = 0) {integer} [tests/emit/ast.rd:91:17]
     │        │  │        │     │right:
     │        │  │        │     └─address of *Node [tests/emit/ast.rd:91:22-91:26]
     │        │  │        │        │op:
@@ -1121,7 +1121,7 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │              │        │        │value:
     │              │        │        └─type conversion *Node [tests/emit/ast.rd:119:20-119:29]
     │              │        │           │left:
-    │              │        │           ├─integer (value = 0) i64 [tests/emit/ast.rd:119:20]
+    │              │        │           ├─integer (value = 0) {integer} [tests/emit/ast.rd:119:20]
     │              │        │           │right:
     │              │        │           └─address of *Node [tests/emit/ast.rd:119:25-119:29]
     │              │        │              │op:
@@ -1147,7 +1147,7 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │                       │value:
     │                       └─type conversion *Node [tests/emit/ast.rd:125:16-125:25]
     │                          │left:
-    │                          ├─integer (value = 0) i64 [tests/emit/ast.rd:125:16]
+    │                          ├─integer (value = 0) {integer} [tests/emit/ast.rd:125:16]
     │                          │right:
     │                          └─address of *Node [tests/emit/ast.rd:125:21-125:25]
     │                             │op:
@@ -1299,7 +1299,7 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │           │           │        │  │field:
     │           │           │        │  └─variable (name = childs) [tests/emit/ast.rd:141:34-141:39]
     │           │           │        │right:
-    │           │           │        └─integer (value = 0) usize [tests/emit/ast.rd:141:41]
+    │           │           │        └─integer (value = 0) {integer} [tests/emit/ast.rd:141:41]
     │           │           │right:
     │           │           └─call int [tests/emit/ast.rd:141:47-141:74]
     │           │              │function:
@@ -1316,7 +1316,7 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │           │                    │  │field:
     │           │                    │  └─variable (name = childs) [tests/emit/ast.rd:141:65-141:70]
     │           │                    │right:
-    │           │                    └─integer (value = 1) usize [tests/emit/ast.rd:141:72]
+    │           │                    └─integer (value = 1) {integer} [tests/emit/ast.rd:141:72]
     │           │else_block:
     │           └─if-else () [tests/emit/ast.rd:142:12-152:5]
     │              │condition:
@@ -1354,7 +1354,7 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │              │           │        │  │field:
     │              │           │        │  └─variable (name = childs) [tests/emit/ast.rd:143:34-143:39]
     │              │           │        │right:
-    │              │           │        └─integer (value = 0) usize [tests/emit/ast.rd:143:41]
+    │              │           │        └─integer (value = 0) {integer} [tests/emit/ast.rd:143:41]
     │              │           │right:
     │              │           └─call int [tests/emit/ast.rd:143:47-143:74]
     │              │              │function:
@@ -1371,7 +1371,7 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │              │                    │  │field:
     │              │                    │  └─variable (name = childs) [tests/emit/ast.rd:143:65-143:70]
     │              │                    │right:
-    │              │                    └─integer (value = 1) usize [tests/emit/ast.rd:143:72]
+    │              │                    └─integer (value = 1) {integer} [tests/emit/ast.rd:143:72]
     │              │else_block:
     │              └─if-else () [tests/emit/ast.rd:144:12-152:5]
     │                 │condition:
@@ -1409,7 +1409,7 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │                 │           │        │  │field:
     │                 │           │        │  └─variable (name = childs) [tests/emit/ast.rd:145:34-145:39]
     │                 │           │        │right:
-    │                 │           │        └─integer (value = 0) usize [tests/emit/ast.rd:145:41]
+    │                 │           │        └─integer (value = 0) {integer} [tests/emit/ast.rd:145:41]
     │                 │           │right:
     │                 │           └─call int [tests/emit/ast.rd:145:47-145:74]
     │                 │              │function:
@@ -1426,7 +1426,7 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │                 │                    │  │field:
     │                 │                    │  └─variable (name = childs) [tests/emit/ast.rd:145:65-145:70]
     │                 │                    │right:
-    │                 │                    └─integer (value = 1) usize [tests/emit/ast.rd:145:72]
+    │                 │                    └─integer (value = 1) {integer} [tests/emit/ast.rd:145:72]
     │                 │else_block:
     │                 └─if-else () [tests/emit/ast.rd:146:12-152:5]
     │                    │condition:
@@ -1464,7 +1464,7 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │                    │           │        │  │field:
     │                    │           │        │  └─variable (name = childs) [tests/emit/ast.rd:147:34-147:39]
     │                    │           │        │right:
-    │                    │           │        └─integer (value = 0) usize [tests/emit/ast.rd:147:41]
+    │                    │           │        └─integer (value = 0) {integer} [tests/emit/ast.rd:147:41]
     │                    │           │right:
     │                    │           └─call int [tests/emit/ast.rd:147:47-147:74]
     │                    │              │function:
@@ -1481,7 +1481,7 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │                    │                    │  │field:
     │                    │                    │  └─variable (name = childs) [tests/emit/ast.rd:147:65-147:70]
     │                    │                    │right:
-    │                    │                    └─integer (value = 1) usize [tests/emit/ast.rd:147:72]
+    │                    │                    └─integer (value = 1) {integer} [tests/emit/ast.rd:147:72]
     │                    │else_block:
     │                    └─if-else () [tests/emit/ast.rd:148:12-152:5]
     │                       │condition:
@@ -1522,7 +1522,7 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │                       │              │        │  │field:
     │                       │              │        │  └─variable (name = childs) [tests/emit/ast.rd:149:38-149:43]
     │                       │              │        │right:
-    │                       │              │        └─integer (value = 0) usize [tests/emit/ast.rd:149:45]
+    │                       │              │        └─integer (value = 0) {integer} [tests/emit/ast.rd:149:45]
     │                       │              └─call int [tests/emit/ast.rd:149:50-149:77]
     │                       │                 │function:
     │                       │                 ├─variable (name = eval_node) fn (*Node): int [tests/emit/ast.rd:149:50-149:58]
@@ -1538,7 +1538,7 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │                       │                       │  │field:
     │                       │                       │  └─variable (name = childs) [tests/emit/ast.rd:149:68-149:73]
     │                       │                       │right:
-    │                       │                       └─integer (value = 1) usize [tests/emit/ast.rd:149:75]
+    │                       │                       └─integer (value = 1) {integer} [tests/emit/ast.rd:149:75]
     │                       │else_block:
     │                       └─block () [tests/emit/ast.rd:150:12-152:5]
     │                          │nodes:
@@ -1660,7 +1660,7 @@ root () [tests/emit/ast.rd:1:1-185:1]
              │                    │     │right:
              │                    │     └─type conversion *Node [tests/emit/ast.rd:163:53-163:62]
              │                    │        │left:
-             │                    │        ├─integer (value = 0) i64 [tests/emit/ast.rd:163:53]
+             │                    │        ├─integer (value = 0) {integer} [tests/emit/ast.rd:163:53]
              │                    │        │right:
              │                    │        └─address of *Node [tests/emit/ast.rd:163:58-163:62]
              │                    │           │op:
