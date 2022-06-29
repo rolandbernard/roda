@@ -66,6 +66,7 @@ static Type* addAndInitType(TypeContext* context, Type* type, TypeKind kind, Ast
     type->visited = false;
     type->kind = kind;
     type->codegen = NULL;
+    type->refs = NULL;
     type->equiv = type;
     type->def = def;
     type->next = context->types;
@@ -702,7 +703,7 @@ static bool isSubsetOfUnsure(TypeUnsureKind set, Type* type) {
     }
 }
 
-static bool compareStructuralTypesHelper(Type* a, Type* b, bool change, bool* changed, DoubleTypeReferenceStack* stack) {
+static bool compareStructuralTypesHelper(Type* a, Type* b, TypeUnsure** changed, DoubleTypeReferenceStack* stack) {
     if (a == b) {
         return true;
     } else if (a == NULL || b == NULL) {
@@ -730,31 +731,33 @@ static bool compareStructuralTypesHelper(Type* a, Type* b, bool change, bool* ch
             if (a->kind != b->kind) {
                 if (a->kind == TYPE_REFERENCE) {
                     TypeReference* t = (TypeReference*)a;
-                    equal = compareStructuralTypesHelper(t->binding->type, b, change, changed, stack);
+                    equal = compareStructuralTypesHelper(t->binding->type, b, changed, stack);
                 } else if (b->kind == TYPE_REFERENCE) {
                     TypeReference* t = (TypeReference*)b;
-                    equal = compareStructuralTypesHelper(a, t->binding->type, change, changed, stack);
+                    equal = compareStructuralTypesHelper(a, t->binding->type, changed, stack);
                 } else if (a->kind == TYPE_UNSURE) {
                     TypeUnsure* t = (TypeUnsure*)a;
                     if (t->actual != NULL) {
-                        equal = compareStructuralTypesHelper(t->actual, b, change, changed, stack);
-                    } else if (change && isSubsetOfUnsure(t->set, b)) {
+                        equal = compareStructuralTypesHelper(t->actual, b, changed, stack);
+                    } else if (changed != NULL && isSubsetOfUnsure(t->set, b)) {
                         t->actual = b;
+                        t->changed_next = *changed;
+                        *changed = t;
                         equal = true;
-                        *changed = true;
                     } else {
-                        equal = compareStructuralTypesHelper(t->fallback, b, change, changed, stack);
+                        equal = compareStructuralTypesHelper(t->fallback, b, changed, stack);
                     }
                 } else if (b->kind == TYPE_UNSURE) {
                     TypeUnsure* t = (TypeUnsure*)b;
                     if (t->actual != NULL) {
-                        equal = compareStructuralTypesHelper(a, t->actual, change, changed, stack);
-                    } else if (change && isSubsetOfUnsure(t->set, a)) {
+                        equal = compareStructuralTypesHelper(a, t->actual, changed, stack);
+                    } else if (changed != NULL && isSubsetOfUnsure(t->set, a)) {
                         t->actual = a;
+                        t->changed_next = *changed;
+                        *changed = t;
                         equal = true;
-                        *changed = true;
                     } else {
-                        equal = compareStructuralTypesHelper(a, t->fallback, change, changed, stack);
+                        equal = compareStructuralTypesHelper(a, t->fallback, changed, stack);
                     }
                 } else {
                     equal = false;
@@ -764,20 +767,22 @@ static bool compareStructuralTypesHelper(Type* a, Type* b, bool change, bool* ch
                     case TYPE_UNSURE: {
                         TypeUnsure* ta = (TypeUnsure*)a;
                         TypeUnsure* tb = (TypeUnsure*)b;
-                        if (change && ta->actual == NULL && isSubsetOfUnsure(ta->set, b)) {
+                        if (changed != NULL && ta->actual == NULL && isSubsetOfUnsure(ta->set, b)) {
                             ta->actual = b;
+                            ta->changed_next = *changed;
+                            *changed = ta;
                             equal = true;
-                            *changed = true;
-                        } else if (change && tb->actual == NULL && isSubsetOfUnsure(tb->set, a)) {
+                        } else if (changed != NULL && tb->actual == NULL && isSubsetOfUnsure(tb->set, a)) {
                             tb->actual = a;
+                            tb->changed_next = *changed;
+                            *changed = tb;
                             equal = true;
-                            *changed = true;
                         } else if (ta->actual != NULL) {
-                            equal = compareStructuralTypesHelper(ta->actual, b, change, changed, stack);
+                            equal = compareStructuralTypesHelper(ta->actual, b, changed, stack);
                         } else if (tb->actual != NULL) {
-                            equal = compareStructuralTypesHelper(a, tb->actual, change, changed, stack);
+                            equal = compareStructuralTypesHelper(a, tb->actual, changed, stack);
                         } else {
-                            equal = compareStructuralTypesHelper(ta->fallback, tb->fallback, change, changed, stack);
+                            equal = compareStructuralTypesHelper(ta->fallback, tb->fallback, changed, stack);
                         }
                         break;
                     }
@@ -797,13 +802,13 @@ static bool compareStructuralTypesHelper(Type* a, Type* b, bool change, bool* ch
                     case TYPE_POINTER: {
                         TypePointer* ta = (TypePointer*)a;
                         TypePointer* tb = (TypePointer*)b;
-                        equal = compareStructuralTypesHelper(ta->base, tb->base, change, changed, stack);
+                        equal = compareStructuralTypesHelper(ta->base, tb->base, changed, stack);
                         break;
                     }
                     case TYPE_ARRAY: {
                         TypeArray* ta = (TypeArray*)a;
                         TypeArray* tb = (TypeArray*)b;
-                        equal = ta->size == tb->size && compareStructuralTypesHelper(ta->base, tb->base, change, changed, stack);
+                        equal = ta->size == tb->size && compareStructuralTypesHelper(ta->base, tb->base, changed, stack);
                         break;
                     }
                     case TYPE_FUNCTION: {
@@ -811,13 +816,13 @@ static bool compareStructuralTypesHelper(Type* a, Type* b, bool change, bool* ch
                         TypeFunction* tb = (TypeFunction*)b;
                         if (
                             ta->arg_count != tb->arg_count || ta->vararg != tb->vararg
-                            || !compareStructuralTypesHelper(ta->ret_type, tb->ret_type, change, changed, stack)
+                            || !compareStructuralTypesHelper(ta->ret_type, tb->ret_type, changed, stack)
                         ) {
                             equal = false;
                         } else {
                             equal = true;
                             for (size_t i = 0; i < ta->arg_count; i++) {
-                                if (!compareStructuralTypesHelper(ta->arguments[i], tb->arguments[i], change, changed, stack)) {
+                                if (!compareStructuralTypesHelper(ta->arguments[i], tb->arguments[i], changed, stack)) {
                                     equal = false;
                                     break;
                                 }
@@ -840,7 +845,7 @@ static bool compareStructuralTypesHelper(Type* a, Type* b, bool change, bool* ch
                             }
                             if (equal) {
                                 for (size_t i = 0; i < ta->count; i++) {
-                                    if (!compareStructuralTypesHelper(ta->types[i], tb->types[i], change, changed, stack)) {
+                                    if (!compareStructuralTypesHelper(ta->types[i], tb->types[i], changed, stack)) {
                                         equal = false;
                                         break;
                                     }
@@ -852,7 +857,7 @@ static bool compareStructuralTypesHelper(Type* a, Type* b, bool change, bool* ch
                     case TYPE_REFERENCE: {
                         TypeReference* ta = (TypeReference*)a;
                         TypeReference* tb = (TypeReference*)b;
-                        equal = compareStructuralTypesHelper(ta->binding->type, tb->binding->type, change, changed, stack);
+                        equal = compareStructuralTypesHelper(ta->binding->type, tb->binding->type, changed, stack);
                         break;
                     }
                 }
@@ -866,10 +871,10 @@ static bool compareStructuralTypesHelper(Type* a, Type* b, bool change, bool* ch
 }
 
 bool compareStructuralTypes(Type* a, Type* b) {
-    return compareStructuralTypesHelper(a, b, false, NULL, NULL);
+    return compareStructuralTypesHelper(a, b, NULL, NULL);
 }
 
-bool assertStructuralTypesEquality(Type* a, Type* b, bool* changed) {
-    return compareStructuralTypesHelper(a, b, true, changed, NULL);
+bool assertStructuralTypesEquality(Type* a, Type* b, TypeUnsure** changed) {
+    return compareStructuralTypesHelper(a, b, changed, NULL);
 }
 

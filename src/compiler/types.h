@@ -30,6 +30,7 @@ typedef enum {
     struct Type* next;      \
     struct Type* equiv;     \
     struct AstNode* def;    \
+    struct AstNode* refs;   \
     void* codegen;
 
 typedef struct Type {
@@ -79,8 +80,9 @@ typedef enum {
     UNSURE_REAL,
 } TypeUnsureKind;
 
-typedef struct {
+typedef struct TypeUnsure {
     TYPE_BASE
+    struct TypeUnsure* changed_next;
     TypeUnsureKind set;
     Type* fallback;
     Type* actual;
@@ -169,6 +171,6 @@ size_t getIntRealTypeSize(Type* type);
 
 void fillPartialType(Type* type, Type* with);
 
-bool assertStructuralTypesEquality(Type* a, Type* b, bool* changed);
+bool assertStructuralTypesEquality(Type* a, Type* b, TypeUnsure** changed);
 
 #endif
