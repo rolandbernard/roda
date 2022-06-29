@@ -6,6 +6,9 @@
 #include "ast/ast.h"
 #include "compiler/context.h"
 #include "codegen/llvm/context.h"
+#include "codegen/llvm/value.h"
+
+LlvmCodegenValue buildLlvmFunctionBody(LlvmCodegenContext* context, LlvmCodegenModuleContext* data, AstNode* node);
 
 LLVMModuleRef generateSingleModule(LlvmCodegenContext* context, File* file);
 
