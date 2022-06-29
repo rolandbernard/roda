@@ -53,7 +53,7 @@ static bool moveTypeIntoAstNode(CompilerContext* context, AstNode* node, Type* t
         raiseConflictingTypes(context, node, type);
         node->res_type = getErrorType(&context->types);
         return true;
-    } else if (changed_this != NULL) {
+    } else {
         while (changed_this != NULL) {
             AstNode* ref = changed_this->refs;
             while (ref != NULL) {
@@ -63,8 +63,6 @@ static bool moveTypeIntoAstNode(CompilerContext* context, AstNode* node, Type* t
             }
             changed_this = changed_this->changed_next;
         }
-        return true;
-    } else {
         return false;
     }
 }
@@ -1013,7 +1011,7 @@ static void assumeAmbiguousTypes(CompilerContext* context, AssumeAmbiguousPhase 
                 assumeAmbiguousTypes(context, phase, n->left);
                 if ((phase & ASSUME_CASTS) != 0 && n->left->res_type == NULL && n->right->res_type != NULL) {
                     Type* type = n->right->res_type;
-                    type = createUnsureType(&context->types, node, UNSURE_INTEGER, type);
+                    type = createUnsureType(&context->types, node, UNSURE_ANY, type);
                     if (moveTypeIntoAstNode(context, n->left, type)) {
                         propagateTypes(context, n->left);
                     }
