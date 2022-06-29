@@ -10,6 +10,7 @@
 #include "util/alloc.h"
 
 #include "codegen/llvm/genmodule.h"
+#include "llvm-c/Core.h"
 
 static LLVMValueRef buildBinaryOperation(LLVMBuilderRef builder, LLVMValueRef lhs, LLVMValueRef rhs, Type* type, AstNodeKind kind) {
     switch (kind) {
@@ -856,19 +857,19 @@ static void buildFunctionBodies(LlvmCodegenContext* context, LlvmCodegenModuleCo
     }
 }
 
-static void buildFunctionStubs(LlvmCodegenContext* context, LlvmCodegenModuleContext* data, AstNode* node) {
+static void buildGlobalsAndFunctionStubs(LlvmCodegenContext* context, LlvmCodegenModuleContext* data, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
             case AST_LIST: {
                 AstList* n = (AstList*)node;
                 for (size_t i = 0; i < n->count; i++) {
-                    buildFunctionStubs(context, data, n->nodes[i]);
+                    buildGlobalsAndFunctionStubs(context, data, n->nodes[i]);
                 }
                 break;
             }
             case AST_ROOT: {
                 AstRoot* n = (AstRoot*)node;
-                buildFunctionStubs(context, data, (AstNode*)n->nodes);
+                buildGlobalsAndFunctionStubs(context, data, (AstNode*)n->nodes);
                 break;
             }
             case AST_FN: {
@@ -876,8 +877,8 @@ static void buildFunctionStubs(LlvmCodegenContext* context, LlvmCodegenModuleCon
                 SymbolVariable* func = (SymbolVariable*)n->name->binding;
                 LLVMValueRef value = LLVMAddFunction(data->module, func->name, generateLlvmType(context, func->type));
                 bool local = false;
-                if ((n->flags & AST_FN_FLAG_IMPORT) == 0) {
-                    if ((n->flags & AST_FN_FLAG_EXPORT) != 0) {
+                if ((n->flags & AST_FN_FLAG_EXTERN) == 0) {
+                    if ((n->flags & AST_FN_FLAG_PUBLIC) != 0) {
                         LLVMSetLinkage(value, LLVMExternalLinkage);
                     } else {
                         LLVMSetLinkage(value, LLVMInternalLinkage);
@@ -899,6 +900,36 @@ static void buildFunctionStubs(LlvmCodegenContext* context, LlvmCodegenModuleCon
                 }
                 CODEGEN(func)->value = value;
                 break;
+            }
+            case AST_VARDEF: {
+                AstVarDef* n = (AstVarDef*)node;
+                SymbolVariable* var = (SymbolVariable*)n->name->binding;
+                LLVMTypeRef type = generateLlvmType(context, var->type);
+                LLVMValueRef value = LLVMAddGlobal(data->module, type, var->name);
+                CODEGEN(var)->value = value;
+                LLVMSetExternallyInitialized(value, (n->flags & AST_VAR_FLAG_EXTERN) != 0);
+                bool local = false;
+                if ((n->flags & AST_VAR_FLAG_EXTERN) == 0) {
+                    LLVMSetInitializer(value, LLVMConstNull(type));
+                    if ((n->flags & AST_VAR_FLAG_PUBLIC) != 0) {
+                        LLVMSetLinkage(value, LLVMExternalLinkage);
+                    } else {
+                        LLVMSetLinkage(value, LLVMInternalLinkage);
+                        local = true;
+                    }
+                }
+                if (context->cxt->settings.emit_debug) {
+                    LLVMMetadataRef type_meta = generateLlvmTypeDebugInfo(context, data, var->type, n->location.begin.line + 1);
+                    LLVMMetadataRef var_meta = LLVMDIBuilderCreateGlobalVariableExpression(
+                        data->debug_bulder, data->scope_metadata, var->name, strlen(var->name),
+                        var->name, strlen(var->name), data->file_metadata,
+                        node->location.begin.line + 1, type_meta, local,
+                        LLVMDIBuilderCreateExpression(data->debug_bulder, NULL, 0), NULL,
+                        LLVMABIAlignmentOfType(context->target_data, type)
+                    );
+                    CODEGEN(var)->debug = var_meta;
+                    LLVMGlobalSetMetadata(value, 0, var_meta);
+                }
             }
             default:
                 // We only want to consider the global scope
@@ -942,7 +973,7 @@ LLVMModuleRef generateSingleModule(LlvmCodegenContext* context, File* file) {
             LLVMValueAsMetadata(LLVMConstInt(LLVMIntType(32), LLVMDebugMetadataVersion(), 0))
         );
     }
-    buildFunctionStubs(context, &data, file->ast);
+    buildGlobalsAndFunctionStubs(context, &data, file->ast);
     buildFunctionBodies(context, &data, file->ast);
     if (context->cxt->settings.emit_debug) {
         LLVMDIBuilderFinalize(data.debug_bulder);

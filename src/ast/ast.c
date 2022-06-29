@@ -67,12 +67,13 @@ AstVar* createAstVar(Span loc, Symbol name) {
     return node;
 }
 
-AstVarDef* createAstVarDef(Span loc, AstVar* name, AstNode* type, AstNode* val) {
+AstVarDef* createAstVarDef(Span loc, AstVar* name, AstNode* type, AstNode* val, AstVarFlags flags) {
     AstVarDef* node = NEW(AstVarDef);
     initAstNode((AstNode*)node, AST_VARDEF, loc);
     node->name = name;
     node->type = type;
     node->val = val;
+    node->flags = flags;
     SET_PARENT(name, 0);
     SET_PARENT(type, 1);
     SET_PARENT(val, 2);

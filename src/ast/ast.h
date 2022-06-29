@@ -130,11 +130,18 @@ typedef struct AstVar {
     struct AstVar* next_ref;
 } AstVar;
 
+typedef enum {
+    AST_VAR_FLAG_NONE   = 0,
+    AST_VAR_FLAG_PUBLIC = 1 << 0,
+    AST_VAR_FLAG_EXTERN = 1 << 1,
+} AstVarFlags;
+
 typedef struct {
     AST_NODE_BASE
     AstVar* name;
     AstNode* type;
     AstNode* val;
+    AstVarFlags flags;
 } AstVarDef;
 
 typedef struct {
@@ -145,8 +152,8 @@ typedef struct {
 
 typedef enum {
     AST_FN_FLAG_NONE   = 0,
-    AST_FN_FLAG_EXPORT = 1 << 0,
-    AST_FN_FLAG_IMPORT = 1 << 1,
+    AST_FN_FLAG_PUBLIC = 1 << 0,
+    AST_FN_FLAG_EXTERN = 1 << 1,
     AST_FN_FLAG_VARARG = 1 << 2,
 } AstFnFlags;
 
@@ -252,7 +259,7 @@ AstIfElse* createAstIfElse(Span loc, AstNode* cond, AstNode* if_block, AstNode* 
 
 AstVar* createAstVar(Span loc, Symbol name);
 
-AstVarDef* createAstVarDef(Span loc, AstVar* name, AstNode* type, AstNode* val);
+AstVarDef* createAstVarDef(Span loc, AstVar* name, AstNode* type, AstNode* val, AstVarFlags flags);
 
 AstWhile* createAstWhile(Span loc, AstNode* cond, AstNode* block);
 

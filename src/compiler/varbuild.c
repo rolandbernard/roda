@@ -147,8 +147,10 @@ static void buildLocalSymbolTables(CompilerContext* context, AstNode* node, Symb
                 AstVarDef* n = (AstVarDef*)node;
                 buildLocalSymbolTables(context, n->type, scope, true);
                 buildLocalSymbolTables(context, n->val, scope, type);
-                n->name->binding = (SymbolEntry*)createVariableSymbol(n->name->name, n->name);
-                addSymbolToTable(scope, n->name->binding);
+                if (n->name->binding == NULL) { // Might be global and therefore already initialized
+                    n->name->binding = (SymbolEntry*)createVariableSymbol(n->name->name, n->name);
+                    addSymbolToTable(scope, n->name->binding);
+                }
                 break;
             }
             case AST_IF_ELSE: {
@@ -264,6 +266,14 @@ static void buildRootSymbolTables(CompilerContext* context, AstNode* node, Symbo
                 AstTypeDef* n = (AstTypeDef*)node;
                 if (checkNotExisting(context, scope, n->name, SYMBOL_TYPE)) {
                     n->name->binding = (SymbolEntry*)createTypeSymbol(n->name->name, n->name);
+                    addSymbolToTable(scope, n->name->binding);
+                }
+                break;
+            }
+            case AST_VARDEF: {
+                AstVarDef* n = (AstVarDef*)node;
+                if (checkNotExisting(context, scope, n->name, SYMBOL_VARIABLE)) {
+                    n->name->binding = (SymbolEntry*)createVariableSymbol(n->name->name, n->name);
                     addSymbolToTable(scope, n->name->binding);
                 }
                 break;

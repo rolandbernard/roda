@@ -50,7 +50,7 @@ extern void yyerror(YYLTYPE* yyllocp, yyscan_t scanner, ParserContext* context, 
 %destructor { freeAstNode((AstNode*)$$); } <list>
 
 %type <ast> root block stmt block_stmt type expr root_stmt if
-%type <ast> arg_def opt_type assign integer real string bool field_val
+%type <ast> arg_def opt_type opt_value assign integer real string bool field_val
 %type <var> var
 %type <arg_defs> arg_defs arg_types
 %type <list> arg_def_list stmts root_stmts list
@@ -124,16 +124,23 @@ root_stmts : %empty                     { $$ = createEmptyAstList(); $$->locatio
            | root_stmts ';'             { $$ = $1; }
            ;
 
-root_stmt : error                                                   { $$ = createAstSimple(@$, AST_ERROR); }
-          | "pub" "fn" var '(' arg_defs ')' opt_type block          { $$ = (AstNode*)createAstFn(@$, $3, $5.list, $7, $8, AST_FN_FLAG_EXPORT | $5.flags); }
-          | "extern" "fn" var '(' arg_defs ')' opt_type ';'         { $$ = (AstNode*)createAstFn(@$, $3, $5.list, $7, NULL, AST_FN_FLAG_IMPORT | $5.flags); }
-          | "fn" var '(' arg_defs ')' opt_type block                { $$ = (AstNode*)createAstFn(@$, $2, $4.list, $6, $7, $4.flags); }
-          | "type" var '=' type ';'                                 { $$ = (AstNode*)createAstTypeDef(@$, $2, $4); }
+root_stmt : error                                               { $$ = createAstSimple(@$, AST_ERROR); }
+          | "pub" "fn" var '(' arg_defs ')' opt_type block      { $$ = (AstNode*)createAstFn(@$, $3, $5.list, $7, $8, AST_FN_FLAG_PUBLIC | $5.flags); }
+          | "extern" "fn" var '(' arg_defs ')' opt_type ';'     { $$ = (AstNode*)createAstFn(@$, $3, $5.list, $7, NULL, AST_FN_FLAG_EXTERN | $5.flags); }
+          | "fn" var '(' arg_defs ')' opt_type block            { $$ = (AstNode*)createAstFn(@$, $2, $4.list, $6, $7, $4.flags); }
+          | "type" var '=' type ';'                             { $$ = (AstNode*)createAstTypeDef(@$, $2, $4); }
+          | "let" var opt_type                                  { $$ = (AstNode*)createAstVarDef(@$, $2, $3, NULL, AST_VAR_FLAG_NONE); }
+          | "pub" "let" var opt_type                            { $$ = (AstNode*)createAstVarDef(@$, $3, $4, NULL, AST_VAR_FLAG_PUBLIC); }
+          | "extern" "let" var opt_type                         { $$ = (AstNode*)createAstVarDef(@$, $3, $4, NULL, AST_VAR_FLAG_EXTERN); }
           ;
 
 opt_type : %empty   { $$ = NULL; }
          | ':' type { $$ = $2; }
          ;
+
+opt_value   : %empty   { $$ = NULL; }
+            | '=' expr { $$ = $2; }
+            ;
 
 arg_defs : %empty                 { $$.list = createAstList(@$, AST_LIST, 0, NULL); $$.flags = AST_FN_FLAG_NONE; }
          | arg_def_list           { fitAstList($1); $$.list = $1; $$.flags = AST_FN_FLAG_NONE; }
@@ -173,8 +180,7 @@ stmt    : expr                              { $$ = $1; }
         | assign                            { $$ = $1; }
         | "return"                          { $$ = (AstNode*)createAstReturn(@$, NULL); }
         | "return" expr                     { $$ = (AstNode*)createAstReturn(@$, $2); }
-        | "let" var opt_type '=' expr       { $$ = (AstNode*)createAstVarDef(@$, $2, $3, $5); }
-        | "let" var opt_type                { $$ = (AstNode*)createAstVarDef(@$, $2, $3, NULL); }
+        | "let" var opt_type opt_value      { $$ = (AstNode*)createAstVarDef(@$, $2, $3, $4, AST_VAR_FLAG_NONE); }
         ;
 
 assign : expr '=' expr      { $$ = (AstNode*)createAstBinary(@$, AST_ASSIGN, $1, $3); }

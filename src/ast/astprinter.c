@@ -305,6 +305,16 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
             }
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
+                if (n->flags != AST_VAR_FLAG_NONE) {
+                    fprintf(file, " (flags =");
+                    if ((n->flags & AST_VAR_FLAG_PUBLIC) != 0) {
+                        fprintf(file, " extern");
+                    }
+                    if ((n->flags & AST_VAR_FLAG_EXTERN) != 0) {
+                        fprintf(file, " extern");
+                    }
+                    fprintf(file, ")");
+                }
                 printAstNodeExtraInfo(file, node, colors);
                 fprintf(file, "\n");
                 printAstChildNode(file, (AstNode*)n->name, colors, indent, "name", false);
@@ -344,10 +354,10 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
                 if (n->flags == AST_FN_FLAG_NONE) {
                     fprintf(file, " none");
                 } else {
-                    if ((n->flags & AST_FN_FLAG_EXPORT) != 0) {
+                    if ((n->flags & AST_FN_FLAG_PUBLIC) != 0) {
                         fprintf(file, " public");
                     }
-                    if ((n->flags & AST_FN_FLAG_IMPORT) != 0) {
+                    if ((n->flags & AST_FN_FLAG_EXTERN) != 0) {
                         fprintf(file, " extern");
                     }
                     if ((n->flags & AST_FN_FLAG_VARARG) != 0) {

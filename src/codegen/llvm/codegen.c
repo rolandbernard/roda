@@ -124,6 +124,7 @@ static LLVMModuleRef generateLinkedModule(LlvmCodegenContext* context) {
             }
             LLVMDisposeMessage(context->error_msg);
 #endif
+            printAndClearMessages(context->cxt, stderr);
         } else if (file->type == FILE_LLVM_IR || file->type == FILE_LLVM_BC) {
             LLVMMemoryBufferRef memory = NULL;
             if (LLVMCreateMemoryBufferWithContentsOfFile(cstr(file->original_path), &memory, &context->error_msg)) {
