@@ -11,8 +11,12 @@ typedef struct {
 
 LlvmCodegenValue createLlvmCodegenValue(LLVMValueRef value, bool is_reference);
 
+LlvmCodegenValue createLlvmCodegenVoidValue(LlvmCodegenContext* context);
+
 LLVMValueRef getCodegenValue(LlvmCodegenContext* context, LlvmCodegenModuleContext* data, AstNode* node);
 
 LLVMValueRef getCodegenReference(LlvmCodegenContext* context, LlvmCodegenModuleContext* data, AstNode* node);
+
+void buildLlvmStore(LlvmCodegenContext* context, LlvmCodegenModuleContext* data, Type* type, LLVMValueRef value, LLVMValueRef ptr);
 
 #endif

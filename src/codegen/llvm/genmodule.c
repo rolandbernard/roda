@@ -141,12 +141,6 @@ static LLVMValueRef buildLlvmIntrinsicCall(
     return LLVMBuildCall2(data->builder, type, func, params, param_count, val_name);
 }
 
-static void buildLlvmStore(LlvmCodegenContext* context, LlvmCodegenModuleContext* data, Type* type, LLVMValueRef value, LLVMValueRef ptr) {
-    LLVMTypeRef ptr_type = LLVMPointerType(LLVMTypeOf(value), 0);
-    LLVMValueRef cast_ptr = LLVMBuildPointerCast(data->builder, ptr, ptr_type, "ptr_cast");
-    LLVMBuildStore(data->builder, value, cast_ptr);
-}
-
 LlvmCodegenValue buildLlvmFunctionBody(LlvmCodegenContext* context, LlvmCodegenModuleContext* data, AstNode* node) {
     ASSERT(node != NULL);
     if (context->cxt->settings.emit_debug) {
@@ -235,12 +229,12 @@ LlvmCodegenValue buildLlvmFunctionBody(LlvmCodegenContext* context, LlvmCodegenM
             for (size_t i = 0; i < n->count; i++) {
                 buildLlvmFunctionBody(context, data, n->nodes[i]);
             }
-            return createLlvmCodegenValue(NULL, false);
+            return createLlvmCodegenVoidValue(context);
         }
         case AST_ROOT: {
             AstRoot* n = (AstRoot*)node;
             buildLlvmFunctionBody(context, data, (AstNode*)n->nodes);
-            return createLlvmCodegenValue(NULL, false);
+            return createLlvmCodegenVoidValue(context);
         }
         case AST_BLOCK: {
             AstBlock* n = (AstBlock*)node;
@@ -248,7 +242,7 @@ LlvmCodegenValue buildLlvmFunctionBody(LlvmCodegenContext* context, LlvmCodegenM
             data->scope_metadata = CODEGEN(n)->debug;
             buildLlvmFunctionBody(context, data, (AstNode*)n->nodes);
             data->scope_metadata = old_scope;
-            return createLlvmCodegenValue(NULL, false);
+            return createLlvmCodegenVoidValue(context);
         }
         case AST_VAR: {
             AstVar* n = (AstVar*)node;
@@ -302,14 +296,14 @@ LlvmCodegenValue buildLlvmFunctionBody(LlvmCodegenContext* context, LlvmCodegenM
             LLVMValueRef old_val = LLVMBuildLoad2(data->builder, generateLlvmType(context, n->right->res_type), addrs, "tmp");
             LLVMValueRef new_value = buildBinaryOperation(data->builder, old_val, value, n->right->res_type, n->kind - AST_ASSIGN_OFFSET);
             buildLlvmStore(context, data, n->right->res_type, new_value, addrs);
-            return createLlvmCodegenValue(NULL, false);
+            return createLlvmCodegenVoidValue(context);
         }
         case AST_ASSIGN: {
             AstBinary* n = (AstBinary*)node;
             LLVMValueRef value = getCodegenValue(context, data, n->right);
             LLVMValueRef addrs = getCodegenReference(context, data, n->left);
             buildLlvmStore(context, data, n->right->res_type, value, addrs);
-            return createLlvmCodegenValue(NULL, false);
+            return createLlvmCodegenVoidValue(context);
         }
         case AST_ADD:
         case AST_SUB:
@@ -417,7 +411,7 @@ LlvmCodegenValue buildLlvmFunctionBody(LlvmCodegenContext* context, LlvmCodegenM
                 LLVMValueRef addrs = getCodegenReference(context, data, (AstNode*)n->name);
                 buildLlvmStore(context, data, n->val->res_type, value, addrs);
             }
-            return createLlvmCodegenValue(NULL, false);
+            return createLlvmCodegenVoidValue(context);
         }
         case AST_IF_ELSE: {
             AstIfElse* n = (AstIfElse*)node;
@@ -443,7 +437,7 @@ LlvmCodegenValue buildLlvmFunctionBody(LlvmCodegenContext* context, LlvmCodegenM
             }
             LLVMInsertExistingBasicBlockAfterInsertBlock(data->builder, rest_block);
             LLVMPositionBuilderAtEnd(data->builder, rest_block);
-            return createLlvmCodegenValue(NULL, false);
+            return createLlvmCodegenVoidValue(context);
         }
         case AST_WHILE: {
             AstWhile* n = (AstWhile*)node;
@@ -461,7 +455,7 @@ LlvmCodegenValue buildLlvmFunctionBody(LlvmCodegenContext* context, LlvmCodegenM
             LLVMBuildBr(data->builder, cond_block);
             LLVMInsertExistingBasicBlockAfterInsertBlock(data->builder, rest_block);
             LLVMPositionBuilderAtEnd(data->builder, rest_block);
-            return createLlvmCodegenValue(NULL, false);
+            return createLlvmCodegenVoidValue(context);
         }
         case AST_CALL: {
             AstCall* n = (AstCall*)node;
@@ -565,7 +559,7 @@ LlvmCodegenValue buildLlvmFunctionBody(LlvmCodegenContext* context, LlvmCodegenM
             LLVMBasicBlockRef rest_block = LLVMCreateBasicBlockInContext(context->llvm_cxt, "dead");
             LLVMInsertExistingBasicBlockAfterInsertBlock(data->builder, rest_block);
             LLVMPositionBuilderAtEnd(data->builder, rest_block);
-            return createLlvmCodegenValue(NULL, false);
+            return createLlvmCodegenVoidValue(context);
         }
         case AST_STRUCT_INDEX: {
             AstStructIndex* n = (AstStructIndex*)node;
@@ -586,7 +580,7 @@ LlvmCodegenValue buildLlvmFunctionBody(LlvmCodegenContext* context, LlvmCodegenM
         case AST_TYPEDEF:
         case AST_FN:
         case AST_ARGDEF:
-            return createLlvmCodegenValue(NULL, false);
+            return createLlvmCodegenVoidValue(context);
     }
     UNREACHABLE();
 }
