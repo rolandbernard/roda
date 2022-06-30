@@ -49,7 +49,7 @@ extern void yyerror(YYLTYPE* yyllocp, yyscan_t scanner, ParserContext* context, 
 %destructor { freeAstNode((AstNode*)$$.list); } <arg_defs>
 %destructor { freeAstNode((AstNode*)$$); } <list>
 
-%type <ast> root block stmt block_stmt type expr root_stmt if
+%type <ast> root block stmt block_stmt type expr root_stmt if block_expr if_expr
 %type <ast> arg_def opt_type opt_value assign integer real string bool field_val
 %type <var> var
 %type <arg_defs> arg_defs arg_types
@@ -171,9 +171,9 @@ block_stmt  : error                             { $$ = createAstSimple(@$, AST_E
             | if                                { $$ = $1; }
             ;
 
-if  : "if" expr block                  { $$ = (AstNode*)createAstIfElse(@$, $2, $3, NULL); }
-    | "if" expr block "else" block     { $$ = (AstNode*)createAstIfElse(@$, $2, $3, $5); }
-    | "if" expr block "else" if        { $$ = (AstNode*)createAstIfElse(@$, $2, $3, $5); }
+if  : "if" expr block                  { $$ = (AstNode*)createAstIfElse(@$, AST_IF_ELSE, $2, $3, NULL); }
+    | "if" expr block "else" block     { $$ = (AstNode*)createAstIfElse(@$, AST_IF_ELSE, $2, $3, $5); }
+    | "if" expr block "else" if        { $$ = (AstNode*)createAstIfElse(@$, AST_IF_ELSE, $2, $3, $5); }
     ;
 
 stmt    : expr                              { $$ = $1; }
@@ -265,8 +265,16 @@ expr    : var                           { $$ = (AstNode*)$1; }
         | '(' error ')'                 { $$ = createAstSimple(@$, AST_ERROR); }
         | expr '[' error ']'            { $$ = createAstSimple(@$, AST_ERROR); freeAstNode($1); }
         | expr '(' error ')'            { $$ = createAstSimple(@$, AST_ERROR); freeAstNode($1); }
-        | '{' stmts expr '}'            { addToAstList($2, $3); fitAstList($2); $$ = (AstNode*)createAstBlock(@$, AST_BLOCK_EXPR, $2); }
+        | block_expr                    { $$ = $1; }
+        | if_expr                  { $$ = $1; }
         ;
+
+block_expr  : '{' stmts expr '}'            { addToAstList($2, $3); fitAstList($2); $$ = (AstNode*)createAstBlock(@$, AST_BLOCK_EXPR, $2); }
+            ;
+
+if_expr     : "if" expr block_expr "else" block_expr    { $$ = (AstNode*)createAstIfElse(@$, AST_IF_ELSE_EXPR, $2, $3, $5); }
+            | "if" expr block_expr "else" if_expr       { $$ = (AstNode*)createAstIfElse(@$, AST_IF_ELSE_EXPR, $2, $3, $5); }
+            ;
 
 field_vals  : field_val                     { $$ = createEmptyAstList(); addToAstList($$, $1); $$->location = @$; }
             | field_vals ',' field_val      { $$ = $1; addToAstList($1, $3); $$->location = @$; }

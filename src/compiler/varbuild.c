@@ -154,6 +154,7 @@ static void buildLocalSymbolTables(CompilerContext* context, AstNode* node, Symb
                 }
                 break;
             }
+            case AST_IF_ELSE_EXPR:
             case AST_IF_ELSE: {
                 AstIfElse* n = (AstIfElse*)node;
                 buildLocalSymbolTables(context, n->condition, scope, type);
@@ -392,6 +393,7 @@ static void buildControlFlowReferences(CompilerContext* context, AstNode* node, 
                 buildControlFlowReferences(context, n->val, function);
                 break;
             }
+            case AST_IF_ELSE_EXPR:
             case AST_IF_ELSE: {
                 AstIfElse* n = (AstIfElse*)node;
                 buildControlFlowReferences(context, n->condition, function);

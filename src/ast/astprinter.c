@@ -69,6 +69,7 @@ static const char* ast_type_names[] = {
     [AST_VAR] = "variable",
     [AST_VARDEF] = "variable definition",
     [AST_IF_ELSE] = "if-else",
+    [AST_IF_ELSE_EXPR] = "if-else",
     [AST_WHILE] = "while",
     [AST_FN] = "function",
     [AST_FN_TYPE] = "function type",
@@ -324,6 +325,7 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
                 printAstChildNode(file, n->val, colors, indent, "val", true);
                 break;
             }
+            case AST_IF_ELSE_EXPR:
             case AST_IF_ELSE: {
                 AstIfElse* n = (AstIfElse*)node;
                 printAstNodeExtraInfo(file, node, colors);

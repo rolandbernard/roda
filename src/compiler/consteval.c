@@ -222,6 +222,7 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
                 res = createConstError(context);
                 break;
             }
+            case AST_IF_ELSE_EXPR:
             case AST_IF_ELSE:
             case AST_FN:
             case AST_TYPEDEF:
@@ -395,7 +396,7 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
                     if (isBooleanType(n->res_type)) {
                         res = createConstBool(context, n->value);
                     } else {
-                        UNREACHABLE("integer type expected");
+                        UNREACHABLE("boolean type expected");
                     }
                 } else {
                     res = createConstError(context);
@@ -415,7 +416,8 @@ bool checkValidInConstExpr(CompilerContext* context, AstNode* node) {
         switch (node->kind) {
             case AST_ERROR:
                 return true;
-            case AST_IF_ELSE: // TODO: if-else expessions?
+            case AST_IF_ELSE_EXPR: // TODO: if-else expessions?
+            case AST_IF_ELSE:
             case AST_FN:
             case AST_TYPEDEF:
             case AST_ARGDEF:

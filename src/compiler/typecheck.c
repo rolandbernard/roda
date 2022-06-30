@@ -110,6 +110,7 @@ static void checkForUntypedVariables(CompilerContext* context, AstNode* node) {
                 checkForUntypedVariables(context, (AstNode*)n->nodes);
                 break;
             }
+            case AST_IF_ELSE_EXPR:
             case AST_IF_ELSE: {
                 AstIfElse* n = (AstIfElse*)node;
                 checkForUntypedVariables(context, n->condition);
@@ -284,6 +285,7 @@ static void checkForUntypedNodes(CompilerContext* context, AstNode* node) {
                     checkForUntypedNodes(context, (AstNode*)n->nodes);
                     break;
                 }
+                case AST_IF_ELSE_EXPR:
                 case AST_IF_ELSE: {
                     AstIfElse* n = (AstIfElse*)node;
                     checkForUntypedNodes(context, n->condition);
@@ -976,6 +978,7 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                 checkTypeConstraints(context, (AstNode*)n->nodes);
                 break;
             }
+            case AST_IF_ELSE_EXPR:
             case AST_IF_ELSE: {
                 AstIfElse* n = (AstIfElse*)node;
                 checkTypeConstraints(context, n->condition);

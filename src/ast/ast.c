@@ -46,9 +46,9 @@ AstList* createAstList(Span loc, AstNodeKind kind, size_t count, AstNode** nodes
     return node;
 }
 
-AstIfElse* createAstIfElse(Span loc, AstNode* cond, AstNode* if_block, AstNode* else_block) {
+AstIfElse* createAstIfElse(Span loc, AstNodeKind kind, AstNode* cond, AstNode* if_block, AstNode* else_block) {
     AstIfElse* node = NEW(AstIfElse);
-    initAstNode((AstNode*)node, AST_IF_ELSE, loc);
+    initAstNode((AstNode*)node, kind, loc);
     node->condition = cond; 
     node->if_block = if_block;
     node->else_block = else_block;
@@ -299,6 +299,7 @@ void freeAstNode(AstNode* node) {
                 freeAstNode(n->val);
                 break;
             }
+            case AST_IF_ELSE_EXPR:
             case AST_IF_ELSE: {
                 AstIfElse* n = (AstIfElse*)node;
                 freeAstNode(n->condition);

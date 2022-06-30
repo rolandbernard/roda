@@ -13,6 +13,10 @@ LlvmCodegenValue createLlvmCodegenValue(LLVMValueRef value, bool is_reference);
 
 LlvmCodegenValue createLlvmCodegenVoidValue(LlvmCodegenContext* context);
 
+LlvmCodegenValue toNonReferenceCodegenValue(LlvmCodegenContext* context, LlvmCodegenModuleContext* data, Type* type, LlvmCodegenValue value);
+
+LLVMValueRef extractCodegenValue(LlvmCodegenContext* context, LlvmCodegenModuleContext* data, Type* type, LlvmCodegenValue value);
+
 LLVMValueRef getCodegenValue(LlvmCodegenContext* context, LlvmCodegenModuleContext* data, AstNode* node);
 
 LLVMValueRef getCodegenReference(LlvmCodegenContext* context, LlvmCodegenModuleContext* data, AstNode* node);

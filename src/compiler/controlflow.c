@@ -110,6 +110,7 @@ static bool controlFlowEndsWithReturn(CompilerContext* context, AstNode* node) {
                 AstVarDef* n = (AstVarDef*)node;
                 return controlFlowEndsWithReturn(context, n->val);
             }
+            case AST_IF_ELSE_EXPR:
             case AST_IF_ELSE: {
                 AstIfElse* n = (AstIfElse*)node;
                 return controlFlowEndsWithReturn(context, n->condition)

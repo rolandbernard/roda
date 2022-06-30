@@ -424,6 +424,7 @@ LlvmCodegenValue buildLlvmFunctionBody(LlvmCodegenContext* context, LlvmCodegenM
             }
             return createLlvmCodegenVoidValue(context);
         }
+        case AST_IF_ELSE_EXPR:
         case AST_IF_ELSE: {
             AstIfElse* n = (AstIfElse*)node;
             LLVMBasicBlockRef if_block = LLVMCreateBasicBlockInContext(context->llvm_cxt, "if");
@@ -438,17 +439,30 @@ LlvmCodegenValue buildLlvmFunctionBody(LlvmCodegenContext* context, LlvmCodegenM
             LLVMBuildCondBr(data->builder, cond, if_block, else_block);
             LLVMInsertExistingBasicBlockAfterInsertBlock(data->builder, if_block);
             LLVMPositionBuilderAtEnd(data->builder, if_block);
-            buildLlvmFunctionBody(context, data, n->if_block);
+            LlvmCodegenValue if_value = buildLlvmFunctionBody(context, data, n->if_block);
+            LlvmCodegenValue else_value = createLlvmCodegenVoidValue(context);
             LLVMBuildBr(data->builder, rest_block);
             if (n->else_block != NULL) {
                 LLVMInsertExistingBasicBlockAfterInsertBlock(data->builder, else_block);
                 LLVMPositionBuilderAtEnd(data->builder, else_block);
-                buildLlvmFunctionBody(context, data, n->else_block);
+                else_value = buildLlvmFunctionBody(context, data, n->else_block);
                 LLVMBuildBr(data->builder, rest_block);
             }
             LLVMInsertExistingBasicBlockAfterInsertBlock(data->builder, rest_block);
             LLVMPositionBuilderAtEnd(data->builder, rest_block);
-            return createLlvmCodegenVoidValue(context);
+            if (node->kind == AST_IF_ELSE_EXPR) {
+                if (if_value.is_reference != else_value.is_reference) {
+                    if_value = toNonReferenceCodegenValue(context, data, n->if_block->res_type, if_value);
+                    else_value = toNonReferenceCodegenValue(context, data, n->else_block->res_type, else_value);
+                }
+                LLVMValueRef value = LLVMBuildPhi(data->builder, generateLlvmType(context, n->res_type), "if-else");
+                LLVMValueRef incoming_val[2] = { if_value.value, else_value.value };
+                LLVMBasicBlockRef incoming_blk[2] = { if_block, else_block };
+                LLVMAddIncoming(value, incoming_val, incoming_blk, 2);
+                return createLlvmCodegenValue(value, if_value.is_reference);
+            } else {
+                return createLlvmCodegenVoidValue(context);
+            }
         }
         case AST_WHILE: {
             AstWhile* n = (AstWhile*)node;
@@ -749,6 +763,7 @@ static void buildFunctionVariables(LlvmCodegenContext* context, LlvmCodegenModul
                 buildFunctionVariables(context, data, n->val);
                 break;
             }
+            case AST_IF_ELSE_EXPR:
             case AST_IF_ELSE: {
                 AstIfElse* n = (AstIfElse*)node;
                 buildFunctionVariables(context, data, n->condition);

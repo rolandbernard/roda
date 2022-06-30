@@ -14,13 +14,20 @@ LlvmCodegenValue createLlvmCodegenVoidValue(LlvmCodegenContext* context) {
     return createLlvmCodegenValue(NULL, false);
 }
 
-LLVMValueRef getCodegenValue(LlvmCodegenContext* context, LlvmCodegenModuleContext* data, AstNode* node) {
-    LlvmCodegenValue value = buildLlvmFunctionBody(context, data, node);
+LLVMValueRef extractCodegenValue(LlvmCodegenContext* context, LlvmCodegenModuleContext* data, Type* type, LlvmCodegenValue value) {
     if (value.value != NULL && value.is_reference) {
-        return LLVMBuildLoad2(data->builder, generateLlvmType(context, node->res_type), value.value, "tmp");
+        return LLVMBuildLoad2(data->builder, generateLlvmType(context, type), value.value, "tmp");
     } else {
         return value.value;
     }
+}
+
+LLVMValueRef getCodegenValue(LlvmCodegenContext* context, LlvmCodegenModuleContext* data, AstNode* node) {
+    return extractCodegenValue(context, data, node->res_type, buildLlvmFunctionBody(context, data, node));
+}
+
+LlvmCodegenValue toNonReferenceCodegenValue(LlvmCodegenContext* context, LlvmCodegenModuleContext* data, Type* type, LlvmCodegenValue value) {
+    return createLlvmCodegenValue(extractCodegenValue(context, data, type, value), false);
 }
 
 LLVMValueRef getCodegenReference(LlvmCodegenContext* context, LlvmCodegenModuleContext* data, AstNode* node) {

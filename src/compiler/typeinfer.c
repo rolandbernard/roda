@@ -95,6 +95,34 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
             case AST_WHILE:
             case AST_FN:
                 break;
+            case AST_IF_ELSE_EXPR: {
+                AstIfElse* n = (AstIfElse*)node;
+                if (n->res_type != NULL) {
+                    if (moveTypeFromIntoAstNode(context, n->if_block, node)) {
+                        propagateTypes(context, n->if_block);
+                    }
+                    if (moveTypeFromIntoAstNode(context, n->else_block, node)) {
+                        propagateTypes(context, n->else_block);
+                    }
+                }
+                if (n->if_block->res_type != NULL) {
+                    if (moveTypeFromIntoAstNode(context, node, n->if_block)) {
+                        propagateTypes(context, node->parent);
+                    }
+                    if (moveTypeFromIntoAstNode(context, n->else_block, n->if_block)) {
+                        propagateTypes(context, n->else_block);
+                    }
+                }
+                if (n->else_block->res_type != NULL) {
+                    if (moveTypeFromIntoAstNode(context, node, n->else_block)) {
+                        propagateTypes(context, node->parent);
+                    }
+                    if (moveTypeFromIntoAstNode(context, n->if_block, n->else_block)) {
+                        propagateTypes(context, n->if_block);
+                    }
+                }
+                break;
+            }
             case AST_BLOCK_EXPR: {
                 AstBlock* n = (AstBlock*)node;
                 AstNode* last = n->nodes->nodes[n->nodes->count - 1];
@@ -724,6 +752,14 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                 evaluateTypeHints(context, n->val);
                 break;
             }
+            case AST_IF_ELSE_EXPR: {
+                AstIfElse* n = (AstIfElse*)node;
+                n->condition->res_type = createUnsizedPrimitiveType(&context->types, n->condition, TYPE_BOOL);
+                evaluateTypeHints(context, n->condition);
+                evaluateTypeHints(context, n->if_block);
+                evaluateTypeHints(context, n->else_block);
+                break;
+            }
             case AST_IF_ELSE: {
                 AstIfElse* n = (AstIfElse*)node;
                 n->res_type = createUnsizedPrimitiveType(&context->types, node, TYPE_VOID);
@@ -926,6 +962,7 @@ static void propagateAllTypes(CompilerContext* context, AstNode* node) {
                 propagateAllTypes(context, (AstNode*)n->nodes);
                 break;
             }
+            case AST_IF_ELSE_EXPR:
             case AST_IF_ELSE: {
                 AstIfElse* n = (AstIfElse*)node;
                 propagateAllTypes(context, n->condition);
@@ -1154,6 +1191,7 @@ static void assumeAmbiguousTypes(CompilerContext* context, AssumeAmbiguousPhase 
                 assumeAmbiguousTypes(context, phase, (AstNode*)n->nodes);
                 break;
             }
+            case AST_IF_ELSE_EXPR:
             case AST_IF_ELSE: {
                 AstIfElse* n = (AstIfElse*)node;
                 assumeAmbiguousTypes(context, phase, n->condition);

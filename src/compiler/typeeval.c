@@ -75,6 +75,7 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
                 node->res_type = getErrorType(&context->types);
                 break;
             }
+            case AST_IF_ELSE_EXPR:
             case AST_IF_ELSE:
             case AST_FN:
             case AST_TYPEDEF:
