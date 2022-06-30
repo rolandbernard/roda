@@ -129,6 +129,7 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
             case AST_STRUCT_LIT:
             case AST_LIST:
             case AST_BLOCK:
+            case AST_BLOCK_EXPR:
             case AST_VARDEF: {
                 UNREACHABLE("should not evaluate");
             }

@@ -101,6 +101,7 @@ static bool controlFlowEndsWithReturn(CompilerContext* context, AstNode* node) {
                 AstRoot* n = (AstRoot*)node;
                 return controlFlowEndsWithReturn(context, (AstNode*)n->nodes);
             }
+            case AST_BLOCK_EXPR:
             case AST_BLOCK: {
                 AstBlock* n = (AstBlock*)node;
                 return controlFlowEndsWithReturn(context, (AstNode*)n->nodes);

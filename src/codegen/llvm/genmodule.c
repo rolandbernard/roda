@@ -244,6 +244,17 @@ LlvmCodegenValue buildLlvmFunctionBody(LlvmCodegenContext* context, LlvmCodegenM
             data->scope_metadata = old_scope;
             return createLlvmCodegenVoidValue(context);
         }
+        case AST_BLOCK_EXPR: {
+            AstBlock* n = (AstBlock*)node;
+            LLVMMetadataRef old_scope = data->scope_metadata;
+            data->scope_metadata = CODEGEN(n)->debug;
+            LlvmCodegenValue value = createLlvmCodegenValue(NULL, false);
+            for (size_t i = 0; i < n->nodes->count; i++) {
+                value = buildLlvmFunctionBody(context, data, n->nodes->nodes[i]);
+            }
+            data->scope_metadata = old_scope;
+            return value;
+        }
         case AST_VAR: {
             AstVar* n = (AstVar*)node;
             SymbolVariable* var = (SymbolVariable*)n->binding;
@@ -694,6 +705,7 @@ static void buildFunctionVariables(LlvmCodegenContext* context, LlvmCodegenModul
                 buildFunctionVariables(context, data, (AstNode*)n->nodes);
                 break;
             }
+            case AST_BLOCK_EXPR:
             case AST_BLOCK: {
                 AstBlock* n = (AstBlock*)node;
                 LLVMMetadataRef old_scope = data->scope_metadata;

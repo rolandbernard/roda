@@ -244,6 +244,7 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
             case AST_ROOT:
             case AST_ARRAY:
             case AST_LIST:
+            case AST_BLOCK_EXPR:
             case AST_BLOCK:
             case AST_VARDEF:
             case AST_VAR:
@@ -437,9 +438,8 @@ bool checkValidInConstExpr(CompilerContext* context, AstNode* node) {
             case AST_ARRAY:
             case AST_LIST:
             case AST_BLOCK:
+            case AST_BLOCK_EXPR:
             case AST_VARDEF:
-                UNREACHABLE("should not evaluate");
-                return false;
             case AST_VAR: // TODO: constant variables?
             case AST_INDEX: // TODO: constant arrays?
             case AST_VOID:

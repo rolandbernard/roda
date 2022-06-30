@@ -156,7 +156,7 @@ arg_def : error             { $$ = createAstSimple(@$, AST_ERROR); }
         | var ':' type      { $$ = (AstNode*)createAstArgDef(@$, $1, $3); }
         ;
 
-block   : '{' stmts '}'  { fitAstList($2); $$ = (AstNode*)createAstBlock(@$, $2); }
+block   : '{' stmts '}'     { fitAstList($2); $$ = (AstNode*)createAstBlock(@$, AST_BLOCK, $2); }
         ;
 
 stmts   : %empty            { $$ = createEmptyAstList(); $$->location = @$; }
@@ -265,6 +265,7 @@ expr    : var                           { $$ = (AstNode*)$1; }
         | '(' error ')'                 { $$ = createAstSimple(@$, AST_ERROR); }
         | expr '[' error ']'            { $$ = createAstSimple(@$, AST_ERROR); freeAstNode($1); }
         | expr '(' error ')'            { $$ = createAstSimple(@$, AST_ERROR); freeAstNode($1); }
+        | '{' stmts expr '}'            { addToAstList($2, $3); fitAstList($2); $$ = (AstNode*)createAstBlock(@$, AST_BLOCK_EXPR, $2); }
         ;
 
 field_vals  : field_val                     { $$ = createEmptyAstList(); addToAstList($$, $1); $$->location = @$; }

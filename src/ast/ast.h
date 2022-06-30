@@ -71,6 +71,7 @@ typedef enum {
     AST_LIST,
     AST_ROOT,
     AST_BLOCK,
+    AST_BLOCK_EXPR,
     AST_RETURN,
     AST_ARRAY_LIT,
     AST_FN_TYPE,
@@ -253,7 +254,7 @@ AstList* createAstList(Span loc, AstNodeKind kind, size_t count, AstNode** nodes
 
 AstRoot* createAstRoot(Span loc, AstList* nodes);
 
-AstBlock* createAstBlock(Span loc, AstList* nodes);
+AstBlock* createAstBlock(Span loc, AstNodeKind kind, AstList* nodes);
 
 AstIfElse* createAstIfElse(Span loc, AstNode* cond, AstNode* if_block, AstNode* else_block);
 

@@ -173,9 +173,9 @@ AstRoot* createAstRoot(Span loc, AstList* nodes) {
     return node;
 }
 
-AstBlock* createAstBlock(Span loc, AstList* nodes) {
+AstBlock* createAstBlock(Span loc, AstNodeKind kind, AstList* nodes) {
     AstBlock* node = NEW(AstBlock);
-    initAstNode((AstNode*)node, AST_BLOCK, loc);
+    initAstNode((AstNode*)node, kind, loc);
     initSymbolTable(&node->vars, NULL);
     node->nodes = nodes;
     SET_PARENT(nodes, 0);
@@ -285,6 +285,7 @@ void freeAstNode(AstNode* node) {
                 freeAstNode((AstNode*)n->nodes);
                 break;
             }
+            case AST_BLOCK_EXPR:
             case AST_BLOCK: {
                 AstBlock* n = (AstBlock*)node;
                 deinitSymbolTable(&n->vars);

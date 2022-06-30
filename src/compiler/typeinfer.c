@@ -95,6 +95,21 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
             case AST_WHILE:
             case AST_FN:
                 break;
+            case AST_BLOCK_EXPR: {
+                AstBlock* n = (AstBlock*)node;
+                AstNode* last = n->nodes->nodes[n->nodes->count - 1];
+                if (n->res_type != NULL) {
+                    if (moveTypeFromIntoAstNode(context, last, node)) {
+                        propagateTypes(context, last);
+                    }
+                }
+                if (last->res_type != NULL) {
+                    if (moveTypeFromIntoAstNode(context, node, last)) {
+                        propagateTypes(context, node->parent);
+                    }
+                }
+                break;
+            }
             case AST_LIST: {
                 propagateTypes(context, node->parent);
                 break;
@@ -464,6 +479,7 @@ static void checkTypeDefinitions(CompilerContext* context, AstNode* node) {
                 checkTypeDefinitions(context, (AstNode*)n->nodes);
                 break;
             }
+            case AST_BLOCK_EXPR:
             case AST_BLOCK: {
                 AstBlock* n = (AstBlock*)node;
                 checkTypeDefinitions(context, (AstNode*)n->nodes);
@@ -675,6 +691,11 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
             case AST_ROOT: {
                 AstRoot* n = (AstRoot*)node;
                 moveTypeIntoAstNode(context, node, createUnsizedPrimitiveType(&context->types, node, TYPE_VOID));
+                evaluateTypeHints(context, (AstNode*)n->nodes);
+                break;
+            }
+            case AST_BLOCK_EXPR: {
+                AstBlock* n = (AstBlock*)node;
                 evaluateTypeHints(context, (AstNode*)n->nodes);
                 break;
             }
@@ -899,6 +920,7 @@ static void propagateAllTypes(CompilerContext* context, AstNode* node) {
                 propagateAllTypes(context, (AstNode*)n->nodes);
                 break;
             }
+            case AST_BLOCK_EXPR:
             case AST_BLOCK: {
                 AstBlock* n = (AstBlock*)node;
                 propagateAllTypes(context, (AstNode*)n->nodes);
@@ -1126,6 +1148,7 @@ static void assumeAmbiguousTypes(CompilerContext* context, AssumeAmbiguousPhase 
                 assumeAmbiguousTypes(context, phase, (AstNode*)n->nodes);
                 break;
             }
+            case AST_BLOCK_EXPR:
             case AST_BLOCK: {
                 AstBlock* n = (AstBlock*)node;
                 assumeAmbiguousTypes(context, phase, (AstNode*)n->nodes);

@@ -137,6 +137,7 @@ static void buildLocalSymbolTables(CompilerContext* context, AstNode* node, Symb
                 buildLocalSymbolTables(context, (AstNode*)n->nodes, &n->vars, type);
                 break;
             }
+            case AST_BLOCK_EXPR:
             case AST_BLOCK: {
                 AstBlock* n = (AstBlock*)node;
                 n->vars.parent = scope;
@@ -380,6 +381,7 @@ static void buildControlFlowReferences(CompilerContext* context, AstNode* node, 
                 buildControlFlowReferences(context, (AstNode*)n->nodes, function);
                 break;
             }
+            case AST_BLOCK_EXPR:
             case AST_BLOCK: {
                 AstBlock* n = (AstBlock*)node;
                 buildControlFlowReferences(context, (AstNode*)n->nodes, function);

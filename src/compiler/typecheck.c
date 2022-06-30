@@ -104,6 +104,7 @@ static void checkForUntypedVariables(CompilerContext* context, AstNode* node) {
                 checkForUntypedVariables(context, (AstNode*)n->nodes);
                 break;
             }
+            case AST_BLOCK_EXPR:
             case AST_BLOCK: {
                 AstBlock* n = (AstBlock*)node;
                 checkForUntypedVariables(context, (AstNode*)n->nodes);
@@ -277,6 +278,7 @@ static void checkForUntypedNodes(CompilerContext* context, AstNode* node) {
                     checkForUntypedNodes(context, (AstNode*)n->nodes);
                     break;
                 }
+                case AST_BLOCK_EXPR:
                 case AST_BLOCK: {
                     AstBlock* n = (AstBlock*)node;
                     checkForUntypedNodes(context, (AstNode*)n->nodes);
@@ -968,6 +970,7 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                 checkTypeConstraints(context, (AstNode*)n->nodes);
                 break;
             }
+            case AST_BLOCK_EXPR:
             case AST_BLOCK: {
                 AstBlock* n = (AstBlock*)node;
                 checkTypeConstraints(context, (AstNode*)n->nodes);

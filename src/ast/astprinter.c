@@ -63,6 +63,7 @@ static const char* ast_type_names[] = {
     [AST_STRUCT_TYPE] = "struct type",
     [AST_ROOT] = "root",
     [AST_BLOCK] = "block",
+    [AST_BLOCK_EXPR] = "block",
 
     // Other
     [AST_VAR] = "variable",
@@ -289,6 +290,7 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
                 printAstChildNode(file, (AstNode*)n->nodes, colors, indent, "nodes", true);
                 break;
             }
+            case AST_BLOCK_EXPR:
             case AST_BLOCK: {
                 AstBlock* n = (AstBlock*)node;
                 printAstNodeExtraInfo(file, node, colors);
