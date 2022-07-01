@@ -268,6 +268,7 @@ void freeAstNode(AstNode* node) {
                 freeAstNode(n->op);
                 break;
             }
+            case AST_TUPLE_TYPE:
             case AST_STRUCT_TYPE:
             case AST_ARRAY_LIT:
             case AST_STRUCT_LIT:

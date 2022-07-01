@@ -8,6 +8,7 @@
 static void checkForUntypedVariables(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
+            case AST_TUPLE_TYPE:
             case AST_STRUCT_TYPE:
             case AST_ARRAY:
             case AST_FN_TYPE:
@@ -183,6 +184,7 @@ static void checkForUntypedNodes(CompilerContext* context, AstNode* node) {
         } else {
             switch (node->kind) {
                 case AST_STRUCT_TYPE:
+                case AST_TUPLE_TYPE:
                 case AST_ARRAY:
                 case AST_FN_TYPE:
                     UNREACHABLE("should not evaluate");
@@ -642,6 +644,7 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
             case AST_STRUCT_TYPE:
+            case AST_TUPLE_TYPE:
             case AST_ARRAY:
             case AST_FN_TYPE:
                 UNREACHABLE("should not evaluate");

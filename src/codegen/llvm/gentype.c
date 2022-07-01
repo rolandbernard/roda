@@ -10,7 +10,6 @@
 
 typedef struct {
     LlvmCodegenContext* context;
-    TypeStruct* struc;
     LLVMTypeRef* types;
     size_t* mapping;
 } StructSortContext;
@@ -28,16 +27,17 @@ static bool structSortCompare(size_t i, size_t j, void* cxt) {
     if (size_i != size_j) {
         return size_i >= size_j;
     } else {
-        return s->struc->names[i] <= s->struc->names[j];
+        return i <= j;
     }
 }
 
 static void invertStructFieldMapping(size_t* mapping, size_t count) {
-    size_t tmp[count];
+    size_t* tmp = ALLOC(size_t, count);
     memcpy(tmp, mapping, count * sizeof(size_t));
     for (size_t i = 0; i < count; i++) {
         mapping[tmp[i]] = i;
     }
+    FREE(tmp);
 }
 
 LLVMTypeRef generateLlvmType(LlvmCodegenContext* context, Type* type) {
@@ -47,22 +47,39 @@ LLVMTypeRef generateLlvmType(LlvmCodegenContext* context, Type* type) {
         switch (type->kind) {
             case TYPE_ERROR:
                 UNREACHABLE();
-            case TYPE_STRUCT: {
+            case TYPE_TUPLE: {
+                TypeTuple* t = (TypeTuple*)type;
                 StructSortContext cxt;
                 cxt.context = context;
-                cxt.struc = (TypeStruct*)type;
-                cxt.types = ALLOC(LLVMTypeRef, cxt.struc->count);
-                cxt.mapping = ALLOC(size_t, cxt.struc->count);
-                for (size_t i = 0; i < cxt.struc->count; i++) {
-                    cxt.types[i] = generateLlvmType(context, cxt.struc->types[i]);
+                cxt.types = ALLOC(LLVMTypeRef, t->count);
+                cxt.mapping = ALLOC(size_t, t->count);
+                for (size_t i = 0; i < t->count; i++) {
+                    cxt.types[i] = generateLlvmType(context, t->types[i]);
                     cxt.mapping[i] = i;
                 }
-                if (!cxt.struc->ordered) {
-                    heapSort(cxt.struc->count, structSortSwap, structSortCompare, &cxt);
-                }
-                invertStructFieldMapping(cxt.mapping, cxt.struc->count);
+                heapSort(t->count, structSortSwap, structSortCompare, &cxt);
+                invertStructFieldMapping(cxt.mapping, t->count);
                 CODEGEN(type)->struct_mapping = cxt.mapping;
-                result = LLVMStructTypeInContext(context->llvm_cxt, cxt.types, cxt.struc->count, false);
+                result = LLVMStructTypeInContext(context->llvm_cxt, cxt.types, t->count, false);
+                FREE(cxt.types);
+                break;
+            }
+            case TYPE_STRUCT: {
+                TypeStruct* t = (TypeStruct*)type;
+                StructSortContext cxt;
+                cxt.context = context;
+                cxt.types = ALLOC(LLVMTypeRef, t->count);
+                cxt.mapping = ALLOC(size_t, t->count);
+                for (size_t i = 0; i < t->count; i++) {
+                    cxt.types[i] = generateLlvmType(context, t->types[i]);
+                    cxt.mapping[i] = i;
+                }
+                if (!t->ordered) {
+                    heapSort(t->count, structSortSwap, structSortCompare, &cxt);
+                    invertStructFieldMapping(cxt.mapping, t->count);
+                }
+                CODEGEN(type)->struct_mapping = cxt.mapping;
+                result = LLVMStructTypeInContext(context->llvm_cxt, cxt.types, t->count, false);
                 FREE(cxt.types);
                 break;
             }

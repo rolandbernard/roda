@@ -75,6 +75,7 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
             case AST_STRUCT_TYPE:
+            case AST_TUPLE_TYPE:
             case AST_FN_TYPE:
             case AST_ARRAY:
                 break; // Are reachable from variable propagations
@@ -552,6 +553,7 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
             case AST_STRUCT_TYPE:
+            case AST_TUPLE_TYPE:
             case AST_FN_TYPE:
             case AST_ARRAY: {
                 UNREACHABLE("should not evaluate");
@@ -856,6 +858,7 @@ static void propagateAllTypes(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
             case AST_STRUCT_TYPE:
+            case AST_TUPLE_TYPE:
             case AST_ARRAY:
             case AST_FN_TYPE:
                 UNREACHABLE("should not evaluate");
@@ -1018,6 +1021,7 @@ static void assumeAmbiguousTypes(CompilerContext* context, AssumeAmbiguousPhase 
     if (node != NULL) {
         switch (node->kind) {
             case AST_STRUCT_TYPE:
+            case AST_TUPLE_TYPE:
             case AST_ARRAY:
             case AST_FN_TYPE:
                 UNREACHABLE("should not evaluate");

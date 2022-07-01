@@ -22,6 +22,7 @@ typedef enum {
     TYPE_REFERENCE,
     TYPE_STRUCT,
     TYPE_UNSURE,
+    TYPE_TUPLE,
 } TypeKind;
 
 #define TYPE_BASE           \
@@ -74,6 +75,12 @@ typedef struct {
     size_t count;
 } TypeStruct;
 
+typedef struct {
+    TYPE_BASE
+    Type** types;
+    size_t count;
+} TypeTuple;
+
 typedef enum {
     UNSURE_ANY,
     UNSURE_INTEGER,
@@ -113,6 +120,8 @@ Type* createTypeReference(TypeContext* cxt, struct AstNode* def, struct SymbolTy
 
 Type* createTypeStruct(TypeContext* cxt, struct AstNode* def, bool ordered, Symbol* name, Type** types, size_t count);
 
+Type* createTypeTuple(TypeContext* cxt, struct AstNode* def, Type** types, size_t count);
+
 size_t lookupIndexOfStructField(TypeStruct* type, Symbol name);
 
 Type* createUnsureType(TypeContext* cxt, struct AstNode* def, TypeUnsureKind set, Type* fallback);
@@ -148,6 +157,8 @@ bool isArrayType(Type* type);
 bool isFunctionType(Type* type);
 
 bool isStructType(Type* type);
+
+bool isTupleType(Type* type);
 
 bool isTypeReference(Type* type);
 

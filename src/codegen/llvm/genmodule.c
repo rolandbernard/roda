@@ -151,6 +151,7 @@ LlvmCodegenValue buildLlvmFunctionBody(LlvmCodegenContext* context, LlvmCodegenM
         LLVMSetCurrentDebugLocation2(data->builder, loc);
     }
     switch (node->kind) {
+        case AST_TUPLE_TYPE:
         case AST_STRUCT_TYPE:
         case AST_ARRAY:
         case AST_FN_TYPE:
@@ -613,6 +614,7 @@ static void buildFunctionVariables(LlvmCodegenContext* context, LlvmCodegenModul
         switch (node->kind) {
             case AST_FN_TYPE:
             case AST_STRUCT_TYPE:
+            case AST_TUPLE_TYPE:
             case AST_ARRAY: {
                 UNREACHABLE("should not evaluate");
             }

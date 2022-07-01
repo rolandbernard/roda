@@ -257,6 +257,7 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
             case AST_BXOR_ASSIGN:
             case AST_FN_TYPE:
             case AST_STRUCT_TYPE:
+            case AST_TUPLE_TYPE:
             case AST_ASSIGN:
             case AST_RETURN:
             case AST_ROOT:
@@ -470,6 +471,7 @@ bool checkValidInConstExpr(CompilerContext* context, AstNode* node) {
             case AST_BXOR_ASSIGN:
             case AST_FN_TYPE:
             case AST_STRUCT_TYPE:
+            case AST_TUPLE_TYPE:
             case AST_ASSIGN:
             case AST_RETURN:
             case AST_ROOT:

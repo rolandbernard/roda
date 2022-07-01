@@ -65,9 +65,9 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │  └─null
     ├─type definition () [tests/emit/ast.rd:13:1-13:38]
     │  │name:
-    │  ├─variable (name = Scanner) (peek = Char, pos = int) [tests/emit/ast.rd:13:6-13:12]
+    │  ├─variable (name = Scanner) (peek: Char, pos: int) [tests/emit/ast.rd:13:6-13:12]
     │  │value:
-    │  └─struct type (2 elements) (peek = Char, pos = int) [tests/emit/ast.rd:13:16-13:37]
+    │  └─struct type (2 elements) (peek: Char, pos: int) [tests/emit/ast.rd:13:16-13:37]
     │     ├─argument definition [tests/emit/ast.rd:13:17-13:26]
     │     │  │name:
     │     │  ├─variable (name = peek) [tests/emit/ast.rd:13:17-13:20]
@@ -242,9 +242,9 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │           └─variable (name = c) Char [tests/emit/ast.rd:31:12]
     ├─type definition () [tests/emit/ast.rd:34:1-34:51]
     │  │name:
-    │  ├─variable (name = Node) (op = Char, val = int, childs = [2]*Node) [tests/emit/ast.rd:34:6-34:9]
+    │  ├─variable (name = Node) (op: Char, val: int, childs: [2]*Node) [tests/emit/ast.rd:34:6-34:9]
     │  │value:
-    │  └─struct type (3 elements) (op = Char, val = int, childs = [2]*Node) [tests/emit/ast.rd:34:13-34:50]
+    │  └─struct type (3 elements) (op: Char, val: int, childs: [2]*Node) [tests/emit/ast.rd:34:13-34:50]
     │     ├─argument definition [tests/emit/ast.rd:34:14-34:21]
     │     │  │name:
     │     │  ├─variable (name = op) [tests/emit/ast.rd:34:14-34:15]

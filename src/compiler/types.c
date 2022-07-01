@@ -44,6 +44,11 @@ static void freeType(Type* type) {
                 FREE(t->types);
                 break;
             }
+            case TYPE_TUPLE: {
+                TypeTuple* t = (TypeTuple*)type;
+                FREE(t->types);
+                break;
+            }
         }
     }
     FREE(type);
@@ -164,6 +169,20 @@ Type* createTypeStruct(TypeContext* cxt, struct AstNode* def, bool ordered, Symb
     return addAndInitType(cxt, (Type*)type, TYPE_STRUCT, def);
 }
 
+Type* createTypeTuple(TypeContext* cxt, struct AstNode* def, Type** types, size_t count) {
+    for (size_t i = 0; i < count; i++) {
+        if (isErrorType(types[i])) {
+            Type* ret = types[i];
+            FREE(types);
+            return ret;
+        }
+    }
+    TypeTuple* type = NEW(TypeTuple);
+    type->types = types;
+    type->count = count;
+    return addAndInitType(cxt, (Type*)type, TYPE_TUPLE, def);
+}
+
 Type* createUnsureType(TypeContext* cxt, struct AstNode* def, TypeUnsureKind set, Type* fallback) {
     TypeUnsure* type = NEW(TypeUnsure);
     type->set = set;
@@ -257,7 +276,19 @@ static void buildTypeNameInto(StringBuilder* dst, Type* type) {
                         pushToStringBuilder(dst, str(", "));
                     }
                     pushToStringBuilder(dst, str(t->names[i]));
-                    pushToStringBuilder(dst, str(" = "));
+                    pushToStringBuilder(dst, str(": "));
+                    buildTypeNameInto(dst, t->types[i]);
+                }
+                pushToStringBuilder(dst, str(")"));
+                break;
+            }
+            case TYPE_TUPLE: {
+                TypeTuple* t = (TypeTuple*)type;
+                pushToStringBuilder(dst, str("("));
+                for (size_t i = 0; i < t->count; i++) {
+                    if (i != 0) {
+                        pushToStringBuilder(dst, str(", "));
+                    }
                     buildTypeNameInto(dst, t->types[i]);
                 }
                 pushToStringBuilder(dst, str(")"));
@@ -429,6 +460,10 @@ bool isStructType(Type* type) {
     return getTypeOfKind(type, TYPE_STRUCT) != NULL;
 }
 
+bool isTupleType(Type* type) {
+    return getTypeOfKind(type, TYPE_TUPLE) != NULL;
+}
+
 bool isTypeReference(Type* type) {
     return getTypeOfKind(type, TYPE_REFERENCE) != NULL;
 }
@@ -491,6 +526,14 @@ bool isPartialType(Type* type) {
                 }
             }
             RETURN(bool, false);
+        } else if (type->kind == TYPE_TUPLE) {
+            TypeTuple* t = (TypeTuple*)type;
+            for (size_t i = 0; i < t->count; i++) {
+                if (isPartialType(t->types[i])) {
+                    RETURN(bool, true);
+                }
+            }
+            RETURN(bool, false);
         },
         { RETURN(bool, false); },
         { RETURN(bool, true); },
@@ -520,6 +563,14 @@ bool containsErrorType(Type* type) {
             RETURN(bool, containsErrorType(array->base));
         } else if (type->kind == TYPE_STRUCT) {
             TypeStruct* s = (TypeStruct*)type;
+            for (size_t i = 0; i < s->count; i++) {
+                if (containsErrorType(s->types[i])) {
+                    RETURN(bool, true);
+                }
+            }
+            RETURN(bool, false);
+        } else if (type->kind == TYPE_TUPLE) {
+            TypeTuple* s = (TypeTuple*)type;
             for (size_t i = 0; i < s->count; i++) {
                 if (containsErrorType(s->types[i])) {
                     RETURN(bool, true);
@@ -557,6 +608,12 @@ void fillPartialType(Type* type, Type* with) {
             RETURN_VOID;
         } else if (type->kind == TYPE_STRUCT) {
             TypeStruct* s = (TypeStruct*)type;
+            for (size_t i = 0; i < s->count; i++) {
+                fillPartialType(s->types[i], with);
+            }
+            RETURN_VOID;
+        } else if (type->kind == TYPE_TUPLE) {
+            TypeTuple* s = (TypeTuple*)type;
             for (size_t i = 0; i < s->count; i++) {
                 fillPartialType(s->types[i], with);
             }
@@ -610,6 +667,14 @@ bool isValidType(Type* type) {
                 }
             }
             RETURN(bool, true);
+        } else if (type->kind == TYPE_TUPLE) {
+            TypeTuple* s = (TypeTuple*)type;
+            for (size_t i = 0; i < s->count; i++) {
+                if (!isValidType(s->types[i])) {
+                    RETURN(bool, false);
+                }
+            }
+            RETURN(bool, true);
         } else if (type->kind == TYPE_FUNCTION) {
             TypeFunction* t = (TypeFunction*)type;
             for (size_t i = 0; i < t->arg_count; i++) {
@@ -645,6 +710,14 @@ bool isEffectivelyVoidType(Type* type) {
                 }
             }
             RETURN(bool, true);
+        } else if (type->kind == TYPE_TUPLE) {
+            TypeTuple* s = (TypeTuple*)type;
+            for (size_t i = 0; i < s->count; i++) {
+                if (!isEffectivelyVoidType(s->types[i])) {
+                    RETURN(bool, false);
+                }
+            }
+            RETURN(bool, true);
         },
         { RETURN(bool, true); },
         { RETURN(bool, false); },
@@ -668,6 +741,14 @@ bool isSizedType(Type* type) {
             RETURN(bool, isSizedType(array->base));
         } else if (type->kind == TYPE_STRUCT) {
             TypeStruct* s = (TypeStruct*)type;
+            for (size_t i = 0; i < s->count; i++) {
+                if (!isSizedType(s->types[i])) {
+                    RETURN(bool, false);
+                }
+            }
+            RETURN(bool, true);
+        } else if (type->kind == TYPE_TUPLE) {
+            TypeTuple* s = (TypeTuple*)type;
             for (size_t i = 0; i < s->count; i++) {
                 if (!isSizedType(s->types[i])) {
                     RETURN(bool, false);
@@ -849,6 +930,22 @@ static bool compareStructuralTypesHelper(Type* a, Type* b, TypeUnsure** changed,
                                         equal = false;
                                         break;
                                     }
+                                }
+                            }
+                        }
+                        break;
+                    }
+                    case TYPE_TUPLE: {
+                        TypeTuple* ta = (TypeTuple*)a;
+                        TypeTuple* tb = (TypeTuple*)b;
+                        if (ta->count != tb->count) {
+                            equal = false;
+                        } else {
+                            equal = true;
+                            for (size_t i = 0; i < ta->count; i++) {
+                                if (!compareStructuralTypesHelper(ta->types[i], tb->types[i], changed, stack)) {
+                                    equal = false;
+                                    break;
                                 }
                             }
                         }

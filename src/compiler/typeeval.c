@@ -228,6 +228,15 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
                 }
                 break;
             }
+            case AST_TUPLE_TYPE: {
+                AstList* n = (AstList*)node;
+                Type** types = ALLOC(Type*, n->count);
+                for (size_t i = 0; i < n->count; i++) {
+                    types[i] = evaluateTypeExpr(context, n->nodes[i]);
+                }
+                n->res_type = createTypeTuple(&context->types, node, types, n->count);
+                break;
+            }
         }
         return node->res_type;
     }

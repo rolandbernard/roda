@@ -21,6 +21,35 @@ LLVMMetadataRef generateLlvmTypeDebugInfo(LlvmCodegenContext* context, LlvmCodeg
         switch (type->kind) {
             case TYPE_ERROR:
                 UNREACHABLE();
+            case TYPE_TUPLE: {
+                TypeTuple* t = (TypeTuple*)type;
+                LLVMMetadataRef* fields = ALLOC(LLVMMetadataRef, t->count);
+                for (size_t i = 0; i < t->count; i++) {
+                    LLVMTypeRef field_type = generateLlvmType(context, t->types[i]);
+                    fields[i] = generateLlvmTypeDebugInfo(context, data, t->types[i], line);
+                    String name = createFormattedString("%zu", i);
+                    fields[i] = LLVMDIBuilderCreateMemberType(
+                        data->debug_bulder, tmp, name.data, name.length,
+                        data->file_metadata, line,
+                        8 * LLVMABISizeOfType(context->target_data, field_type),
+                        8 * LLVMABIAlignmentOfType(context->target_data, field_type),
+                        8 * LLVMOffsetOfElement(
+                            context->target_data, llvm_type, CODEGEN(t)->struct_mapping[i]
+                        ),
+                        0, fields[i]
+                    );
+                    freeString(name);
+                }
+                result = LLVMDIBuilderCreateStructType(
+                    data->debug_bulder, data->file_metadata, name.data, name.length,
+                    data->file_metadata, line,
+                    8 * LLVMABISizeOfType(context->target_data, llvm_type),
+                    8 * LLVMABIAlignmentOfType(context->target_data, llvm_type), 0, NULL, fields,
+                    t->count, 0, NULL, NULL, 0
+                );
+                FREE(fields);
+                break;
+            }
             case TYPE_STRUCT: {
                 TypeStruct* t = (TypeStruct*)type;
                 LLVMMetadataRef* fields = ALLOC(LLVMMetadataRef, t->count);
@@ -32,7 +61,10 @@ LLVMMetadataRef generateLlvmTypeDebugInfo(LlvmCodegenContext* context, LlvmCodeg
                         data->file_metadata, line,
                         8 * LLVMABISizeOfType(context->target_data, field_type),
                         8 * LLVMABIAlignmentOfType(context->target_data, field_type),
-                        8 * LLVMOffsetOfElement(context->target_data, llvm_type, i), 0, fields[i]
+                        8 * LLVMOffsetOfElement(
+                            context->target_data, llvm_type, CODEGEN(t)->struct_mapping[i]
+                        ),
+                        0, fields[i]
                     );
                 }
                 result = LLVMDIBuilderCreateStructType(

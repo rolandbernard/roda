@@ -61,6 +61,7 @@ static const char* ast_type_names[] = {
     [AST_ARRAY_LIT] = "array literal",
     [AST_STRUCT_LIT] = "struct literal",
     [AST_STRUCT_TYPE] = "struct type",
+    [AST_TUPLE_TYPE] = "tuple type",
     [AST_ROOT] = "root",
     [AST_BLOCK] = "block",
     [AST_BLOCK_EXPR] = "block",
@@ -271,6 +272,7 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
                 printAstChildNode(file, n->op, colors, indent, "op", true);
                 break;
             }
+            case AST_TUPLE_TYPE:
             case AST_STRUCT_TYPE:
             case AST_ARRAY_LIT:
             case AST_STRUCT_LIT:
