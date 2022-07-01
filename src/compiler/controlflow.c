@@ -137,6 +137,10 @@ static bool controlFlowEndsWithReturn(CompilerContext* context, AstNode* node) {
                 AstStructIndex* n = (AstStructIndex*)node;
                 return controlFlowEndsWithReturn(context, n->strct);
             }
+            case AST_TUPLE_INDEX: {
+                AstTupleIndex* n = (AstTupleIndex*)node;
+                return controlFlowEndsWithReturn(context, n->tuple);
+            }
         }
         UNREACHABLE();
     } else {

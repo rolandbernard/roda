@@ -95,6 +95,7 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
             case AST_RETURN:
             case AST_INDEX:
             case AST_STRUCT_INDEX:
+            case AST_TUPLE_INDEX:
             case AST_AS:
             case AST_CALL:
             case AST_STR:

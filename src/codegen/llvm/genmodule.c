@@ -601,6 +601,22 @@ LlvmCodegenValue buildLlvmFunctionBody(LlvmCodegenContext* context, LlvmCodegenM
                 return createLlvmCodegenValue(value, false);
             }
         }
+        case AST_TUPLE_INDEX: {
+            AstTupleIndex* n = (AstTupleIndex*)node;
+            TypeStruct* type = (TypeStruct*)getTypeOfKind(n->tuple->res_type, TYPE_TUPLE);
+            LLVMTypeRef strct_type = generateLlvmType(context, n->tuple->res_type);
+            LlvmCodegenValue strct = buildLlvmFunctionBody(context, data, n->tuple);
+            size_t idx = CODEGEN(type)->struct_mapping[n->field->number];
+            if (strct.is_reference) {
+                LLVMValueRef value = LLVMBuildStructGEP2(
+                    data->builder, strct_type, strct.value, idx, "index"
+                );
+                return createLlvmCodegenValue(value, true);
+            } else {
+                LLVMValueRef value = LLVMBuildExtractValue(data->builder, strct.value, idx, "index");
+                return createLlvmCodegenValue(value, false);
+            }
+        }
         case AST_TYPEDEF:
         case AST_FN:
         case AST_ARGDEF:
@@ -814,6 +830,11 @@ static void buildFunctionVariables(LlvmCodegenContext* context, LlvmCodegenModul
             case AST_STRUCT_INDEX: {
                 AstStructIndex* n = (AstStructIndex*)node;
                 buildFunctionVariables(context, data, n->strct);
+                break;
+            }
+            case AST_TUPLE_INDEX: {
+                AstTupleIndex* n = (AstTupleIndex*)node;
+                buildFunctionVariables(context, data, n->tuple);
                 break;
             }
         }

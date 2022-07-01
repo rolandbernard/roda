@@ -170,6 +170,11 @@ static void checkForUntypedVariables(CompilerContext* context, AstNode* node) {
                 checkForUntypedVariables(context, n->strct);
                 break;
             }
+            case AST_TUPLE_INDEX: {
+                AstTupleIndex* n = (AstTupleIndex*)node;
+                checkForUntypedVariables(context, n->tuple);
+                break;
+            }
         }
     }
 }
@@ -321,6 +326,11 @@ static void checkForUntypedNodes(CompilerContext* context, AstNode* node) {
                 case AST_STRUCT_INDEX: {
                     AstStructIndex* n = (AstStructIndex*)node;
                     checkForUntypedNodes(context, n->strct);
+                    break;
+                }
+                case AST_TUPLE_INDEX: {
+                    AstTupleIndex* n = (AstTupleIndex*)node;
+                    checkForUntypedNodes(context, n->tuple);
                     break;
                 }
             }
@@ -533,6 +543,34 @@ static void raiseNoSuchFieldError(CompilerContext* context, AstStructIndex* node
     freeString(type_name);
 }
 
+static void raiseNoSuchTupleFieldError(CompilerContext* context, AstTupleIndex* node) {
+    String type_name = buildTypeName(node->tuple->res_type);
+    String message = createFormattedString(
+        "no field at index `%zu` in tuple type `%s`", node->field->number, cstr(type_name)
+    );
+    MessageFragment* error = createMessageFragment(
+        MESSAGE_ERROR, copyFromCString("no such field exists"), node->field->location
+    );
+    if (getTypeReason(node->tuple->res_type) != NULL) {
+        addMessageToContext(
+            &context->msgs,
+            createMessage(
+                ERROR_NO_SUCH_FIELD, message, 2, error,
+                createMessageFragment(
+                    MESSAGE_NOTE,
+                    copyFromCString("note: tuple type defined here"),
+                    getTypeReason(node->tuple->res_type)->location
+                )
+            )
+        );
+    } else {
+        addMessageToContext(
+            &context->msgs, createMessage(ERROR_NO_SUCH_FIELD, message, 1, error)
+        );
+    }
+    freeString(type_name);
+}
+
 void raiseStructFieldMismatchError(CompilerContext* context, AstNode* node) {
     // TODO: say what is different?
     String type_name = buildTypeName(node->res_type);
@@ -605,6 +643,9 @@ static bool isAddressableValue(AstNode* node) {
     } else if (node->kind == AST_STRUCT_INDEX) {
         AstStructIndex* n = (AstStructIndex*)node;
         return isAddressableValue(n->strct);
+    } else if (node->kind == AST_TUPLE_INDEX) {
+        AstTupleIndex* n = (AstTupleIndex*)node;
+        return isAddressableValue(n->tuple);
     } else {
         return false;
     }
@@ -1066,6 +1107,23 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                         break;
                     } else if (lookupIndexOfStructField(type, n->field->name) == NO_POS) {
                         raiseNoSuchFieldError(context, n);
+                        break;
+                    }
+                }
+                break;
+            }
+            case AST_TUPLE_INDEX: {
+                AstTupleIndex* n = (AstTupleIndex*)node;
+                checkTypeConstraints(context, n->tuple);
+                if (n->tuple->res_type != NULL && !isErrorType(n->tuple->res_type)) {
+                    TypeTuple* type = (TypeTuple*)getTypeOfKind(n->tuple->res_type, TYPE_TUPLE);
+                    if (type == NULL) {
+                        raiseOpTypeError(
+                            context, node, n->tuple, n->tuple->res_type, ", must be a tuple"
+                        );
+                        break;
+                    } else if (n->field->number >= type->count) {
+                        raiseNoSuchTupleFieldError(context, n);
                         break;
                     }
                 }

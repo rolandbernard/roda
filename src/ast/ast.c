@@ -218,6 +218,16 @@ AstStructIndex* createAstStructIndex(Span loc, AstNode* strct, AstVar* field) {
     return node;
 }
 
+AstTupleIndex* createAstTupleIndex(Span loc, AstNode* tuple, AstInt* field) {
+    AstTupleIndex* node = NEW(AstTupleIndex);
+    initAstNode((AstNode*)node, AST_TUPLE_INDEX, loc);
+    node->tuple = tuple;
+    node->field = field;
+    SET_PARENT(tuple, 0);
+    SET_PARENT(field, 1);
+    return node;
+}
+
 void freeAstNode(AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
@@ -360,6 +370,12 @@ void freeAstNode(AstNode* node) {
             case AST_STRUCT_INDEX: {
                 AstStructIndex* n = (AstStructIndex*)node;
                 freeAstNode(n->strct);
+                freeAstNode((AstNode*)n->field);
+                break;
+            }
+            case AST_TUPLE_INDEX: {
+                AstTupleIndex* n = (AstTupleIndex*)node;
+                freeAstNode(n->tuple);
                 freeAstNode((AstNode*)n->field);
                 break;
             }

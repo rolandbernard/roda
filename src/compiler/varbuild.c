@@ -230,6 +230,11 @@ static void buildLocalSymbolTables(CompilerContext* context, AstNode* node, Symb
                 buildLocalSymbolTables(context, n->strct, scope, type);
                 break;
             }
+            case AST_TUPLE_INDEX: {
+                AstTupleIndex* n = (AstTupleIndex*)node;
+                buildLocalSymbolTables(context, n->tuple, scope, type);
+                break;
+            }
             case AST_ERROR:
             case AST_VOID:
             case AST_STR:
@@ -424,6 +429,11 @@ static void buildControlFlowReferences(CompilerContext* context, AstNode* node, 
             case AST_STRUCT_INDEX: {
                 AstStructIndex* n = (AstStructIndex*)node;
                 buildControlFlowReferences(context, n->strct, function);
+                break;
+            }
+            case AST_TUPLE_INDEX: {
+                AstTupleIndex* n = (AstTupleIndex*)node;
+                buildControlFlowReferences(context, n->tuple, function);
                 break;
             }
             case AST_TYPEDEF:

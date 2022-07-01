@@ -458,6 +458,20 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
                 }
                 break;
             }
+            case AST_TUPLE_INDEX: {
+                AstTupleIndex* n = (AstTupleIndex*)node;
+                if (n->tuple->res_type != NULL) {
+                    TypeTuple* type = (TypeTuple*)getTypeOfKind(n->tuple->res_type, TYPE_TUPLE);
+                    if (type != NULL) {
+                        if (n->field->number < type->count) {
+                            if (moveTypeIntoAstNode(context, node, type->types[n->field->number])) {
+                                propagateTypes(context, node->parent);
+                            }
+                        }
+                    }
+                }
+                break;
+            }
         }
     }
 }
@@ -633,6 +647,11 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
             case AST_STRUCT_INDEX: {
                 AstStructIndex* n = (AstStructIndex*)node;
                 evaluateTypeHints(context, n->strct);
+                break;
+            }
+            case AST_TUPLE_INDEX: {
+                AstTupleIndex* n = (AstTupleIndex*)node;
+                evaluateTypeHints(context, n->tuple);
                 break;
             }
             case AST_OR:
@@ -922,6 +941,11 @@ static void propagateAllTypes(CompilerContext* context, AstNode* node) {
                 propagateAllTypes(context, n->strct);
                 break;
             }
+            case AST_TUPLE_INDEX: {
+                AstTupleIndex* n = (AstTupleIndex*)node;
+                propagateAllTypes(context, n->tuple);
+                break;
+            }
             case AST_POS:
             case AST_NEG:
             case AST_ADDR:
@@ -1129,6 +1153,11 @@ static void assumeAmbiguousTypes(CompilerContext* context, AssumeAmbiguousPhase 
             case AST_STRUCT_INDEX: {
                 AstStructIndex* n = (AstStructIndex*)node;
                 assumeAmbiguousTypes(context, phase, n->strct);
+                break;
+            }
+            case AST_TUPLE_INDEX: {
+                AstTupleIndex* n = (AstTupleIndex*)node;
+                assumeAmbiguousTypes(context, phase, n->tuple);
                 break;
             }
             case AST_SUB:

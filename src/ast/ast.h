@@ -80,8 +80,8 @@ typedef enum {
     AST_STRUCT_INDEX,
     AST_STRUCT_LIT,
     AST_TUPLE_TYPE,
+    AST_TUPLE_INDEX,
     // TODO:
-    /* AST_TUPLE_INDEX, */
     /* AST_TUPLE_LIT, */
 
     AST_INT,
@@ -249,6 +249,12 @@ typedef struct {
     AstVar* field;
 } AstStructIndex;
 
+typedef struct {
+    AST_NODE_BASE
+    AstNode* tuple;
+    AstInt* field;
+} AstTupleIndex;
+
 AstNode* createAstSimple(Span loc, AstNodeKind kind);
 
 AstBinary* createAstBinary(Span loc, AstNodeKind kind, AstNode* left, AstNode* right);
@@ -289,7 +295,9 @@ AstReturn* createAstReturn(Span loc, AstNode* value);
 
 AstFnType* createAstFnType(Span loc, AstList* arguments, AstNode* ret_type, bool vararg);
 
-AstStructIndex* createAstStructIndex(Span loc, AstNode* strct, AstVar* field);
+AstStructIndex* createAstStructIndex(Span loc, AstNode* tuple, AstVar* field);
+
+AstTupleIndex* createAstTupleIndex(Span loc, AstNode* strct, AstInt* field);
 
 void freeAstNode(AstNode* node);
 

@@ -231,6 +231,7 @@ expr    : var                           { $$ = (AstNode*)$1; }
         | string                        { $$ = $1; }
         | bool                          { $$ = $1; }
         | expr '.' var                  { $$ = (AstNode*)createAstStructIndex(@$, $1, $3); }
+        | expr '.' integer              { $$ = $3->kind == AST_INT ? (AstNode*)createAstTupleIndex(@$, $1, (AstInt*)$3) : createAstSimple(@$, AST_ERROR); }
         | "sizeof" type                 { $$ = (AstNode*)createAstUnary(@$, AST_SIZEOF, $2); }
         | '(' ')'                       { $$ = createAstSimple(@$, AST_VOID); }
         | '[' list ']'                  { fitAstList($2); $$ = (AstNode*)$2; $$->kind = AST_ARRAY_LIT; $$->location = @$; }
