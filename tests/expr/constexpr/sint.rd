@@ -1,4 +1,4 @@
-// test: Test constant expressions with booleans
+// test: Test constant expressions with signed integers
 
 pub fn main(): int {
     let a: [3]int;

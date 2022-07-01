@@ -105,33 +105,39 @@ static ConstValue raiseTypeErrorNotInConst(CompilerContext* context, AstNode* no
     return createConstError(context);
 }
 
-#define BACTION_INTS(ACTION)                                \
-    if (isSignedIntegerType(left.type)) {                   \
-        intmax_t l = left.sint;                             \
-        intmax_t r = right.sint;                            \
-        res = createConstInt(context, t->size, ACTION);     \
-    } else if (isUnsignedIntegerType(left.type)) {          \
-        uintmax_t l = left.uint;                            \
-        uintmax_t r = right.uint;                           \
-        res = createConstUInt(context, t->size, ACTION);    \
+#define BACTION_INTS(ACTION)                    \
+    if (isSignedIntegerType(left.type)) {       \
+        intmax_t l = left.sint;                 \
+        intmax_t r = right.sint;                \
+        res = ACTION;                           \
     }
 
-#define BACTION_FLOATS(ACTION)                              \
-    if (isFloatType(left.type)) {                           \
-        float l = left.f32;                                 \
-        float r = right.f32;                                \
-        res = createConstF32(context, ACTION);              \
-    } else if (isDoubleType(left.type)) {                   \
-        double l = left.f64;                                \
-        double r = right.f64;                               \
-        res = createConstF64(context, ACTION);              \
+#define BACTION_UINTS(ACTION)                   \
+    if (isUnsignedIntegerType(left.type)) {     \
+        uintmax_t l = left.uint;                \
+        uintmax_t r = right.uint;               \
+        res = ACTION;                           \
     }
 
-#define BACTION_BOOLS(ACTION)                       \
-    if (isBooleanType(left.type)) {                 \
-        bool l = left.boolean;                      \
-        bool r = right.boolean;                     \
-        res = createConstBool(context, ACTION);     \
+#define BACTION_FLOATS(ACTION)                  \
+    if (isFloatType(left.type)) {               \
+        float l = left.f32;                     \
+        float r = right.f32;                    \
+        res = ACTION;                           \
+    }
+
+#define BACTION_DOUBLES(ACTION)                 \
+    if (isDoubleType(left.type)) {              \
+        double l = left.f64;                    \
+        double r = right.f64;                   \
+        res = ACTION;                           \
+    }
+
+#define BACTION_BOOLS(ACTION)                   \
+    if (isBooleanType(left.type)) {             \
+        bool l = left.boolean;                  \
+        bool r = right.boolean;                 \
+        res = ACTION;                           \
     }
 
 #define BACTIONS_T(ACTIONS)                                             \
@@ -143,14 +149,26 @@ static ConstValue raiseTypeErrorNotInConst(CompilerContext* context, AstNode* no
         res = raiseTypeErrorNotInConst(context, n->left, left.type);    \
     }
 
-#define BACTION_INT(ACTION) BACTIONS_T(BACTION_INTS(ACTION))
+#define BACTION_ANY_INTS(ACTION) \
+    BACTION_INTS(createConstInt(context, t->size, ACTION)) else BACTION_UINTS(createConstUInt(context, t->size, ACTION))
 
-#define BACTION_NUM(ACTION) BACTIONS_T(BACTION_INTS(ACTION) else BACTION_FLOATS(ACTION))
+#define BACTION_INT(ACTION) \
+    BACTIONS_T(BACTION_ANY_INTS(ACTION))
 
-#define BACTION_ALL(ACTION) BACTIONS_T(BACTION_INTS(ACTION) else BACTION_FLOATS(ACTION) else BACTION_BOOLS(ACTION))
+#define BACTION_ANY_FLOATS(ACTION) \
+    BACTION_FLOATS(createConstF32(context, ACTION)) else BACTION_DOUBLES(createConstF64(context, ACTION))
+
+#define BACTION_NUM(ACTION) \
+    BACTIONS_T(BACTION_ANY_INTS(ACTION) else BACTION_ANY_FLOATS(ACTION))
+
+#define BACTION_CMP(ACTION) BACTIONS(                                                                               \
+    BACTION_INTS(createConstBool(context, ACTION)) else BACTION_UINTS(createConstBool(context, ACTION))             \
+    else BACTION_FLOATS(createConstBool(context, ACTION)) else BACTION_DOUBLES(createConstBool(context, ACTION))    \
+    else BACTION_BOOLS(createConstBool(context, ACTION))                                                            \
+)
 
 #define BACTION_BOOL(ACTION)                                            \
-    BACTION_BOOLS(ACTION) else {                                        \
+    BACTION_BOOLS(createConstBool(context, ACTION)) else {              \
         res = raiseTypeErrorNotInConst(context, n->left, left.type);    \
     }
 
@@ -216,13 +234,12 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
     if (node == NULL) {
         UNREACHABLE("should not evaluate");
     } else {
-        ConstValue res;
+        ConstValue res = { .type = NULL };
         switch (node->kind) {
             case AST_ERROR: {
                 res = createConstError(context);
                 break;
             }
-            case AST_IF_ELSE_EXPR:
             case AST_IF_ELSE:
             case AST_FN:
             case AST_TYPEDEF:
@@ -245,7 +262,6 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
             case AST_ROOT:
             case AST_ARRAY:
             case AST_LIST:
-            case AST_BLOCK_EXPR:
             case AST_BLOCK:
             case AST_VARDEF:
             case AST_VAR:
@@ -260,6 +276,27 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
             case AST_ADDR:
             case AST_DEREF:
                 UNREACHABLE("should not evaluate");
+            case AST_BLOCK_EXPR: {
+                AstBlock* n = (AstBlock*)node;
+                for (size_t i = 0; i < n->nodes->count; i++) {
+                    res = evaluateConstExpr(context, n->nodes->nodes[i]);
+                }
+                break;
+            }
+            case AST_IF_ELSE_EXPR: {
+                AstIfElse* n = (AstIfElse*)node;
+                ConstValue cond = evaluateConstExpr(context, n->condition);
+                if (isBooleanType(cond.type)) {
+                    if (cond.boolean) {
+                        res = evaluateConstExpr(context, n->if_block);
+                    } else {
+                        res = evaluateConstExpr(context, n->else_block);
+                    }
+                } else {
+                    res = raiseTypeErrorNotInConst(context, n->condition, n->condition->res_type);
+                }
+                break;
+            }
             case AST_AS: {
                 AstBinary* n = (AstBinary*)node;
                 if (n->res_type == NULL) {
@@ -339,12 +376,12 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
             case AST_BAND: BINARY_OP(BACTION_INT(l & r))
             case AST_BOR: BINARY_OP(BACTION_INT(l | r))
             case AST_BXOR: BINARY_OP(BACTION_INT(l ^ r))
-            case AST_EQ: BINARY_OP(BACTION_ALL(l == r))
-            case AST_NE: BINARY_OP(BACTION_ALL(l != r))
-            case AST_LE: BINARY_OP(BACTION_ALL(l <= r))
-            case AST_GE: BINARY_OP(BACTION_ALL(l >= r))
-            case AST_LT: BINARY_OP(BACTION_ALL(l < r))
-            case AST_GT: BINARY_OP(BACTION_ALL(l > r))
+            case AST_EQ: BINARY_OP(BACTION_CMP(l == r))
+            case AST_NE: BINARY_OP(BACTION_CMP(l != r))
+            case AST_LE: BINARY_OP(BACTION_CMP(l <= r))
+            case AST_GE: BINARY_OP(BACTION_CMP(l >= r))
+            case AST_LT: BINARY_OP(BACTION_CMP(l < r))
+            case AST_GT: BINARY_OP(BACTION_CMP(l > r))
             case AST_OR: BINARY_OP(BACTION_BOOL(l || r))
             case AST_AND: BINARY_OP(BACTION_BOOL(l && r))
             case AST_POS: UNARY_OP(UACTION_NUM(o))
@@ -416,7 +453,6 @@ bool checkValidInConstExpr(CompilerContext* context, AstNode* node) {
         switch (node->kind) {
             case AST_ERROR:
                 return true;
-            case AST_IF_ELSE_EXPR: // TODO: if-else expessions?
             case AST_IF_ELSE:
             case AST_FN:
             case AST_TYPEDEF:
@@ -440,7 +476,6 @@ bool checkValidInConstExpr(CompilerContext* context, AstNode* node) {
             case AST_ARRAY:
             case AST_LIST:
             case AST_BLOCK:
-            case AST_BLOCK_EXPR:
             case AST_VARDEF:
             case AST_VAR: // TODO: constant variables?
             case AST_INDEX: // TODO: constant arrays?
@@ -456,6 +491,21 @@ bool checkValidInConstExpr(CompilerContext* context, AstNode* node) {
                 // None of these are allowed in constant expressions.
                 raiseOpErrorNotInConst(context, node);
                 return false;
+            }
+            case AST_BLOCK_EXPR: {
+                AstBlock* n = (AstBlock*)node;
+                for (size_t i = 0; i < n->nodes->count; i++) {
+                    if (!checkValidInConstExpr(context, n->nodes->nodes[i])) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            case AST_IF_ELSE_EXPR: {
+                AstIfElse* n = (AstIfElse*)node;
+                return checkValidInConstExpr(context, n->condition)
+                    && checkValidInConstExpr(context, n->if_block)
+                    && checkValidInConstExpr(context, n->else_block);
             }
             case AST_AS: {
                 AstBinary* n = (AstBinary*)node;
