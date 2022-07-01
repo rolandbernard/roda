@@ -166,6 +166,7 @@ LlvmCodegenValue buildLlvmFunctionBody(LlvmCodegenContext* context, LlvmCodegenM
             for (size_t i = 0; i < type->count; i++) {
                 AstStructField* field = (AstStructField*)n->nodes[i];
                 size_t idx = lookupIndexOfStructField(type, field->name->name);
+                idx = CODEGEN(type)->struct_mapping[idx];
                 fields[idx] = getCodegenValue(context, data, field->field_value);
                 if (!LLVMIsConstant(fields[idx])) {
                     all_const = false;
@@ -588,6 +589,7 @@ LlvmCodegenValue buildLlvmFunctionBody(LlvmCodegenContext* context, LlvmCodegenM
             LLVMTypeRef strct_type = generateLlvmType(context, n->strct->res_type);
             LlvmCodegenValue strct = buildLlvmFunctionBody(context, data, n->strct);
             size_t idx = lookupIndexOfStructField(type, n->field->name);
+            idx = CODEGEN(type)->struct_mapping[idx];
             if (strct.is_reference) {
                 LLVMValueRef value = LLVMBuildStructGEP2(
                     data->builder, strct_type, strct.value, idx, "index"

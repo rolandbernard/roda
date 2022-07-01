@@ -12,6 +12,7 @@ typedef struct LlvmCodegenTypeData {
     LLVMTypeRef type;
     LLVMValueRef value;
     LLVMMetadataRef debug;
+    size_t* struct_mapping;
 } LlvmCodegenData;
 
 typedef struct {

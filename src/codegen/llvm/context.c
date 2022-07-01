@@ -89,6 +89,7 @@ void deinitLlvmCodegenContext(LlvmCodegenContext* context) {
     LLVMDisposeTargetMachine(context->target_machine);
     while (context->type_data != NULL) {
         LlvmCodegenData* next = context->type_data->next;
+        FREE(context->type_data->struct_mapping);
         FREE(context->type_data);
         context->type_data = next;
     }
@@ -100,6 +101,7 @@ LlvmCodegenData* createLlvmCodegenData(LlvmCodegenContext* context) {
     data->type = NULL;
     data->value = NULL;
     data->debug = NULL;
+    data->struct_mapping = NULL;
     data->next = context->type_data;
     context->type_data = data;
     return data;

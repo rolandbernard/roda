@@ -1,5 +1,6 @@
 
 #include <llvm-c/Core.h>
+#include <string.h>
 
 #include "errors/fatalerror.h"
 #include "util/alloc.h"
@@ -11,13 +12,13 @@ typedef struct {
     LlvmCodegenContext* context;
     TypeStruct* struc;
     LLVMTypeRef* types;
+    size_t* mapping;
 } StructSortContext;
 
 static void structSortSwap(size_t i, size_t j, void* cxt) {
     StructSortContext* s = (StructSortContext*)cxt;
     swap(s->types, sizeof(LLVMTypeRef), i, j);
-    swap(s->struc->names, sizeof(Symbol), i, j);
-    swap(s->struc->types, sizeof(Type*), i, j);
+    swap(s->mapping, sizeof(size_t), i, j);
 }
 
 static bool structSortCompare(size_t i, size_t j, void* cxt) {
@@ -28,6 +29,14 @@ static bool structSortCompare(size_t i, size_t j, void* cxt) {
         return size_i >= size_j;
     } else {
         return s->struc->names[i] <= s->struc->names[j];
+    }
+}
+
+static void invertStructFieldMapping(size_t* mapping, size_t count) {
+    size_t tmp[count];
+    memcpy(tmp, mapping, count * sizeof(size_t));
+    for (size_t i = 0; i < count; i++) {
+        mapping[tmp[i]] = i;
     }
 }
 
@@ -43,12 +52,16 @@ LLVMTypeRef generateLlvmType(LlvmCodegenContext* context, Type* type) {
                 cxt.context = context;
                 cxt.struc = (TypeStruct*)type;
                 cxt.types = ALLOC(LLVMTypeRef, cxt.struc->count);
+                cxt.mapping = ALLOC(size_t, cxt.struc->count);
                 for (size_t i = 0; i < cxt.struc->count; i++) {
                     cxt.types[i] = generateLlvmType(context, cxt.struc->types[i]);
+                    cxt.mapping[i] = i;
                 }
                 if (!cxt.struc->ordered) {
                     heapSort(cxt.struc->count, structSortSwap, structSortCompare, &cxt);
                 }
+                invertStructFieldMapping(cxt.mapping, cxt.struc->count);
+                CODEGEN(type)->struct_mapping = cxt.mapping;
                 result = LLVMStructTypeInContext(context->llvm_cxt, cxt.types, cxt.struc->count, false);
                 FREE(cxt.types);
                 break;
