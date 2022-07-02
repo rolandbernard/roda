@@ -269,6 +269,7 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
             case AST_INDEX:
             case AST_VOID:
             case AST_ARRAY_LIT:
+            case AST_TUPLE_LIT:
             case AST_STRUCT_INDEX:
             case AST_TUPLE_INDEX:
             case AST_STRUCT_LIT:
@@ -480,11 +481,12 @@ bool checkValidInConstExpr(CompilerContext* context, AstNode* node) {
             case AST_LIST:
             case AST_BLOCK:
             case AST_VARDEF:
+            case AST_VOID:
             case AST_VAR: // TODO: constant variables?
             case AST_INDEX: // TODO: constant arrays?
-            case AST_VOID:
             case AST_ARRAY_LIT:
             case AST_TUPLE_INDEX: // TODO: tuple in const?
+            case AST_TUPLE_LIT:
             case AST_STRUCT_INDEX: // TODO: structs in const?
             case AST_STRUCT_LIT:
             case AST_CALL: // TODO: constant calls?

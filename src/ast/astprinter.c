@@ -60,6 +60,7 @@ static const char* ast_type_names[] = {
     // AstList
     [AST_LIST] = "list",
     [AST_ARRAY_LIT] = "array literal",
+    [AST_TUPLE_LIT] = "tuple literal",
     [AST_STRUCT_LIT] = "struct literal",
     [AST_STRUCT_TYPE] = "struct type",
     [AST_TUPLE_TYPE] = "tuple type",
@@ -276,6 +277,7 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
             case AST_TUPLE_TYPE:
             case AST_STRUCT_TYPE:
             case AST_ARRAY_LIT:
+            case AST_TUPLE_LIT:
             case AST_STRUCT_LIT:
             case AST_LIST: {
                 AstList* n = (AstList*)node;

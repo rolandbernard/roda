@@ -397,6 +397,37 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
                 }
                 break;
             }
+            case AST_TUPLE_LIT: {
+                AstList* n = (AstList*)node;
+                if (n->res_type != NULL) {
+                    TypeTuple* type = (TypeTuple*)getTypeOfKind(n->res_type, TYPE_TUPLE);
+                    if (type != NULL) {
+                        for (size_t i = 0; i < n->count && i < type->count; i++) {
+                            if (moveTypeIntoAstNode(context, n->nodes[i], type->types[i])) {
+                                propagateTypes(context, n->nodes[i]);
+                            }
+                        }
+                    }
+                }
+                bool has_all = true;
+                for (size_t i = 0; i < n->count; i++) {
+                    if (n->nodes[i]->res_type == NULL) {
+                        has_all = false;
+                        break;
+                    }
+                }
+                if (has_all) {
+                    Type** types = ALLOC(Type*, n->count);
+                    for (size_t i = 0; i < n->count; i++) {
+                        types[i] = n->nodes[i]->res_type;
+                    }
+                    Type* type = createTypeTuple(&context->types, node, types, n->count);
+                    if (moveTypeIntoAstNode(context, node, type)) {
+                        propagateTypes(context, node->parent);
+                    }
+                }
+                break;
+            }
             case AST_ARRAY_LIT: {
                 AstList* n = (AstList*)node;
                 if (n->res_type != NULL) {
@@ -722,6 +753,7 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                 }
                 break;
             }
+            case AST_TUPLE_LIT:
             case AST_ARRAY_LIT: {
                 AstList* n = (AstList*)node;
                 for (size_t i = 0; i < n->count; i++) {
@@ -970,6 +1002,7 @@ static void propagateAllTypes(CompilerContext* context, AstNode* node) {
                 }
                 break;
             }
+            case AST_TUPLE_LIT:
             case AST_ARRAY_LIT:
             case AST_LIST: {
                 AstList* n = (AstList*)node;
@@ -1205,6 +1238,7 @@ static void assumeAmbiguousTypes(CompilerContext* context, AssumeAmbiguousPhase 
                 }
                 break;
             }
+            case AST_TUPLE_LIT:
             case AST_ARRAY_LIT:
             case AST_LIST: {
                 AstList* n = (AstList*)node;

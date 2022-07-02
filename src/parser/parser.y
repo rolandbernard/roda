@@ -53,7 +53,7 @@ extern void yyerror(YYLTYPE* yyllocp, yyscan_t scanner, ParserContext* context, 
 %type <ast> arg_def opt_type opt_value assign integer real string bool field_val
 %type <var> var
 %type <arg_defs> arg_defs arg_types
-%type <list> arg_def_list stmts root_stmts list
+%type <list> arg_def_list stmts root_stmts list tuple_vals tuple_vals_two
 %type <list> type_list_nonempty list_nonempty field_vals arg_type_list
 
 %token <lexeme> ID      "identifier"
@@ -238,6 +238,7 @@ expr    : var                           { $$ = (AstNode*)$1; }
         | '(' expr ')'                  { $$ = $2; }
         | '(' field_vals ')'            { fitAstList($2); $$ = (AstNode*)$2; $$->kind = AST_STRUCT_LIT; $$->location = @$; }
         | '(' field_vals ',' ')'        { fitAstList($2); $$ = (AstNode*)$2; $$->kind = AST_STRUCT_LIT; $$->location = @$; }
+        | '(' tuple_vals ')'            { fitAstList($2); $$ = (AstNode*)$2; $$->kind = AST_TUPLE_LIT; $$->location = @$; }
         | '-' expr %prec UNARY_PRE      { $$ = (AstNode*)createAstUnary(@$, AST_NEG, $2); }
         | '+' expr %prec UNARY_PRE      { $$ = (AstNode*)createAstUnary(@$, AST_POS, $2); }
         | '*' expr %prec UNARY_PRE      { $$ = (AstNode*)createAstUnary(@$, AST_ADDR, $2); }
@@ -285,6 +286,15 @@ field_vals  : field_val                     { $$ = createEmptyAstList(); addToAs
 
 field_val : var '=' expr    { $$ = (AstNode*)createAstArgDef(@$, $1, $3); }
           ;
+
+tuple_vals  : expr ','              { $$ = createEmptyAstList(); addToAstList($$, $1); $$->location = @$; }
+            | tuple_vals_two        { $$ = $1; }
+            | tuple_vals_two ','    { $$ = $1; }
+            ;
+
+tuple_vals_two  : expr ',' expr             { $$ = createEmptyAstList(); addToAstList($$, $1); addToAstList($$, $3); $$->location = @$; }
+                | tuple_vals_two ',' expr   { $$ = $1; addToAstList($1, $3); $$->location = @$; }
+                ;
 
 list    : %empty                { $$ = createEmptyAstList(); $$->location = @$; }
         | list_nonempty         { $$ = $1; }

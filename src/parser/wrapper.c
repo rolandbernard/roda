@@ -75,7 +75,7 @@ static const char* tokenName(char* dst, const char* src) {
         return dst;
     } else if (
         strcmp(src, "end of file") == 0 || strcmp(src, "invalid token") == 0 || strcmp(src, "identifier") == 0
-        || strcmp(src, "string") == 0 || strcmp(src, "integer") == 0 || strcmp(src, "real") == 0
+        || strcmp(src, "string") == 0 || strcmp(src, "integer") == 0 || strcmp(src, "real") == 0 || strcmp(src, "character") == 0
     ) {
         return src;
     } else {

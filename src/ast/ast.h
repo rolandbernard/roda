@@ -81,8 +81,7 @@ typedef enum {
     AST_STRUCT_LIT,
     AST_TUPLE_TYPE,
     AST_TUPLE_INDEX,
-    // TODO:
-    /* AST_TUPLE_LIT, */
+    AST_TUPLE_LIT,
 
     AST_INT,
     AST_CHAR,

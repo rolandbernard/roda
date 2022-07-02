@@ -92,6 +92,7 @@ static void checkForUntypedVariables(CompilerContext* context, AstNode* node) {
                 }
                 break;
             }
+            case AST_TUPLE_LIT:
             case AST_ARRAY_LIT:
             case AST_LIST: {
                 AstList* n = (AstList*)node;
@@ -273,6 +274,7 @@ static void checkForUntypedNodes(CompilerContext* context, AstNode* node) {
                     }
                     break;
                 }
+                case AST_TUPLE_LIT:
                 case AST_ARRAY_LIT:
                 case AST_LIST: {
                     AstList* n = (AstList*)node;
@@ -600,13 +602,13 @@ void raiseStructFieldMismatchError(CompilerContext* context, AstNode* node) {
     freeString(type_name);
 }
 
-void raiseArrayLengthMismatchError(CompilerContext* context, AstNode* node) {
+void raiseLiteralLengthMismatchError(CompilerContext* context, AstNode* node, const char* kind) {
     String type_name = buildTypeName(node->res_type);
     String message = createFormattedString(
-        "inconsistent length of array literal, expected literal of type `%s`", cstr(type_name)
+        "inconsistent length of %s literal, expected literal of type `%s`", kind, cstr(type_name)
     );
     MessageFragment* error = createMessageFragment(
-        MESSAGE_ERROR, copyFromCString("mismatch in array lengths"), node->location
+        MESSAGE_ERROR, createFormattedString("mismatch in %s lengths", kind), node->location
     );
     if (getTypeReason(node->res_type) != NULL) {
         addMessageToContext(
@@ -615,7 +617,7 @@ void raiseArrayLengthMismatchError(CompilerContext* context, AstNode* node) {
                 ERROR_INCOMPATIBLE_TYPE, message, 2, error,
                 createMessageFragment(
                     MESSAGE_NOTE,
-                    copyFromCString("note: array type defined here"),
+                    createFormattedString("note: %s type defined here", kind),
                     getTypeReason(node->res_type)->location
                 )
             )
@@ -985,13 +987,32 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                 }
                 break;
             }
+            case AST_TUPLE_LIT: {
+                AstList* n = (AstList*)node;
+                if (n->res_type != NULL && !isErrorType(n->res_type)) {
+                    TypeTuple* type = (TypeTuple*)getTypeOfKind(n->res_type, TYPE_TUPLE);
+                    if (type != NULL) {
+                        if (type->count != n->count) {
+                            raiseLiteralLengthMismatchError(context, node, "tuple");
+                            break;
+                        }
+                    } else {
+                        raiseLiteralTypeError(context, node, "tuple literal");
+                        break;
+                    }
+                }
+                for (size_t i = 0; i < n->count; i++) {
+                    checkTypeConstraints(context, n->nodes[i]);
+                }
+                break;
+            }
             case AST_ARRAY_LIT: {
                 AstList* n = (AstList*)node;
                 if (n->res_type != NULL && !isErrorType(n->res_type)) {
                     TypeArray* type = (TypeArray*)getTypeOfKind(n->res_type, TYPE_ARRAY);
                     if (type != NULL) {
                         if (type->size != n->count) {
-                            raiseArrayLengthMismatchError(context, node);
+                            raiseLiteralLengthMismatchError(context, node, "array");
                             break;
                         }
                     } else {

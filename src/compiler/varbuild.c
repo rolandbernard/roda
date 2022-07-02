@@ -124,6 +124,7 @@ static void buildLocalSymbolTables(CompilerContext* context, AstNode* node, Symb
                 break;
             }
             case AST_TUPLE_TYPE:
+            case AST_TUPLE_LIT:
             case AST_ARRAY_LIT:
             case AST_LIST: {
                 AstList* n = (AstList*)node;
@@ -376,6 +377,7 @@ static void buildControlFlowReferences(CompilerContext* context, AstNode* node, 
                 }
                 break;
             }
+            case AST_TUPLE_LIT:
             case AST_ARRAY_LIT:
             case AST_LIST: {
                 AstList* n = (AstList*)node;

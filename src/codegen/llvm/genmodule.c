@@ -162,6 +162,7 @@ LlvmCodegenValue buildLlvmFunctionBody(LlvmCodegenContext* context, LlvmCodegenM
             AstList* n = (AstList*)node;
             LLVMTypeRef llvm_type = generateLlvmType(context, n->res_type);
             TypeStruct* type = (TypeStruct*)getTypeOfKind(n->res_type, TYPE_STRUCT);
+            ASSERT(type != NULL);
             LLVMValueRef* fields = ALLOC(LLVMValueRef, type->count);
             bool all_const = true;
             for (size_t i = 0; i < type->count; i++) {
@@ -176,17 +177,16 @@ LlvmCodegenValue buildLlvmFunctionBody(LlvmCodegenContext* context, LlvmCodegenM
             LLVMValueRef value = NULL;
             if (all_const) {
                 value = LLVMConstStructInContext(context->llvm_cxt, fields, type->count, false);
-                value = LLVMConstBitCast(value, llvm_type);
             } else {
                 LLVMValueRef stack = buildLlvmIntrinsicCall(context, data, "llvm.stacksave", NULL, 0, "stacksave", false);
                 LLVMValueRef tmp = LLVMBuildAlloca(data->builder, llvm_type, "tmp");
                 for (size_t i = 0; i < type->count; i++) {
                     LLVMValueRef value_ref = LLVMBuildStructGEP2(
-                        data->builder, generateLlvmType(context, n->res_type), tmp, i, "index"
+                        data->builder, llvm_type, tmp, i, "index"
                     );
                     buildLlvmStore(context, data, type->types[i], fields[i], value_ref);
                 }
-                value = LLVMBuildLoad2(data->builder, generateLlvmType(context, n->res_type), tmp, "tmp");
+                value = LLVMBuildLoad2(data->builder, llvm_type, tmp, "tmp");
                 buildLlvmIntrinsicCall(context, data, "llvm.stackrestore", &stack, 1, "", false);
             }
             FREE(fields);
@@ -196,6 +196,7 @@ LlvmCodegenValue buildLlvmFunctionBody(LlvmCodegenContext* context, LlvmCodegenM
             AstList* n = (AstList*)node;
             LLVMTypeRef llvm_type = generateLlvmType(context, n->res_type);
             TypeArray* type = (TypeArray*)getTypeOfKind(node->res_type, TYPE_ARRAY);
+            ASSERT(type != NULL);
             LLVMValueRef* values = ALLOC(LLVMValueRef, type->size);
             bool all_const = true;
             for (size_t i = 0; i < type->size; i++) {
@@ -208,19 +209,48 @@ LlvmCodegenValue buildLlvmFunctionBody(LlvmCodegenContext* context, LlvmCodegenM
             if (all_const) {
                 LLVMTypeRef elem_type = generateLlvmType(context, type->base);
                 value = LLVMConstArray(elem_type, values, type->size);
-                value = LLVMConstBitCast(value, llvm_type);
             } else {
                 LLVMValueRef stack = buildLlvmIntrinsicCall(context, data, "llvm.stacksave", NULL, 0, "stacksave", false);
-                LLVMValueRef tmp = LLVMBuildAlloca(data->builder, generateLlvmType(context, n->res_type), "tmp");
+                LLVMValueRef tmp = LLVMBuildAlloca(data->builder, llvm_type, "tmp");
                 LLVMTypeRef idx_type = LLVMIntPtrTypeInContext(context->llvm_cxt, context->target_data);
                 for (size_t i = 0; i < type->size; i++) {
                     LLVMValueRef indicies[2] = { LLVMConstInt(idx_type, 0, false), LLVMConstInt(idx_type, i, false) };
                     LLVMValueRef value_ref = LLVMBuildGEP2(
-                        data->builder, generateLlvmType(context, n->res_type), tmp, indicies, 2, "index"
+                        data->builder, llvm_type, tmp, indicies, 2, "index"
                     );
                     buildLlvmStore(context, data, n->nodes[i]->res_type, values[i], value_ref);
                 }
-                value = LLVMBuildLoad2(data->builder, generateLlvmType(context, n->res_type), tmp, "tmp");
+                value = LLVMBuildLoad2(data->builder, llvm_type, tmp, "tmp");
+                buildLlvmIntrinsicCall(context, data, "llvm.stackrestore", &stack, 1, "", false);
+            }
+            FREE(values);
+            return createLlvmCodegenValue(value, false);
+        }
+        case AST_TUPLE_LIT: {
+            AstList* n = (AstList*)node;
+            LLVMTypeRef llvm_type = generateLlvmType(context, n->res_type);
+            TypeTuple* type = (TypeTuple*)getTypeOfKind(node->res_type, TYPE_TUPLE);
+            ASSERT(type != NULL);
+            LLVMValueRef* values = ALLOC(LLVMValueRef, type->count);
+            bool all_const = true;
+            for (size_t i = 0; i < type->count; i++) {
+                size_t idx = CODEGEN(type)->struct_mapping[i];
+                values[idx] = getCodegenValue(context, data, n->nodes[i]);
+                if (!LLVMIsConstant(values[idx])) {
+                    all_const = false;
+                }
+            }
+            LLVMValueRef value = NULL;
+            if (all_const) {
+                value = LLVMConstStructInContext(context->llvm_cxt, values, type->count, false);
+            } else {
+                LLVMValueRef stack = buildLlvmIntrinsicCall(context, data, "llvm.stacksave", NULL, 0, "stacksave", false);
+                LLVMValueRef tmp = LLVMBuildAlloca(data->builder, llvm_type, "tmp");
+                for (size_t i = 0; i < type->count; i++) {
+                    LLVMValueRef value_ref = LLVMBuildStructGEP2(data->builder, llvm_type, tmp, i, "index");
+                    buildLlvmStore(context, data, n->nodes[i]->res_type, values[i], value_ref);
+                }
+                value = LLVMBuildLoad2(data->builder, llvm_type, tmp, "tmp");
                 buildLlvmIntrinsicCall(context, data, "llvm.stackrestore", &stack, 1, "", false);
             }
             FREE(values);
@@ -587,6 +617,7 @@ LlvmCodegenValue buildLlvmFunctionBody(LlvmCodegenContext* context, LlvmCodegenM
         case AST_STRUCT_INDEX: {
             AstStructIndex* n = (AstStructIndex*)node;
             TypeStruct* type = (TypeStruct*)getTypeOfKind(n->strct->res_type, TYPE_STRUCT);
+            ASSERT(type != NULL);
             LLVMTypeRef strct_type = generateLlvmType(context, n->strct->res_type);
             LlvmCodegenValue strct = buildLlvmFunctionBody(context, data, n->strct);
             size_t idx = lookupIndexOfStructField(type, n->field->name);
@@ -604,6 +635,7 @@ LlvmCodegenValue buildLlvmFunctionBody(LlvmCodegenContext* context, LlvmCodegenM
         case AST_TUPLE_INDEX: {
             AstTupleIndex* n = (AstTupleIndex*)node;
             TypeStruct* type = (TypeStruct*)getTypeOfKind(n->tuple->res_type, TYPE_TUPLE);
+            ASSERT(type != NULL);
             LLVMTypeRef strct_type = generateLlvmType(context, n->tuple->res_type);
             LlvmCodegenValue strct = buildLlvmFunctionBody(context, data, n->tuple);
             size_t idx = CODEGEN(type)->struct_mapping[n->field->number];
@@ -722,6 +754,7 @@ static void buildFunctionVariables(LlvmCodegenContext* context, LlvmCodegenModul
                 }
                 break;
             }
+            case AST_TUPLE_LIT:
             case AST_ARRAY_LIT:
             case AST_LIST: {
                 AstList* n = (AstList*)node;
