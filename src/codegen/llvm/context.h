@@ -11,9 +11,11 @@ typedef struct LlvmCodegenTypeData {
     struct LlvmCodegenTypeData* next;
     LLVMTypeRef type;
     LLVMValueRef value;
+#define return_value value
     LLVMMetadataRef debug;
     size_t* struct_mapping;
-    LLVMBasicBlockRef break_target;
+    LLVMBasicBlockRef return_target;
+#define break_target return_target
 } LlvmCodegenData;
 
 typedef struct {
@@ -29,8 +31,6 @@ typedef struct {
 
 typedef struct {
     LLVMModuleRef module;
-    LLVMValueRef ret_value;
-    LLVMBasicBlockRef exit;
     LLVMBuilderRef builder;
     LLVMDIBuilderRef debug_bulder;
     LLVMMetadataRef file_metadata;

@@ -616,8 +616,8 @@ LlvmCodegenValue buildLlvmFunctionBody(LlvmCodegenContext* context, LlvmCodegenM
         case AST_RETURN: {
             AstReturn* n = (AstReturn*)node;
             LLVMValueRef value = getCodegenValue(context, data, n->value);
-            buildLlvmStore(context, data, n->value->res_type, value, data->ret_value);
-            LLVMBuildBr(data->builder, data->exit);
+            buildLlvmStore(context, data, n->value->res_type, value, CODEGEN(n->function)->return_value);
+            LLVMBuildBr(data->builder, CODEGEN(n->function)->return_target);
             LLVMBasicBlockRef rest_block = LLVMCreateBasicBlockInContext(context->llvm_cxt, "dead");
             LLVMInsertExistingBasicBlockAfterInsertBlock(data->builder, rest_block);
             LLVMPositionBuilderAtEnd(data->builder, rest_block);
@@ -909,9 +909,11 @@ static void buildFunctionBodies(LlvmCodegenContext* context, LlvmCodegenModuleCo
                     LLVMValueRef function = CODEGEN(func)->value;
                     LLVMBasicBlockRef entry = LLVMAppendBasicBlockInContext(context->llvm_cxt, function, "entry");
                     LLVMBasicBlockRef body = LLVMAppendBasicBlockInContext(context->llvm_cxt, function, "body");
-                    data->exit = LLVMAppendBasicBlockInContext(context->llvm_cxt, function, "exit");
+                    LLVMBasicBlockRef exit = LLVMAppendBasicBlockInContext(context->llvm_cxt, function, "exit");
                     LLVMPositionBuilderAtEnd(data->builder, entry);
-                    data->ret_value = LLVMBuildAlloca(data->builder, generateLlvmType(context, type->ret_type), "ret_value");
+                    LLVMValueRef ret_value = LLVMBuildAlloca(data->builder, generateLlvmType(context, type->ret_type), "ret_value");
+                    CODEGEN(node)->return_target = exit;
+                    CODEGEN(node)->return_value = ret_value;
                     buildFunctionVariables(context, data, (AstNode*)n->arguments);
                     buildFunctionVariables(context, data, n->body);
                     for (size_t i = 0; i < n->arguments->count; i++) {
@@ -925,10 +927,10 @@ static void buildFunctionBodies(LlvmCodegenContext* context, LlvmCodegenModuleCo
                     if (context->cxt->settings.emit_debug) {
                         LLVMSetCurrentDebugLocation2(data->builder, NULL);
                     }
-                    LLVMBuildBr(data->builder, data->exit);
-                    LLVMPositionBuilderAtEnd(data->builder, data->exit);
+                    LLVMBuildBr(data->builder, exit);
+                    LLVMPositionBuilderAtEnd(data->builder, exit);
                     LLVMValueRef ret = LLVMBuildLoad2(
-                        data->builder, generateLlvmType(context, type->ret_type), data->ret_value, "ret"
+                        data->builder, generateLlvmType(context, type->ret_type), ret_value, "ret"
                     );
                     LLVMBuildRet(data->builder, ret);
                     data->scope_metadata = old_scope;
