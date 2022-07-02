@@ -95,6 +95,7 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
             case AST_IF_ELSE:
             case AST_WHILE:
             case AST_FN:
+            case AST_BREAK:
                 break;
             case AST_IF_ELSE_EXPR: {
                 AstIfElse* n = (AstIfElse*)node;
@@ -739,6 +740,10 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                 }
                 break;
             }
+            case AST_BREAK: {
+                moveTypeIntoAstNode(context, node, createUnsizedPrimitiveType(&context->types, node, TYPE_VOID));
+                break;
+            }
             case AST_RETURN: {
                 AstReturn* n = (AstReturn*)node;
                 moveTypeIntoAstNode(context, node, createUnsizedPrimitiveType(&context->types, node, TYPE_VOID));
@@ -988,6 +993,7 @@ static void propagateAllTypes(CompilerContext* context, AstNode* node) {
                 break;
             }
             case AST_SIZEOF:
+            case AST_BREAK:
                 break;
             case AST_RETURN: {
                 AstReturn* n = (AstReturn*)node;
@@ -1089,6 +1095,7 @@ static void assumeAmbiguousTypes(CompilerContext* context, AssumeAmbiguousPhase 
             case AST_STR:
             case AST_VOID:
             case AST_BOOL:
+            case AST_BREAK:
                 break;
             case AST_CHAR:
                 if ((phase & ASSUME_LITERALS) != 0 && node->res_type == NULL) {

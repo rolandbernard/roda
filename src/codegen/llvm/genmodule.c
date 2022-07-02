@@ -459,11 +459,11 @@ LlvmCodegenValue buildLlvmFunctionBody(LlvmCodegenContext* context, LlvmCodegenM
         case AST_IF_ELSE_EXPR:
         case AST_IF_ELSE: {
             AstIfElse* n = (AstIfElse*)node;
-            LLVMBasicBlockRef if_block = LLVMCreateBasicBlockInContext(context->llvm_cxt, "if");
-            LLVMBasicBlockRef rest_block = LLVMCreateBasicBlockInContext(context->llvm_cxt, "endif");
+            LLVMBasicBlockRef if_block = LLVMCreateBasicBlockInContext(context->llvm_cxt, "if-if");
+            LLVMBasicBlockRef rest_block = LLVMCreateBasicBlockInContext(context->llvm_cxt, "if-end");
             LLVMBasicBlockRef else_block;
             if (n->else_block != NULL) {
-                else_block = LLVMCreateBasicBlockInContext(context->llvm_cxt, "else");
+                else_block = LLVMCreateBasicBlockInContext(context->llvm_cxt, "if-else");
             } else {
                 else_block = rest_block;
             }
@@ -496,7 +496,8 @@ LlvmCodegenValue buildLlvmFunctionBody(LlvmCodegenContext* context, LlvmCodegenM
             AstWhile* n = (AstWhile*)node;
             LLVMBasicBlockRef cond_block = LLVMCreateBasicBlockInContext(context->llvm_cxt, "while-cond");
             LLVMBasicBlockRef while_block = LLVMCreateBasicBlockInContext(context->llvm_cxt, "while-body");
-            LLVMBasicBlockRef rest_block = LLVMCreateBasicBlockInContext(context->llvm_cxt, "endwhile");
+            LLVMBasicBlockRef rest_block = LLVMCreateBasicBlockInContext(context->llvm_cxt, "while-end");
+            CODEGEN(node)->break_target = rest_block;
             LLVMBuildBr(data->builder, cond_block);
             LLVMInsertExistingBasicBlockAfterInsertBlock(data->builder, cond_block);
             LLVMPositionBuilderAtEnd(data->builder, cond_block);
@@ -604,6 +605,14 @@ LlvmCodegenValue buildLlvmFunctionBody(LlvmCodegenContext* context, LlvmCodegenM
                 }
             }
         }
+        case AST_BREAK: {
+            AstBreak* n = (AstBreak*)node;
+            LLVMBuildBr(data->builder, CODEGEN(n->break_target)->break_target);
+            LLVMBasicBlockRef rest_block = LLVMCreateBasicBlockInContext(context->llvm_cxt, "dead");
+            LLVMInsertExistingBasicBlockAfterInsertBlock(data->builder, rest_block);
+            LLVMPositionBuilderAtEnd(data->builder, rest_block);
+            return createLlvmCodegenVoidValue(context);
+        }
         case AST_RETURN: {
             AstReturn* n = (AstReturn*)node;
             LLVMValueRef value = getCodegenValue(context, data, n->value);
@@ -674,6 +683,7 @@ static void buildFunctionVariables(LlvmCodegenContext* context, LlvmCodegenModul
             case AST_CHAR:
             case AST_BOOL:
             case AST_REAL:
+            case AST_BREAK:
                 break;
             case AST_ADD_ASSIGN:
             case AST_SUB_ASSIGN:

@@ -78,6 +78,7 @@ static void checkForUntypedVariables(CompilerContext* context, AstNode* node) {
                 break;
             }
             case AST_SIZEOF:
+            case AST_BREAK:
                 break;
             case AST_RETURN: {
                 AstReturn* n = (AstReturn*)node;
@@ -260,6 +261,7 @@ static void checkForUntypedNodes(CompilerContext* context, AstNode* node) {
                     break;
                 }
                 case AST_SIZEOF:
+                case AST_BREAK:
                     break;
                 case AST_RETURN: {
                     AstReturn* n = (AstReturn*)node;
@@ -694,6 +696,7 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             case AST_ERROR:
             case AST_TYPEDEF:
             case AST_VAR:
+            case AST_BREAK:
                 break;
             case AST_VOID: {
                 if (node->res_type != NULL && !isErrorType(node->res_type)) {

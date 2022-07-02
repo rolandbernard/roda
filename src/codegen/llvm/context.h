@@ -13,6 +13,7 @@ typedef struct LlvmCodegenTypeData {
     LLVMValueRef value;
     LLVMMetadataRef debug;
     size_t* struct_mapping;
+    LLVMBasicBlockRef break_target;
 } LlvmCodegenData;
 
 typedef struct {
@@ -22,7 +23,7 @@ typedef struct {
     LLVMTargetRef target;
     LLVMTargetDataRef target_data;
     LLVMTargetMachineRef target_machine;
-    LlvmCodegenData* type_data;
+    LlvmCodegenData* codegen_data;
     LLVMTypeRef opaque_type;
 } LlvmCodegenContext;
 

@@ -228,6 +228,13 @@ AstTupleIndex* createAstTupleIndex(Span loc, AstNode* tuple, AstInt* field) {
     return node;
 }
 
+AstBreak* createAstBreak(Span loc) {
+    AstBreak* node = NEW(AstBreak);
+    initAstNode((AstNode*)node, AST_BREAK, loc);
+    node->break_target = NULL;
+    return node;
+}
+
 void freeAstNode(AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
@@ -380,6 +387,7 @@ void freeAstNode(AstNode* node) {
                 freeAstNode((AstNode*)n->field);
                 break;
             }
+            case AST_BREAK:
             case AST_VAR:
             case AST_ERROR:
             case AST_VOID:

@@ -1,5 +1,6 @@
 
 #include "ast/ast.h"
+#include "ast/astprinter.h"
 #include "errors/fatalerror.h"
 #include "text/format.h"
 #include "text/string.h"
@@ -237,6 +238,7 @@ static void buildLocalSymbolTables(CompilerContext* context, AstNode* node, Symb
                 break;
             }
             case AST_ERROR:
+            case AST_BREAK:
             case AST_VOID:
             case AST_STR:
             case AST_INT:
@@ -299,7 +301,20 @@ void runSymbolResolution(CompilerContext* context) {
     FOR_ALL_MODULES({ buildLocalSymbolTables(context, file->ast, &context->buildins, false); });
 }
 
-static void buildControlFlowReferences(CompilerContext* context, AstNode* node, AstFn* function) {
+typedef struct {
+    AstFn* function;
+    AstNode* break_target;
+} ControlFlowRefBuildContext;
+
+static void raiseControlFlowTargetMissingError(CompilerContext* context, AstNode* node) {
+    String message = createFormattedString("no target for %s expression", getAstPrintName(node->kind));
+    MessageFragment* error = createMessageFragment(
+        MESSAGE_ERROR, createFormattedString("not inside %s target", getAstPrintName(node->kind)), node->location
+    );
+    addMessageToContext(&context->msgs, createMessage(ERROR_ALREADY_DEFINED, message, 1, error));
+}
+
+static void buildControlFlowReferences(CompilerContext* context, ControlFlowRefBuildContext* data, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
             case AST_STRUCT_TYPE:
@@ -319,13 +334,13 @@ static void buildControlFlowReferences(CompilerContext* context, AstNode* node, 
             case AST_BXOR_ASSIGN:
             case AST_ASSIGN: { // Executed right to left
                 AstBinary* n = (AstBinary*)node;
-                buildControlFlowReferences(context, n->right, function);
-                buildControlFlowReferences(context, n->left, function);
+                buildControlFlowReferences(context, data, n->right);
+                buildControlFlowReferences(context, data, n->left);
                 break;
             }
             case AST_AS: {
                 AstBinary* n = (AstBinary*)node;
-                buildControlFlowReferences(context, n->left, function);
+                buildControlFlowReferences(context, data, n->left);
                 break;
             }
             case AST_INDEX:
@@ -348,8 +363,8 @@ static void buildControlFlowReferences(CompilerContext* context, AstNode* node, 
             case AST_GT:
             case AST_ADD: { // Executed left to right
                 AstBinary* n = (AstBinary*)node;
-                buildControlFlowReferences(context, n->left, function);
-                buildControlFlowReferences(context, n->right, function);
+                buildControlFlowReferences(context, data, n->left);
+                buildControlFlowReferences(context, data, n->right);
                 break;
             }
             case AST_POS:
@@ -358,22 +373,35 @@ static void buildControlFlowReferences(CompilerContext* context, AstNode* node, 
             case AST_NOT:
             case AST_DEREF: {
                 AstUnary* n = (AstUnary*)node;
-                buildControlFlowReferences(context, n->op, function);
+                buildControlFlowReferences(context, data, n->op);
                 break;
             }
             case AST_SIZEOF:
                 break;
+            case AST_BREAK: {
+                if (data->break_target == NULL) {
+                    raiseControlFlowTargetMissingError(context, node);
+                } else {
+                    AstBreak* n = (AstBreak*)node;
+                    n->break_target = data->break_target;
+                }
+                break;
+            }
             case AST_RETURN: {
-                AstReturn* n = (AstReturn*)node;
-                n->function = function;
-                buildControlFlowReferences(context, n->value, function);
+                if (data->function == NULL) {
+                    raiseControlFlowTargetMissingError(context, node);
+                } else {
+                    AstReturn* n = (AstReturn*)node;
+                    n->function = data->function;
+                    buildControlFlowReferences(context, data, n->value);
+                }
                 break;
             }
             case AST_STRUCT_LIT: {
                 AstList* n = (AstList*)node;
                 for (size_t i = 0; i < n->count; i++) {
                     AstStructField* field = (AstStructField*)n->nodes[i];
-                    buildControlFlowReferences(context, field->field_value, function);
+                    buildControlFlowReferences(context, data, field->field_value);
                 }
                 break;
             }
@@ -382,60 +410,66 @@ static void buildControlFlowReferences(CompilerContext* context, AstNode* node, 
             case AST_LIST: {
                 AstList* n = (AstList*)node;
                 for (size_t i = 0; i < n->count; i++) {
-                    buildControlFlowReferences(context, n->nodes[i], function);
+                    buildControlFlowReferences(context, data, n->nodes[i]);
                 }
                 break;
             }
             case AST_ROOT: {
                 AstRoot* n = (AstRoot*)node;
-                buildControlFlowReferences(context, (AstNode*)n->nodes, function);
+                buildControlFlowReferences(context, data, (AstNode*)n->nodes);
                 break;
             }
             case AST_BLOCK_EXPR:
             case AST_BLOCK: {
                 AstBlock* n = (AstBlock*)node;
-                buildControlFlowReferences(context, (AstNode*)n->nodes, function);
+                buildControlFlowReferences(context, data, (AstNode*)n->nodes);
                 break;
             }
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
-                buildControlFlowReferences(context, n->val, function);
+                buildControlFlowReferences(context, data, n->val);
                 break;
             }
             case AST_IF_ELSE_EXPR:
             case AST_IF_ELSE: {
                 AstIfElse* n = (AstIfElse*)node;
-                buildControlFlowReferences(context, n->condition, function);
-                buildControlFlowReferences(context, n->if_block, function);
-                buildControlFlowReferences(context, n->else_block, function);
+                buildControlFlowReferences(context, data, n->condition);
+                buildControlFlowReferences(context, data, n->if_block);
+                buildControlFlowReferences(context, data, n->else_block);
                 break;
             }
             case AST_WHILE: {
                 AstWhile* n = (AstWhile*)node;
-                buildControlFlowReferences(context, n->condition, function);
-                buildControlFlowReferences(context, n->block, function);
+                buildControlFlowReferences(context, data, n->condition);
+                AstNode* prev = data->break_target;
+                data->break_target = (AstNode*)n;
+                buildControlFlowReferences(context, data, n->block);
+                data->break_target = prev;
                 break;
             }
             case AST_FN: {
                 AstFn* n = (AstFn*)node;
-                buildControlFlowReferences(context, (AstNode*)n->arguments, n);
-                buildControlFlowReferences(context, n->body, n);
+                AstFn* prev = data->function;
+                data->function = n;
+                buildControlFlowReferences(context, data, (AstNode*)n->arguments);
+                buildControlFlowReferences(context, data, n->body);
+                data->function = prev;
                 break;
             }
             case AST_CALL: {
                 AstCall* n = (AstCall*)node;
-                buildControlFlowReferences(context, n->function, function);
-                buildControlFlowReferences(context, (AstNode*)n->arguments, function);
+                buildControlFlowReferences(context, data, n->function);
+                buildControlFlowReferences(context, data, (AstNode*)n->arguments);
                 break;
             }
             case AST_STRUCT_INDEX: {
                 AstStructIndex* n = (AstStructIndex*)node;
-                buildControlFlowReferences(context, n->strct, function);
+                buildControlFlowReferences(context, data, n->strct);
                 break;
             }
             case AST_TUPLE_INDEX: {
                 AstTupleIndex* n = (AstTupleIndex*)node;
-                buildControlFlowReferences(context, n->tuple, function);
+                buildControlFlowReferences(context, data, n->tuple);
                 break;
             }
             case AST_TYPEDEF:
@@ -453,6 +487,12 @@ static void buildControlFlowReferences(CompilerContext* context, AstNode* node, 
 }
 
 void runControlFlowReferenceResolution(CompilerContext* context) {
-    FOR_ALL_MODULES({ buildControlFlowReferences(context, file->ast, NULL); });
+    ControlFlowRefBuildContext data = {
+        .function = NULL,
+        .break_target = NULL,
+    };
+    FOR_ALL_MODULES({
+        buildControlFlowReferences(context, &data, file->ast);
+    });
 }
 

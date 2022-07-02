@@ -72,6 +72,7 @@ static bool controlFlowEndsWithReturn(CompilerContext* context, AstNode* node) {
                 AstUnary* n = (AstUnary*)node;
                 return controlFlowEndsWithReturn(context, n->op);
             }
+            case AST_BREAK:
             case AST_SIZEOF:
                 return false;
             case AST_RETURN:

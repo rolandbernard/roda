@@ -260,6 +260,7 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
             case AST_TUPLE_TYPE:
             case AST_ASSIGN:
             case AST_RETURN:
+            case AST_BREAK:
             case AST_ROOT:
             case AST_ARRAY:
             case AST_LIST:
@@ -476,6 +477,7 @@ bool checkValidInConstExpr(CompilerContext* context, AstNode* node) {
             case AST_TUPLE_TYPE:
             case AST_ASSIGN:
             case AST_RETURN:
+            case AST_BREAK:
             case AST_ROOT:
             case AST_ARRAY:
             case AST_LIST:
