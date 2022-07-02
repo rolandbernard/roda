@@ -103,6 +103,8 @@ LlvmCodegenData* createLlvmCodegenData(LlvmCodegenContext* context) {
     data->debug = NULL;
     data->struct_mapping = NULL;
     data->next = context->codegen_data;
+    data->return_target = NULL;
+    data->continue_target = NULL;
     context->codegen_data = data;
     return data;
 }

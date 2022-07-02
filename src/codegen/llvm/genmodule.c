@@ -498,6 +498,7 @@ LlvmCodegenValue buildLlvmFunctionBody(LlvmCodegenContext* context, LlvmCodegenM
             LLVMBasicBlockRef while_block = LLVMCreateBasicBlockInContext(context->llvm_cxt, "while-body");
             LLVMBasicBlockRef rest_block = LLVMCreateBasicBlockInContext(context->llvm_cxt, "while-end");
             CODEGEN(node)->break_target = rest_block;
+            CODEGEN(node)->continue_target = cond_block;
             LLVMBuildBr(data->builder, cond_block);
             LLVMInsertExistingBasicBlockAfterInsertBlock(data->builder, cond_block);
             LLVMPositionBuilderAtEnd(data->builder, cond_block);
@@ -605,9 +606,14 @@ LlvmCodegenValue buildLlvmFunctionBody(LlvmCodegenContext* context, LlvmCodegenM
                 }
             }
         }
+        case AST_CONTINUE:
         case AST_BREAK: {
             AstBreak* n = (AstBreak*)node;
-            LLVMBuildBr(data->builder, CODEGEN(n->break_target)->break_target);
+            LLVMBuildBr(data->builder,
+                node->kind == AST_BREAK
+                    ? CODEGEN(n->break_target)->break_target
+                    : CODEGEN(n->break_target)->continue_target
+            );
             LLVMBasicBlockRef rest_block = LLVMCreateBasicBlockInContext(context->llvm_cxt, "dead");
             LLVMInsertExistingBasicBlockAfterInsertBlock(data->builder, rest_block);
             LLVMPositionBuilderAtEnd(data->builder, rest_block);
@@ -684,6 +690,7 @@ static void buildFunctionVariables(LlvmCodegenContext* context, LlvmCodegenModul
             case AST_BOOL:
             case AST_REAL:
             case AST_BREAK:
+            case AST_CONTINUE:
                 break;
             case AST_ADD_ASSIGN:
             case AST_SUB_ASSIGN:

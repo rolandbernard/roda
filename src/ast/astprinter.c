@@ -85,6 +85,7 @@ static const char* ast_type_names[] = {
     [AST_TYPEDEF] = "type definition",
     [AST_RETURN] = "return",
     [AST_BREAK] = "break",
+    [AST_CONTINUE] = "continue",
 };
 
 
@@ -218,6 +219,7 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
     }
     if (node != NULL) {
         switch (node->kind) {
+            case AST_CONTINUE:
             case AST_BREAK:
             case AST_VOID:
             case AST_ERROR: {

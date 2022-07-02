@@ -59,6 +59,7 @@ REAL    [0-9][_0-9]*(\.[0-9][_0-9]*)?([eE][-+]?[0-9][_0-9]*)?
 "sizeof"        { return SIZEOF; }
 "as"            { return AS; }
 "break"         { return BREAK; }
+"continue"      { return CONTINUE; }
 
 "=="            { return EQ; }
 "!="            { return NE; }

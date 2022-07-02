@@ -239,6 +239,7 @@ static void buildLocalSymbolTables(CompilerContext* context, AstNode* node, Symb
             }
             case AST_ERROR:
             case AST_BREAK:
+            case AST_CONTINUE:
             case AST_VOID:
             case AST_STR:
             case AST_INT:
@@ -311,7 +312,7 @@ static void raiseControlFlowTargetMissingError(CompilerContext* context, AstNode
     MessageFragment* error = createMessageFragment(
         MESSAGE_ERROR, createFormattedString("not inside %s target", getAstPrintName(node->kind)), node->location
     );
-    addMessageToContext(&context->msgs, createMessage(ERROR_ALREADY_DEFINED, message, 1, error));
+    addMessageToContext(&context->msgs, createMessage(ERROR_NO_SUCH_TARGET, message, 1, error));
 }
 
 static void buildControlFlowReferences(CompilerContext* context, ControlFlowRefBuildContext* data, AstNode* node) {
@@ -378,6 +379,7 @@ static void buildControlFlowReferences(CompilerContext* context, ControlFlowRefB
             }
             case AST_SIZEOF:
                 break;
+            case AST_CONTINUE:
             case AST_BREAK: {
                 if (data->break_target == NULL) {
                     raiseControlFlowTargetMissingError(context, node);

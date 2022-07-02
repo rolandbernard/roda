@@ -76,6 +76,7 @@ extern void yyerror(YYLTYPE* yyllocp, yyscan_t scanner, ParserContext* context, 
 %token SIZEOF           "sizeof"
 %token AS               "as"
 %token BREAK            "break"
+%token CONTINUE         "continue"
 %token EQ               "=="
 %token NE               "!="
 %token LE               "<="
@@ -179,7 +180,8 @@ if  : "if" expr block                  { $$ = (AstNode*)createAstIfElse(@$, AST_
 
 stmt    : expr                              { $$ = $1; }
         | assign                            { $$ = $1; }
-        | "break"                           { $$ = (AstNode*)createAstBreak(@$); }
+        | "break"                           { $$ = (AstNode*)createAstBreak(@$, AST_BREAK); }
+        | "continue"                        { $$ = (AstNode*)createAstBreak(@$, AST_CONTINUE); }
         | "return"                          { $$ = (AstNode*)createAstReturn(@$, NULL); }
         | "return" expr                     { $$ = (AstNode*)createAstReturn(@$, $2); }
         | "let" var opt_type opt_value      { $$ = (AstNode*)createAstVarDef(@$, $2, $3, $4, AST_VAR_FLAG_NONE); }

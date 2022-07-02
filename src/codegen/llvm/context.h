@@ -16,6 +16,7 @@ typedef struct LlvmCodegenTypeData {
     size_t* struct_mapping;
     LLVMBasicBlockRef return_target;
 #define break_target return_target
+    LLVMBasicBlockRef continue_target;
 } LlvmCodegenData;
 
 typedef struct {

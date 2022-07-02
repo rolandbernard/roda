@@ -83,6 +83,7 @@ typedef enum {
     AST_TUPLE_INDEX,
     AST_TUPLE_LIT,
     AST_BREAK,
+    AST_CONTINUE,
 
     AST_INT,
     AST_CHAR,
@@ -304,7 +305,7 @@ AstStructIndex* createAstStructIndex(Span loc, AstNode* tuple, AstVar* field);
 
 AstTupleIndex* createAstTupleIndex(Span loc, AstNode* strct, AstInt* field);
 
-AstBreak* createAstBreak(Span loc);
+AstBreak* createAstBreak(Span loc, AstNodeKind kind);
 
 void freeAstNode(AstNode* node);
 
