@@ -13,24 +13,24 @@ fn div(a: int, b: int): int {
     return a / b;
 }
 
-extern fn printf(fmt: *u8, ..);
+extern fn printf(fmt: &u8, ..);
 
 pub fn main(): int {
-    let a = *add;
-    let b = *mul;
-    let c = *div;
+    let a = &add;
+    let b = &mul;
+    let c = &div;
     let d = [a, b, c];
-    let e: [3]*fn(a: int, b: int): int = d;
-    if (&e[0])(3, 4) != 7 {
+    let e: [3]&fn(a: int, b: int): int = d;
+    if (*e[0])(3, 4) != 7 {
         return 1;
     }
-    if (&e[1])(3, 4) != 12 {
+    if (*e[1])(3, 4) != 12 {
         return 2;
     }
-    if (&e[2])(33, 4) != 8 {
+    if (*e[2])(33, 4) != 8 {
         return 3;
     }
-    let f: *fn (fmt: *u8, ..) = *printf;
-    (&f)("test %i", 42 as i32);
+    let f: &fn (fmt: &u8, ..) = &printf;
+    (*f)("test %i", 42 as i32);
     return 0;
 }

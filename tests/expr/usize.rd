@@ -7,7 +7,7 @@ pub fn main(): int {
     if c != 12 {
         return 1;
     }
-    if sizeof usize != sizeof *() {
+    if sizeof usize != sizeof &() {
         return 2;
     }
     return 0;

@@ -5,6 +5,6 @@ fn test(): int {
     return 0;
 }
 
-pub fn foo(): *int {
-    return *test();
+pub fn foo(): &int {
+    return &test();
 }

@@ -2,7 +2,7 @@
 
 pub fn foo(a: int) {
     let b;
-    a = &b;
+    a = *b;
 }
 
 pub fn main(): int {

@@ -24,7 +24,7 @@ The compiler also tries to give useful and informative error messages.
 
 The following is a simple hello-world program written in roda:
 ```rust
-extern fn printf(fmt: *u8, ..);
+extern fn printf(fmt: &u8, ..);
 
 pub fn main(): int {
     printf("Hello world!\n");
@@ -34,7 +34,7 @@ pub fn main(): int {
 
 The following example shows the supported control structures and their usage:
 ```rust
-extern fn printf(fmt: *u8, ..);
+extern fn printf(fmt: &u8, ..);
 
 pub fn main(): int {
     let i = 1;
@@ -65,13 +65,13 @@ The rest of the features can be used in the following way:
     ```
 * Pointers:
     ```rust
-    let a = *b; // take the address of b and store it into a
-    let c = &a; // dereference a to store its value into c
-    &a = c;     // assign the value in c to the address pointed to by a
+    let a: &int = &b;   // take the address of b and store it into a
+    let c = *a;         // dereference a to store its value into c
+    *a = c;             // assign the value in c to the address pointed to by a
     ```
 * Arrays:
     ```rust
-    let a: [3]int; // create an array of 3 ints
+    let a: [3]int; // create an array of 3 int
     a[0] = 1;      // assign the value 1 to the first element of a
     a[1] = 2;      // assign the value 2 to the second element of a
     a[2] = a[1];   // assign the value in the second element of a to the third element of a

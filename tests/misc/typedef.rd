@@ -1,7 +1,7 @@
 // test: Typedefs should work
 
 type TypeA = [2 as TypeC]int;
-type TypeB = *TypeB;
+type TypeB = &TypeB;
 type TypeC = int;
 
 pub fn main(): int {

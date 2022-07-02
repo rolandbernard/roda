@@ -267,14 +267,8 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
                 AstBinary* n = (AstBinary*)node;
                 if (n->left->res_type != NULL) {
                     TypeArray* arr_type = (TypeArray*)getTypeOfKind(n->left->res_type, TYPE_ARRAY);
-                    TypePointer* ptr_type = (TypePointer*)getTypeOfKind(n->left->res_type, TYPE_POINTER);
                     if (arr_type != NULL) {
                         if (moveTypeIntoAstNode(context, node, arr_type->base)) {
-                            propagateTypes(context, node->parent);
-                        }
-                    }
-                    if (ptr_type != NULL) {
-                        if (moveTypeIntoAstNode(context, node, ptr_type->base)) {
                             propagateTypes(context, node->parent);
                         }
                     }

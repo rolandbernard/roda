@@ -821,8 +821,8 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             case AST_INDEX: {
                 AstBinary* n = (AstBinary*)node;
                 if (n->left->res_type != NULL && !isErrorType(n->left->res_type)) {
-                    if (!isArrayType(n->left->res_type) && !isPointerType(n->left->res_type)) {
-                        raiseOpTypeError(context, node, n->left, n->left->res_type, ", must be an array or pointer");
+                    if (!isArrayType(n->left->res_type)) {
+                        raiseOpTypeError(context, node, n->left, n->left->res_type, ", must be an array");
                         break;
                     }
                 }
@@ -1072,7 +1072,7 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                         if (ptr_type != NULL && isFunctionType(ptr_type->base)) {
                             raiseOpTypeErrorWithHelp(
                                 context, node, n->function, n->function->res_type, ", must be a function",
-                                "help: consider dereferencing before the function call, e.g. `(&_)(..)`", invalidSpan()
+                                "help: consider dereferencing before the function call, e.g. `(*_)(..)`", invalidSpan()
                             );
                             break;
                         } else {

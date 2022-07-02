@@ -2,12 +2,12 @@
 
 pub fn main(): int {
     let b;
-    b = *b;
     b = &b;
-    b = & &b;
-    b = & & &b;
-    b = & & & &b;
-    b = & & & & &b;
+    b = *b;
+    b = **b;
+    b = ***b;
+    b = ****b;
+    b = *****b;
     return 0;
 }
 

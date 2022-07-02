@@ -17,14 +17,14 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │  └─null
     ├─function (flags = extern vararg) () [tests/emit/ast.rd:9:1-9:36]
     │  │name:
-    │  ├─variable (name = printf) fn (*u8, ..): i32 [tests/emit/ast.rd:9:11-9:16]
+    │  ├─variable (name = printf) fn (&u8, ..): i32 [tests/emit/ast.rd:9:11-9:16]
     │  │arguments:
     │  ├─list (1 elements) () [tests/emit/ast.rd:9:18-9:25]
     │  │  └─argument definition () [tests/emit/ast.rd:9:18-9:25]
     │  │     │name:
-    │  │     ├─variable (name = fmt) *u8 [tests/emit/ast.rd:9:18-9:20]
+    │  │     ├─variable (name = fmt) &u8 [tests/emit/ast.rd:9:18-9:20]
     │  │     │type:
-    │  │     └─address of *u8 [tests/emit/ast.rd:9:23-9:25]
+    │  │     └─address of &u8 [tests/emit/ast.rd:9:23-9:25]
     │  │        │op:
     │  │        └─variable (name = u8) u8 [tests/emit/ast.rd:9:24-9:25]
     │  │ret_type:
@@ -33,7 +33,7 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │  └─null
     ├─function (flags = extern) () [tests/emit/ast.rd:10:1-10:35]
     │  │name:
-    │  ├─variable (name = malloc) fn (usize): *() [tests/emit/ast.rd:10:11-10:16]
+    │  ├─variable (name = malloc) fn (usize): &() [tests/emit/ast.rd:10:11-10:16]
     │  │arguments:
     │  ├─list (1 elements) () [tests/emit/ast.rd:10:18-10:28]
     │  │  └─argument definition () [tests/emit/ast.rd:10:18-10:28]
@@ -42,21 +42,21 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │  │     │type:
     │  │     └─variable (name = usize) usize [tests/emit/ast.rd:10:24-10:28]
     │  │ret_type:
-    │  ├─address of *() [tests/emit/ast.rd:10:32-10:34]
+    │  ├─address of &() [tests/emit/ast.rd:10:32-10:34]
     │  │  │op:
     │  │  └─void () [tests/emit/ast.rd:10:33-10:34]
     │  │body:
     │  └─null
     ├─function (flags = extern) () [tests/emit/ast.rd:11:1-11:25]
     │  │name:
-    │  ├─variable (name = free) fn (*()): () [tests/emit/ast.rd:11:11-11:14]
+    │  ├─variable (name = free) fn (&()): () [tests/emit/ast.rd:11:11-11:14]
     │  │arguments:
     │  ├─list (1 elements) () [tests/emit/ast.rd:11:16-11:23]
     │  │  └─argument definition () [tests/emit/ast.rd:11:16-11:23]
     │  │     │name:
-    │  │     ├─variable (name = ptr) *() [tests/emit/ast.rd:11:16-11:18]
+    │  │     ├─variable (name = ptr) &() [tests/emit/ast.rd:11:16-11:18]
     │  │     │type:
-    │  │     └─address of *() [tests/emit/ast.rd:11:21-11:23]
+    │  │     └─address of &() [tests/emit/ast.rd:11:21-11:23]
     │  │        │op:
     │  │        └─void () [tests/emit/ast.rd:11:22-11:23]
     │  │ret_type:
@@ -80,14 +80,14 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │        └─variable (name = int) int [tests/emit/ast.rd:13:34-13:36]
     ├─function (flags = none) () [tests/emit/ast.rd:15:1-26:1]
     │  │name:
-    │  ├─variable (name = peek_token) fn (*Scanner): Char [tests/emit/ast.rd:15:4-15:13]
+    │  ├─variable (name = peek_token) fn (&Scanner): Char [tests/emit/ast.rd:15:4-15:13]
     │  │arguments:
     │  ├─list (1 elements) () [tests/emit/ast.rd:15:15-15:28]
     │  │  └─argument definition () [tests/emit/ast.rd:15:15-15:28]
     │  │     │name:
-    │  │     ├─variable (name = scan) *Scanner [tests/emit/ast.rd:15:15-15:18]
+    │  │     ├─variable (name = scan) &Scanner [tests/emit/ast.rd:15:15-15:18]
     │  │     │type:
-    │  │     └─address of *Scanner [tests/emit/ast.rd:15:21-15:28]
+    │  │     └─address of &Scanner [tests/emit/ast.rd:15:21-15:28]
     │  │        │op:
     │  │        └─variable (name = Scanner) Scanner [tests/emit/ast.rd:15:22-15:28]
     │  │ret_type:
@@ -104,7 +104,7 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │        │  │  │  │struct:
     │        │  │  │  ├─dereference Scanner [tests/emit/ast.rd:16:9-16:13]
     │        │  │  │  │  │op:
-    │        │  │  │  │  └─variable (name = scan) *Scanner [tests/emit/ast.rd:16:10-16:13]
+    │        │  │  │  │  └─variable (name = scan) &Scanner [tests/emit/ast.rd:16:10-16:13]
     │        │  │  │  │field:
     │        │  │  │  └─variable (name = peek) [tests/emit/ast.rd:16:16-16:19]
     │        │  │  │right:
@@ -130,7 +130,7 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │        │  │     │  │  │struct:
     │        │  │     │  │  ├─dereference Scanner [tests/emit/ast.rd:18:10-18:14]
     │        │  │     │  │  │  │op:
-    │        │  │     │  │  │  └─variable (name = scan) *Scanner [tests/emit/ast.rd:18:11-18:14]
+    │        │  │     │  │  │  └─variable (name = scan) &Scanner [tests/emit/ast.rd:18:11-18:14]
     │        │  │     │  │  │field:
     │        │  │     │  │  └─variable (name = pos) [tests/emit/ast.rd:18:17-18:19]
     │        │  │     │  │right:
@@ -169,7 +169,7 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │        │  │     │           │  │struct:
     │        │  │     │           │  ├─dereference Scanner [tests/emit/ast.rd:21:14-21:18]
     │        │  │     │           │  │  │op:
-    │        │  │     │           │  │  └─variable (name = scan) *Scanner [tests/emit/ast.rd:21:15-21:18]
+    │        │  │     │           │  │  └─variable (name = scan) &Scanner [tests/emit/ast.rd:21:15-21:18]
     │        │  │     │           │  │field:
     │        │  │     │           │  └─variable (name = pos) [tests/emit/ast.rd:21:21-21:23]
     │        │  │     │           │right:
@@ -180,7 +180,7 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │        │  │        │  │struct:
     │        │  │        │  ├─dereference Scanner [tests/emit/ast.rd:23:10-23:14]
     │        │  │        │  │  │op:
-    │        │  │        │  │  └─variable (name = scan) *Scanner [tests/emit/ast.rd:23:11-23:14]
+    │        │  │        │  │  └─variable (name = scan) &Scanner [tests/emit/ast.rd:23:11-23:14]
     │        │  │        │  │field:
     │        │  │        │  └─variable (name = peek) [tests/emit/ast.rd:23:17-23:20]
     │        │  │        │right:
@@ -193,19 +193,19 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │              │struct:
     │              ├─dereference Scanner [tests/emit/ast.rd:25:13-25:17]
     │              │  │op:
-    │              │  └─variable (name = scan) *Scanner [tests/emit/ast.rd:25:14-25:17]
+    │              │  └─variable (name = scan) &Scanner [tests/emit/ast.rd:25:14-25:17]
     │              │field:
     │              └─variable (name = peek) [tests/emit/ast.rd:25:20-25:23]
     ├─function (flags = none) () [tests/emit/ast.rd:28:1-32:1]
     │  │name:
-    │  ├─variable (name = next_token) fn (*Scanner): Char [tests/emit/ast.rd:28:4-28:13]
+    │  ├─variable (name = next_token) fn (&Scanner): Char [tests/emit/ast.rd:28:4-28:13]
     │  │arguments:
     │  ├─list (1 elements) () [tests/emit/ast.rd:28:15-28:28]
     │  │  └─argument definition () [tests/emit/ast.rd:28:15-28:28]
     │  │     │name:
-    │  │     ├─variable (name = scan) *Scanner [tests/emit/ast.rd:28:15-28:18]
+    │  │     ├─variable (name = scan) &Scanner [tests/emit/ast.rd:28:15-28:18]
     │  │     │type:
-    │  │     └─address of *Scanner [tests/emit/ast.rd:28:21-28:28]
+    │  │     └─address of &Scanner [tests/emit/ast.rd:28:21-28:28]
     │  │        │op:
     │  │        └─variable (name = Scanner) Scanner [tests/emit/ast.rd:28:22-28:28]
     │  │ret_type:
@@ -222,17 +222,17 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │        │  │val:
     │        │  └─call Char [tests/emit/ast.rd:29:13-29:28]
     │        │     │function:
-    │        │     ├─variable (name = peek_token) fn (*Scanner): Char [tests/emit/ast.rd:29:13-29:22]
+    │        │     ├─variable (name = peek_token) fn (&Scanner): Char [tests/emit/ast.rd:29:13-29:22]
     │        │     │arguments:
     │        │     └─list (1 elements) () [tests/emit/ast.rd:29:24-29:27]
-    │        │        └─variable (name = scan) *Scanner [tests/emit/ast.rd:29:24-29:27]
+    │        │        └─variable (name = scan) &Scanner [tests/emit/ast.rd:29:24-29:27]
     │        ├─assign () [tests/emit/ast.rd:30:5-30:20]
     │        │  │left:
     │        │  ├─struct index Char [tests/emit/ast.rd:30:5-30:16]
     │        │  │  │struct:
     │        │  │  ├─dereference Scanner [tests/emit/ast.rd:30:6-30:10]
     │        │  │  │  │op:
-    │        │  │  │  └─variable (name = scan) *Scanner [tests/emit/ast.rd:30:7-30:10]
+    │        │  │  │  └─variable (name = scan) &Scanner [tests/emit/ast.rd:30:7-30:10]
     │        │  │  │field:
     │        │  │  └─variable (name = peek) [tests/emit/ast.rd:30:13-30:16]
     │        │  │right:
@@ -242,9 +242,9 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │           └─variable (name = c) Char [tests/emit/ast.rd:31:12]
     ├─type definition () [tests/emit/ast.rd:34:1-34:51]
     │  │name:
-    │  ├─variable (name = Node) (op: Char, val: int, childs: [2]*Node) [tests/emit/ast.rd:34:6-34:9]
+    │  ├─variable (name = Node) (op: Char, val: int, childs: [2]&Node) [tests/emit/ast.rd:34:6-34:9]
     │  │value:
-    │  └─struct type (3 elements) (op: Char, val: int, childs: [2]*Node) [tests/emit/ast.rd:34:13-34:50]
+    │  └─struct type (3 elements) (op: Char, val: int, childs: [2]&Node) [tests/emit/ast.rd:34:13-34:50]
     │     ├─argument definition [tests/emit/ast.rd:34:14-34:21]
     │     │  │name:
     │     │  ├─variable (name = op) [tests/emit/ast.rd:34:14-34:15]
@@ -259,16 +259,16 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │        │name:
     │        ├─variable (name = childs) [tests/emit/ast.rd:34:34-34:39]
     │        │type:
-    │        └─array [2]*Node [tests/emit/ast.rd:34:42-34:49]
+    │        └─array [2]&Node [tests/emit/ast.rd:34:42-34:49]
     │           │left:
     │           ├─integer (value = 2) i64 [tests/emit/ast.rd:34:43]
     │           │right:
-    │           └─address of *Node [tests/emit/ast.rd:34:45-34:49]
+    │           └─address of &Node [tests/emit/ast.rd:34:45-34:49]
     │              │op:
     │              └─variable (name = Node) Node [tests/emit/ast.rd:34:46-34:49]
     ├─function (flags = none) () [tests/emit/ast.rd:36:1-42:1]
     │  │name:
-    │  ├─variable (name = create_value_node) fn (int): *Node [tests/emit/ast.rd:36:4-36:20]
+    │  ├─variable (name = create_value_node) fn (int): &Node [tests/emit/ast.rd:36:4-36:20]
     │  │arguments:
     │  ├─list (1 elements) () [tests/emit/ast.rd:36:22-36:29]
     │  │  └─argument definition () [tests/emit/ast.rd:36:22-36:29]
@@ -277,7 +277,7 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │  │     │type:
     │  │     └─variable (name = int) int [tests/emit/ast.rd:36:27-36:29]
     │  │ret_type:
-    │  ├─address of *Node [tests/emit/ast.rd:36:33-36:37]
+    │  ├─address of &Node [tests/emit/ast.rd:36:33-36:37]
     │  │  │op:
     │  │  └─variable (name = Node) Node [tests/emit/ast.rd:36:34-36:37]
     │  │body:
@@ -286,22 +286,22 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │     └─list (5 elements) () [tests/emit/ast.rd:36:40-41:13]
     │        ├─variable definition () [tests/emit/ast.rd:37:5-37:40]
     │        │  │name:
-    │        │  ├─variable (name = n) *Node [tests/emit/ast.rd:37:9]
+    │        │  ├─variable (name = n) &Node [tests/emit/ast.rd:37:9]
     │        │  │type:
     │        │  ├─null
     │        │  │val:
-    │        │  └─type conversion *Node [tests/emit/ast.rd:37:13-37:40]
+    │        │  └─type conversion &Node [tests/emit/ast.rd:37:13-37:40]
     │        │     │left:
-    │        │     ├─call *() [tests/emit/ast.rd:37:13-37:31]
+    │        │     ├─call &() [tests/emit/ast.rd:37:13-37:31]
     │        │     │  │function:
-    │        │     │  ├─variable (name = malloc) fn (usize): *() [tests/emit/ast.rd:37:13-37:18]
+    │        │     │  ├─variable (name = malloc) fn (usize): &() [tests/emit/ast.rd:37:13-37:18]
     │        │     │  │arguments:
     │        │     │  └─list (1 elements) () [tests/emit/ast.rd:37:20-37:30]
     │        │     │     └─sizeof usize [tests/emit/ast.rd:37:20-37:30]
     │        │     │        │op:
     │        │     │        └─variable (name = Node) Node [tests/emit/ast.rd:37:27-37:30]
     │        │     │right:
-    │        │     └─address of *Node [tests/emit/ast.rd:37:36-37:40]
+    │        │     └─address of &Node [tests/emit/ast.rd:37:36-37:40]
     │        │        │op:
     │        │        └─variable (name = Node) Node [tests/emit/ast.rd:37:37-37:40]
     │        ├─assign () [tests/emit/ast.rd:38:5-38:17]
@@ -310,7 +310,7 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │        │  │  │struct:
     │        │  │  ├─dereference Node [tests/emit/ast.rd:38:6-38:7]
     │        │  │  │  │op:
-    │        │  │  │  └─variable (name = n) *Node [tests/emit/ast.rd:38:7]
+    │        │  │  │  └─variable (name = n) &Node [tests/emit/ast.rd:38:7]
     │        │  │  │field:
     │        │  │  └─variable (name = op) [tests/emit/ast.rd:38:10-38:11]
     │        │  │right:
@@ -321,42 +321,42 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │        │  │  │struct:
     │        │  │  ├─dereference Node [tests/emit/ast.rd:39:6-39:7]
     │        │  │  │  │op:
-    │        │  │  │  └─variable (name = n) *Node [tests/emit/ast.rd:39:7]
+    │        │  │  │  └─variable (name = n) &Node [tests/emit/ast.rd:39:7]
     │        │  │  │field:
     │        │  │  └─variable (name = val) [tests/emit/ast.rd:39:10-39:12]
     │        │  │right:
     │        │  └─variable (name = val) int [tests/emit/ast.rd:39:16-39:18]
     │        ├─assign () [tests/emit/ast.rd:40:5-40:42]
     │        │  │left:
-    │        │  ├─struct index [2]*Node [tests/emit/ast.rd:40:5-40:15]
+    │        │  ├─struct index [2]&Node [tests/emit/ast.rd:40:5-40:15]
     │        │  │  │struct:
     │        │  │  ├─dereference Node [tests/emit/ast.rd:40:6-40:7]
     │        │  │  │  │op:
-    │        │  │  │  └─variable (name = n) *Node [tests/emit/ast.rd:40:7]
+    │        │  │  │  └─variable (name = n) &Node [tests/emit/ast.rd:40:7]
     │        │  │  │field:
     │        │  │  └─variable (name = childs) [tests/emit/ast.rd:40:10-40:15]
     │        │  │right:
-    │        │  └─array literal (2 elements) [2]*Node [tests/emit/ast.rd:40:19-40:42]
-    │        │     ├─type conversion *Node [tests/emit/ast.rd:40:20-40:29]
+    │        │  └─array literal (2 elements) [2]&Node [tests/emit/ast.rd:40:19-40:42]
+    │        │     ├─type conversion &Node [tests/emit/ast.rd:40:20-40:29]
     │        │     │  │left:
     │        │     │  ├─integer (value = 0) {integer} [tests/emit/ast.rd:40:20]
     │        │     │  │right:
-    │        │     │  └─address of *Node [tests/emit/ast.rd:40:25-40:29]
+    │        │     │  └─address of &Node [tests/emit/ast.rd:40:25-40:29]
     │        │     │     │op:
     │        │     │     └─variable (name = Node) Node [tests/emit/ast.rd:40:26-40:29]
-    │        │     └─type conversion *Node [tests/emit/ast.rd:40:32-40:41]
+    │        │     └─type conversion &Node [tests/emit/ast.rd:40:32-40:41]
     │        │        │left:
     │        │        ├─integer (value = 0) {integer} [tests/emit/ast.rd:40:32]
     │        │        │right:
-    │        │        └─address of *Node [tests/emit/ast.rd:40:37-40:41]
+    │        │        └─address of &Node [tests/emit/ast.rd:40:37-40:41]
     │        │           │op:
     │        │           └─variable (name = Node) Node [tests/emit/ast.rd:40:38-40:41]
     │        └─return () [tests/emit/ast.rd:41:5-41:12]
     │           │value:
-    │           └─variable (name = n) *Node [tests/emit/ast.rd:41:12]
+    │           └─variable (name = n) &Node [tests/emit/ast.rd:41:12]
     ├─function (flags = none) () [tests/emit/ast.rd:44:1-49:1]
     │  │name:
-    │  ├─variable (name = create_binary_node) fn (Char, *Node, *Node): *Node [tests/emit/ast.rd:44:4-44:21]
+    │  ├─variable (name = create_binary_node) fn (Char, &Node, &Node): &Node [tests/emit/ast.rd:44:4-44:21]
     │  │arguments:
     │  ├─list (3 elements) () [tests/emit/ast.rd:44:23-44:57]
     │  │  ├─argument definition () [tests/emit/ast.rd:44:23-44:30]
@@ -366,20 +366,20 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │  │  │  └─variable (name = Char) Char [tests/emit/ast.rd:44:27-44:30]
     │  │  ├─argument definition () [tests/emit/ast.rd:44:33-44:43]
     │  │  │  │name:
-    │  │  │  ├─variable (name = left) *Node [tests/emit/ast.rd:44:33-44:36]
+    │  │  │  ├─variable (name = left) &Node [tests/emit/ast.rd:44:33-44:36]
     │  │  │  │type:
-    │  │  │  └─address of *Node [tests/emit/ast.rd:44:39-44:43]
+    │  │  │  └─address of &Node [tests/emit/ast.rd:44:39-44:43]
     │  │  │     │op:
     │  │  │     └─variable (name = Node) Node [tests/emit/ast.rd:44:40-44:43]
     │  │  └─argument definition () [tests/emit/ast.rd:44:46-44:57]
     │  │     │name:
-    │  │     ├─variable (name = right) *Node [tests/emit/ast.rd:44:46-44:50]
+    │  │     ├─variable (name = right) &Node [tests/emit/ast.rd:44:46-44:50]
     │  │     │type:
-    │  │     └─address of *Node [tests/emit/ast.rd:44:53-44:57]
+    │  │     └─address of &Node [tests/emit/ast.rd:44:53-44:57]
     │  │        │op:
     │  │        └─variable (name = Node) Node [tests/emit/ast.rd:44:54-44:57]
     │  │ret_type:
-    │  ├─address of *Node [tests/emit/ast.rd:44:61-44:65]
+    │  ├─address of &Node [tests/emit/ast.rd:44:61-44:65]
     │  │  │op:
     │  │  └─variable (name = Node) Node [tests/emit/ast.rd:44:62-44:65]
     │  │body:
@@ -388,22 +388,22 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │     └─list (4 elements) () [tests/emit/ast.rd:44:68-48:13]
     │        ├─variable definition () [tests/emit/ast.rd:45:5-45:40]
     │        │  │name:
-    │        │  ├─variable (name = n) *Node [tests/emit/ast.rd:45:9]
+    │        │  ├─variable (name = n) &Node [tests/emit/ast.rd:45:9]
     │        │  │type:
     │        │  ├─null
     │        │  │val:
-    │        │  └─type conversion *Node [tests/emit/ast.rd:45:13-45:40]
+    │        │  └─type conversion &Node [tests/emit/ast.rd:45:13-45:40]
     │        │     │left:
-    │        │     ├─call *() [tests/emit/ast.rd:45:13-45:31]
+    │        │     ├─call &() [tests/emit/ast.rd:45:13-45:31]
     │        │     │  │function:
-    │        │     │  ├─variable (name = malloc) fn (usize): *() [tests/emit/ast.rd:45:13-45:18]
+    │        │     │  ├─variable (name = malloc) fn (usize): &() [tests/emit/ast.rd:45:13-45:18]
     │        │     │  │arguments:
     │        │     │  └─list (1 elements) () [tests/emit/ast.rd:45:20-45:30]
     │        │     │     └─sizeof usize [tests/emit/ast.rd:45:20-45:30]
     │        │     │        │op:
     │        │     │        └─variable (name = Node) Node [tests/emit/ast.rd:45:27-45:30]
     │        │     │right:
-    │        │     └─address of *Node [tests/emit/ast.rd:45:36-45:40]
+    │        │     └─address of &Node [tests/emit/ast.rd:45:36-45:40]
     │        │        │op:
     │        │        └─variable (name = Node) Node [tests/emit/ast.rd:45:37-45:40]
     │        ├─assign () [tests/emit/ast.rd:46:5-46:16]
@@ -412,37 +412,37 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │        │  │  │struct:
     │        │  │  ├─dereference Node [tests/emit/ast.rd:46:6-46:7]
     │        │  │  │  │op:
-    │        │  │  │  └─variable (name = n) *Node [tests/emit/ast.rd:46:7]
+    │        │  │  │  └─variable (name = n) &Node [tests/emit/ast.rd:46:7]
     │        │  │  │field:
     │        │  │  └─variable (name = op) [tests/emit/ast.rd:46:10-46:11]
     │        │  │right:
     │        │  └─variable (name = op) Char [tests/emit/ast.rd:46:15-46:16]
     │        ├─assign () [tests/emit/ast.rd:47:5-47:31]
     │        │  │left:
-    │        │  ├─struct index [2]*Node [tests/emit/ast.rd:47:5-47:15]
+    │        │  ├─struct index [2]&Node [tests/emit/ast.rd:47:5-47:15]
     │        │  │  │struct:
     │        │  │  ├─dereference Node [tests/emit/ast.rd:47:6-47:7]
     │        │  │  │  │op:
-    │        │  │  │  └─variable (name = n) *Node [tests/emit/ast.rd:47:7]
+    │        │  │  │  └─variable (name = n) &Node [tests/emit/ast.rd:47:7]
     │        │  │  │field:
     │        │  │  └─variable (name = childs) [tests/emit/ast.rd:47:10-47:15]
     │        │  │right:
-    │        │  └─array literal (2 elements) [2]*Node [tests/emit/ast.rd:47:19-47:31]
-    │        │     ├─variable (name = left) *Node [tests/emit/ast.rd:47:20-47:23]
-    │        │     └─variable (name = right) *Node [tests/emit/ast.rd:47:26-47:30]
+    │        │  └─array literal (2 elements) [2]&Node [tests/emit/ast.rd:47:19-47:31]
+    │        │     ├─variable (name = left) &Node [tests/emit/ast.rd:47:20-47:23]
+    │        │     └─variable (name = right) &Node [tests/emit/ast.rd:47:26-47:30]
     │        └─return () [tests/emit/ast.rd:48:5-48:12]
     │           │value:
-    │           └─variable (name = n) *Node [tests/emit/ast.rd:48:12]
+    │           └─variable (name = n) &Node [tests/emit/ast.rd:48:12]
     ├─function (flags = none) () [tests/emit/ast.rd:51:1-57:1]
     │  │name:
-    │  ├─variable (name = free_node) fn (*Node): () [tests/emit/ast.rd:51:4-51:12]
+    │  ├─variable (name = free_node) fn (&Node): () [tests/emit/ast.rd:51:4-51:12]
     │  │arguments:
     │  ├─list (1 elements) () [tests/emit/ast.rd:51:14-51:24]
     │  │  └─argument definition () [tests/emit/ast.rd:51:14-51:24]
     │  │     │name:
-    │  │     ├─variable (name = node) *Node [tests/emit/ast.rd:51:14-51:17]
+    │  │     ├─variable (name = node) &Node [tests/emit/ast.rd:51:14-51:17]
     │  │     │type:
-    │  │     └─address of *Node [tests/emit/ast.rd:51:20-51:24]
+    │  │     └─address of &Node [tests/emit/ast.rd:51:20-51:24]
     │  │        │op:
     │  │        └─variable (name = Node) Node [tests/emit/ast.rd:51:21-51:24]
     │  │ret_type:
@@ -455,13 +455,13 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │           │condition:
     │           ├─not equal bool [tests/emit/ast.rd:52:8-52:25]
     │           │  │left:
-    │           │  ├─variable (name = node) *Node [tests/emit/ast.rd:52:8-52:11]
+    │           │  ├─variable (name = node) &Node [tests/emit/ast.rd:52:8-52:11]
     │           │  │right:
-    │           │  └─type conversion *Node [tests/emit/ast.rd:52:16-52:25]
+    │           │  └─type conversion &Node [tests/emit/ast.rd:52:16-52:25]
     │           │     │left:
     │           │     ├─integer (value = 0) {integer} [tests/emit/ast.rd:52:16]
     │           │     │right:
-    │           │     └─address of *Node [tests/emit/ast.rd:52:21-52:25]
+    │           │     └─address of &Node [tests/emit/ast.rd:52:21-52:25]
     │           │        │op:
     │           │        └─variable (name = Node) Node [tests/emit/ast.rd:52:22-52:25]
     │           │if_block:
@@ -470,64 +470,64 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │           │  └─list (3 elements) () [tests/emit/ast.rd:52:28-55:26]
     │           │     ├─call () [tests/emit/ast.rd:53:9-53:36]
     │           │     │  │function:
-    │           │     │  ├─variable (name = free_node) fn (*Node): () [tests/emit/ast.rd:53:9-53:17]
+    │           │     │  ├─variable (name = free_node) fn (&Node): () [tests/emit/ast.rd:53:9-53:17]
     │           │     │  │arguments:
     │           │     │  └─list (1 elements) () [tests/emit/ast.rd:53:19-53:35]
-    │           │     │     └─index *Node [tests/emit/ast.rd:53:19-53:35]
+    │           │     │     └─index &Node [tests/emit/ast.rd:53:19-53:35]
     │           │     │        │left:
-    │           │     │        ├─struct index [2]*Node [tests/emit/ast.rd:53:19-53:32]
+    │           │     │        ├─struct index [2]&Node [tests/emit/ast.rd:53:19-53:32]
     │           │     │        │  │struct:
     │           │     │        │  ├─dereference Node [tests/emit/ast.rd:53:20-53:24]
     │           │     │        │  │  │op:
-    │           │     │        │  │  └─variable (name = node) *Node [tests/emit/ast.rd:53:21-53:24]
+    │           │     │        │  │  └─variable (name = node) &Node [tests/emit/ast.rd:53:21-53:24]
     │           │     │        │  │field:
     │           │     │        │  └─variable (name = childs) [tests/emit/ast.rd:53:27-53:32]
     │           │     │        │right:
     │           │     │        └─integer (value = 0) {integer} [tests/emit/ast.rd:53:34]
     │           │     ├─call () [tests/emit/ast.rd:54:9-54:36]
     │           │     │  │function:
-    │           │     │  ├─variable (name = free_node) fn (*Node): () [tests/emit/ast.rd:54:9-54:17]
+    │           │     │  ├─variable (name = free_node) fn (&Node): () [tests/emit/ast.rd:54:9-54:17]
     │           │     │  │arguments:
     │           │     │  └─list (1 elements) () [tests/emit/ast.rd:54:19-54:35]
-    │           │     │     └─index *Node [tests/emit/ast.rd:54:19-54:35]
+    │           │     │     └─index &Node [tests/emit/ast.rd:54:19-54:35]
     │           │     │        │left:
-    │           │     │        ├─struct index [2]*Node [tests/emit/ast.rd:54:19-54:32]
+    │           │     │        ├─struct index [2]&Node [tests/emit/ast.rd:54:19-54:32]
     │           │     │        │  │struct:
     │           │     │        │  ├─dereference Node [tests/emit/ast.rd:54:20-54:24]
     │           │     │        │  │  │op:
-    │           │     │        │  │  └─variable (name = node) *Node [tests/emit/ast.rd:54:21-54:24]
+    │           │     │        │  │  └─variable (name = node) &Node [tests/emit/ast.rd:54:21-54:24]
     │           │     │        │  │field:
     │           │     │        │  └─variable (name = childs) [tests/emit/ast.rd:54:27-54:32]
     │           │     │        │right:
     │           │     │        └─integer (value = 1) {integer} [tests/emit/ast.rd:54:34]
     │           │     └─call () [tests/emit/ast.rd:55:9-55:25]
     │           │        │function:
-    │           │        ├─variable (name = free) fn (*()): () [tests/emit/ast.rd:55:9-55:12]
+    │           │        ├─variable (name = free) fn (&()): () [tests/emit/ast.rd:55:9-55:12]
     │           │        │arguments:
     │           │        └─list (1 elements) () [tests/emit/ast.rd:55:14-55:24]
-    │           │           └─type conversion *() [tests/emit/ast.rd:55:14-55:24]
+    │           │           └─type conversion &() [tests/emit/ast.rd:55:14-55:24]
     │           │              │left:
-    │           │              ├─variable (name = node) *Node [tests/emit/ast.rd:55:14-55:17]
+    │           │              ├─variable (name = node) &Node [tests/emit/ast.rd:55:14-55:17]
     │           │              │right:
-    │           │              └─address of *() [tests/emit/ast.rd:55:22-55:24]
+    │           │              └─address of &() [tests/emit/ast.rd:55:22-55:24]
     │           │                 │op:
     │           │                 └─void () [tests/emit/ast.rd:55:23-55:24]
     │           │else_block:
     │           └─null
     ├─function (flags = none) () [tests/emit/ast.rd:59:1-61:1]
     │  │name:
-    │  ├─variable (name = parse_expr) fn (*Scanner): *Node [tests/emit/ast.rd:59:4-59:13]
+    │  ├─variable (name = parse_expr) fn (&Scanner): &Node [tests/emit/ast.rd:59:4-59:13]
     │  │arguments:
     │  ├─list (1 elements) () [tests/emit/ast.rd:59:15-59:28]
     │  │  └─argument definition () [tests/emit/ast.rd:59:15-59:28]
     │  │     │name:
-    │  │     ├─variable (name = scan) *Scanner [tests/emit/ast.rd:59:15-59:18]
+    │  │     ├─variable (name = scan) &Scanner [tests/emit/ast.rd:59:15-59:18]
     │  │     │type:
-    │  │     └─address of *Scanner [tests/emit/ast.rd:59:21-59:28]
+    │  │     └─address of &Scanner [tests/emit/ast.rd:59:21-59:28]
     │  │        │op:
     │  │        └─variable (name = Scanner) Scanner [tests/emit/ast.rd:59:22-59:28]
     │  │ret_type:
-    │  ├─address of *Node [tests/emit/ast.rd:59:32-59:36]
+    │  ├─address of &Node [tests/emit/ast.rd:59:32-59:36]
     │  │  │op:
     │  │  └─variable (name = Node) Node [tests/emit/ast.rd:59:33-59:36]
     │  │body:
@@ -536,22 +536,22 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │     └─list (1 elements) () [tests/emit/ast.rd:59:39-60:31]
     │        └─return () [tests/emit/ast.rd:60:5-60:30]
     │           │value:
-    │           └─call *Node [tests/emit/ast.rd:60:12-60:30]
+    │           └─call &Node [tests/emit/ast.rd:60:12-60:30]
     │              │function:
-    │              ├─variable (name = parse_add_sub) fn (*Scanner): *Node [tests/emit/ast.rd:60:12-60:24]
+    │              ├─variable (name = parse_add_sub) fn (&Scanner): &Node [tests/emit/ast.rd:60:12-60:24]
     │              │arguments:
     │              └─list (1 elements) () [tests/emit/ast.rd:60:26-60:29]
-    │                 └─variable (name = scan) *Scanner [tests/emit/ast.rd:60:26-60:29]
+    │                 └─variable (name = scan) &Scanner [tests/emit/ast.rd:60:26-60:29]
     ├─function (flags = none) () [tests/emit/ast.rd:63:1-76:1]
     │  │name:
-    │  ├─variable (name = parse_binary_left_right) fn (*Scanner, [2]Char, *fn (*Scanner): *Node): *Node [tests/emit/ast.rd:63:4-63:26]
+    │  ├─variable (name = parse_binary_left_right) fn (&Scanner, [2]Char, &fn (&Scanner): &Node): &Node [tests/emit/ast.rd:63:4-63:26]
     │  │arguments:
     │  ├─list (3 elements) () [tests/emit/ast.rd:63:28-63:84]
     │  │  ├─argument definition () [tests/emit/ast.rd:63:28-63:41]
     │  │  │  │name:
-    │  │  │  ├─variable (name = scan) *Scanner [tests/emit/ast.rd:63:28-63:31]
+    │  │  │  ├─variable (name = scan) &Scanner [tests/emit/ast.rd:63:28-63:31]
     │  │  │  │type:
-    │  │  │  └─address of *Scanner [tests/emit/ast.rd:63:34-63:41]
+    │  │  │  └─address of &Scanner [tests/emit/ast.rd:63:34-63:41]
     │  │  │     │op:
     │  │  │     └─variable (name = Scanner) Scanner [tests/emit/ast.rd:63:35-63:41]
     │  │  ├─argument definition () [tests/emit/ast.rd:63:44-63:55]
@@ -565,22 +565,22 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │  │  │     └─variable (name = Char) Char [tests/emit/ast.rd:63:52-63:55]
     │  │  └─argument definition () [tests/emit/ast.rd:63:58-63:84]
     │  │     │name:
-    │  │     ├─variable (name = next) *fn (*Scanner): *Node [tests/emit/ast.rd:63:58-63:61]
+    │  │     ├─variable (name = next) &fn (&Scanner): &Node [tests/emit/ast.rd:63:58-63:61]
     │  │     │type:
-    │  │     └─address of *fn (*Scanner): *Node [tests/emit/ast.rd:63:64-63:84]
+    │  │     └─address of &fn (&Scanner): &Node [tests/emit/ast.rd:63:64-63:84]
     │  │        │op:
-    │  │        └─function type (vararg = false) fn (*Scanner): *Node [tests/emit/ast.rd:63:65-63:84]
+    │  │        └─function type (vararg = false) fn (&Scanner): &Node [tests/emit/ast.rd:63:65-63:84]
     │  │           │arguments:
     │  │           ├─list (1 elements) [tests/emit/ast.rd:63:69-63:76]
-    │  │           │  └─address of *Scanner [tests/emit/ast.rd:63:69-63:76]
+    │  │           │  └─address of &Scanner [tests/emit/ast.rd:63:69-63:76]
     │  │           │     │op:
     │  │           │     └─variable (name = Scanner) Scanner [tests/emit/ast.rd:63:70-63:76]
     │  │           │ret_type:
-    │  │           └─address of *Node [tests/emit/ast.rd:63:80-63:84]
+    │  │           └─address of &Node [tests/emit/ast.rd:63:80-63:84]
     │  │              │op:
     │  │              └─variable (name = Node) Node [tests/emit/ast.rd:63:81-63:84]
     │  │ret_type:
-    │  ├─address of *Node [tests/emit/ast.rd:63:88-63:92]
+    │  ├─address of &Node [tests/emit/ast.rd:63:88-63:92]
     │  │  │op:
     │  │  └─variable (name = Node) Node [tests/emit/ast.rd:63:89-63:92]
     │  │body:
@@ -589,31 +589,31 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │     └─list (3 elements) () [tests/emit/ast.rd:63:95-75:13]
     │        ├─variable definition () [tests/emit/ast.rd:64:5-64:25]
     │        │  │name:
-    │        │  ├─variable (name = l) *Node [tests/emit/ast.rd:64:9]
+    │        │  ├─variable (name = l) &Node [tests/emit/ast.rd:64:9]
     │        │  │type:
     │        │  ├─null
     │        │  │val:
-    │        │  └─call *Node [tests/emit/ast.rd:64:13-64:25]
+    │        │  └─call &Node [tests/emit/ast.rd:64:13-64:25]
     │        │     │function:
-    │        │     ├─dereference fn (*Scanner): *Node [tests/emit/ast.rd:64:14-64:18]
+    │        │     ├─dereference fn (&Scanner): &Node [tests/emit/ast.rd:64:14-64:18]
     │        │     │  │op:
-    │        │     │  └─variable (name = next) *fn (*Scanner): *Node [tests/emit/ast.rd:64:15-64:18]
+    │        │     │  └─variable (name = next) &fn (&Scanner): &Node [tests/emit/ast.rd:64:15-64:18]
     │        │     │arguments:
     │        │     └─list (1 elements) () [tests/emit/ast.rd:64:21-64:24]
-    │        │        └─variable (name = scan) *Scanner [tests/emit/ast.rd:64:21-64:24]
+    │        │        └─variable (name = scan) &Scanner [tests/emit/ast.rd:64:21-64:24]
     │        ├─while () [tests/emit/ast.rd:65:5-74:5]
     │        │  │condition:
     │        │  ├─and bool [tests/emit/ast.rd:65:11-65:87]
     │        │  │  │left:
     │        │  │  ├─not equal bool [tests/emit/ast.rd:65:11-65:25]
     │        │  │  │  │left:
-    │        │  │  │  ├─variable (name = l) *Node [tests/emit/ast.rd:65:11]
+    │        │  │  │  ├─variable (name = l) &Node [tests/emit/ast.rd:65:11]
     │        │  │  │  │right:
-    │        │  │  │  └─type conversion *Node [tests/emit/ast.rd:65:16-65:25]
+    │        │  │  │  └─type conversion &Node [tests/emit/ast.rd:65:16-65:25]
     │        │  │  │     │left:
     │        │  │  │     ├─integer (value = 0) {integer} [tests/emit/ast.rd:65:16]
     │        │  │  │     │right:
-    │        │  │  │     └─address of *Node [tests/emit/ast.rd:65:21-65:25]
+    │        │  │  │     └─address of &Node [tests/emit/ast.rd:65:21-65:25]
     │        │  │  │        │op:
     │        │  │  │        └─variable (name = Node) Node [tests/emit/ast.rd:65:22-65:25]
     │        │  │  │right:
@@ -623,10 +623,10 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │        │  │     │  │left:
     │        │  │     │  ├─call Char [tests/emit/ast.rd:65:31-65:46]
     │        │  │     │  │  │function:
-    │        │  │     │  │  ├─variable (name = peek_token) fn (*Scanner): Char [tests/emit/ast.rd:65:31-65:40]
+    │        │  │     │  │  ├─variable (name = peek_token) fn (&Scanner): Char [tests/emit/ast.rd:65:31-65:40]
     │        │  │     │  │  │arguments:
     │        │  │     │  │  └─list (1 elements) () [tests/emit/ast.rd:65:42-65:45]
-    │        │  │     │  │     └─variable (name = scan) *Scanner [tests/emit/ast.rd:65:42-65:45]
+    │        │  │     │  │     └─variable (name = scan) &Scanner [tests/emit/ast.rd:65:42-65:45]
     │        │  │     │  │right:
     │        │  │     │  └─index Char [tests/emit/ast.rd:65:51-65:56]
     │        │  │     │     │left:
@@ -638,10 +638,10 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │        │  │        │left:
     │        │  │        ├─call Char [tests/emit/ast.rd:65:61-65:76]
     │        │  │        │  │function:
-    │        │  │        │  ├─variable (name = peek_token) fn (*Scanner): Char [tests/emit/ast.rd:65:61-65:70]
+    │        │  │        │  ├─variable (name = peek_token) fn (&Scanner): Char [tests/emit/ast.rd:65:61-65:70]
     │        │  │        │  │arguments:
     │        │  │        │  └─list (1 elements) () [tests/emit/ast.rd:65:72-65:75]
-    │        │  │        │     └─variable (name = scan) *Scanner [tests/emit/ast.rd:65:72-65:75]
+    │        │  │        │     └─variable (name = scan) &Scanner [tests/emit/ast.rd:65:72-65:75]
     │        │  │        │right:
     │        │  │        └─index Char [tests/emit/ast.rd:65:81-65:86]
     │        │  │           │left:
@@ -660,35 +660,35 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │        │        │  │val:
     │        │        │  └─call Char [tests/emit/ast.rd:66:18-66:33]
     │        │        │     │function:
-    │        │        │     ├─variable (name = next_token) fn (*Scanner): Char [tests/emit/ast.rd:66:18-66:27]
+    │        │        │     ├─variable (name = next_token) fn (&Scanner): Char [tests/emit/ast.rd:66:18-66:27]
     │        │        │     │arguments:
     │        │        │     └─list (1 elements) () [tests/emit/ast.rd:66:29-66:32]
-    │        │        │        └─variable (name = scan) *Scanner [tests/emit/ast.rd:66:29-66:32]
+    │        │        │        └─variable (name = scan) &Scanner [tests/emit/ast.rd:66:29-66:32]
     │        │        ├─variable definition () [tests/emit/ast.rd:67:9-67:29]
     │        │        │  │name:
-    │        │        │  ├─variable (name = r) *Node [tests/emit/ast.rd:67:13]
+    │        │        │  ├─variable (name = r) &Node [tests/emit/ast.rd:67:13]
     │        │        │  │type:
     │        │        │  ├─null
     │        │        │  │val:
-    │        │        │  └─call *Node [tests/emit/ast.rd:67:17-67:29]
+    │        │        │  └─call &Node [tests/emit/ast.rd:67:17-67:29]
     │        │        │     │function:
-    │        │        │     ├─dereference fn (*Scanner): *Node [tests/emit/ast.rd:67:18-67:22]
+    │        │        │     ├─dereference fn (&Scanner): &Node [tests/emit/ast.rd:67:18-67:22]
     │        │        │     │  │op:
-    │        │        │     │  └─variable (name = next) *fn (*Scanner): *Node [tests/emit/ast.rd:67:19-67:22]
+    │        │        │     │  └─variable (name = next) &fn (&Scanner): &Node [tests/emit/ast.rd:67:19-67:22]
     │        │        │     │arguments:
     │        │        │     └─list (1 elements) () [tests/emit/ast.rd:67:25-67:28]
-    │        │        │        └─variable (name = scan) *Scanner [tests/emit/ast.rd:67:25-67:28]
+    │        │        │        └─variable (name = scan) &Scanner [tests/emit/ast.rd:67:25-67:28]
     │        │        └─if-else () [tests/emit/ast.rd:68:9-73:9]
     │        │           │condition:
     │        │           ├─equal bool [tests/emit/ast.rd:68:12-68:26]
     │        │           │  │left:
-    │        │           │  ├─variable (name = r) *Node [tests/emit/ast.rd:68:12]
+    │        │           │  ├─variable (name = r) &Node [tests/emit/ast.rd:68:12]
     │        │           │  │right:
-    │        │           │  └─type conversion *Node [tests/emit/ast.rd:68:17-68:26]
+    │        │           │  └─type conversion &Node [tests/emit/ast.rd:68:17-68:26]
     │        │           │     │left:
     │        │           │     ├─integer (value = 0) {integer} [tests/emit/ast.rd:68:17]
     │        │           │     │right:
-    │        │           │     └─address of *Node [tests/emit/ast.rd:68:22-68:26]
+    │        │           │     └─address of &Node [tests/emit/ast.rd:68:22-68:26]
     │        │           │        │op:
     │        │           │        └─variable (name = Node) Node [tests/emit/ast.rd:68:23-68:26]
     │        │           │if_block:
@@ -697,48 +697,48 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │        │           │  └─list (2 elements) () [tests/emit/ast.rd:68:29-70:18]
     │        │           │     ├─call () [tests/emit/ast.rd:69:13-69:24]
     │        │           │     │  │function:
-    │        │           │     │  ├─variable (name = free_node) fn (*Node): () [tests/emit/ast.rd:69:13-69:21]
+    │        │           │     │  ├─variable (name = free_node) fn (&Node): () [tests/emit/ast.rd:69:13-69:21]
     │        │           │     │  │arguments:
     │        │           │     │  └─list (1 elements) () [tests/emit/ast.rd:69:23]
-    │        │           │     │     └─variable (name = l) *Node [tests/emit/ast.rd:69:23]
+    │        │           │     │     └─variable (name = l) &Node [tests/emit/ast.rd:69:23]
     │        │           │     └─assign () [tests/emit/ast.rd:70:13-70:17]
     │        │           │        │left:
-    │        │           │        ├─variable (name = l) *Node [tests/emit/ast.rd:70:13]
+    │        │           │        ├─variable (name = l) &Node [tests/emit/ast.rd:70:13]
     │        │           │        │right:
-    │        │           │        └─variable (name = r) *Node [tests/emit/ast.rd:70:17]
+    │        │           │        └─variable (name = r) &Node [tests/emit/ast.rd:70:17]
     │        │           │else_block:
     │        │           └─block () [tests/emit/ast.rd:71:16-73:9]
     │        │              │nodes:
     │        │              └─list (1 elements) () [tests/emit/ast.rd:71:17-72:45]
     │        │                 └─assign () [tests/emit/ast.rd:72:13-72:44]
     │        │                    │left:
-    │        │                    ├─variable (name = l) *Node [tests/emit/ast.rd:72:13]
+    │        │                    ├─variable (name = l) &Node [tests/emit/ast.rd:72:13]
     │        │                    │right:
-    │        │                    └─call *Node [tests/emit/ast.rd:72:17-72:44]
+    │        │                    └─call &Node [tests/emit/ast.rd:72:17-72:44]
     │        │                       │function:
-    │        │                       ├─variable (name = create_binary_node) fn (Char, *Node, *Node): *Node [tests/emit/ast.rd:72:17-72:34]
+    │        │                       ├─variable (name = create_binary_node) fn (Char, &Node, &Node): &Node [tests/emit/ast.rd:72:17-72:34]
     │        │                       │arguments:
     │        │                       └─list (3 elements) () [tests/emit/ast.rd:72:36-72:43]
     │        │                          ├─variable (name = op) Char [tests/emit/ast.rd:72:36-72:37]
-    │        │                          ├─variable (name = l) *Node [tests/emit/ast.rd:72:40]
-    │        │                          └─variable (name = r) *Node [tests/emit/ast.rd:72:43]
+    │        │                          ├─variable (name = l) &Node [tests/emit/ast.rd:72:40]
+    │        │                          └─variable (name = r) &Node [tests/emit/ast.rd:72:43]
     │        └─return () [tests/emit/ast.rd:75:5-75:12]
     │           │value:
-    │           └─variable (name = l) *Node [tests/emit/ast.rd:75:12]
+    │           └─variable (name = l) &Node [tests/emit/ast.rd:75:12]
     ├─function (flags = none) () [tests/emit/ast.rd:78:1-80:1]
     │  │name:
-    │  ├─variable (name = parse_add_sub) fn (*Scanner): *Node [tests/emit/ast.rd:78:4-78:16]
+    │  ├─variable (name = parse_add_sub) fn (&Scanner): &Node [tests/emit/ast.rd:78:4-78:16]
     │  │arguments:
     │  ├─list (1 elements) () [tests/emit/ast.rd:78:18-78:31]
     │  │  └─argument definition () [tests/emit/ast.rd:78:18-78:31]
     │  │     │name:
-    │  │     ├─variable (name = scan) *Scanner [tests/emit/ast.rd:78:18-78:21]
+    │  │     ├─variable (name = scan) &Scanner [tests/emit/ast.rd:78:18-78:21]
     │  │     │type:
-    │  │     └─address of *Scanner [tests/emit/ast.rd:78:24-78:31]
+    │  │     └─address of &Scanner [tests/emit/ast.rd:78:24-78:31]
     │  │        │op:
     │  │        └─variable (name = Scanner) Scanner [tests/emit/ast.rd:78:25-78:31]
     │  │ret_type:
-    │  ├─address of *Node [tests/emit/ast.rd:78:35-78:39]
+    │  ├─address of &Node [tests/emit/ast.rd:78:35-78:39]
     │  │  │op:
     │  │  └─variable (name = Node) Node [tests/emit/ast.rd:78:36-78:39]
     │  │body:
@@ -747,32 +747,32 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │     └─list (1 elements) () [tests/emit/ast.rd:78:42-79:69]
     │        └─return () [tests/emit/ast.rd:79:5-79:68]
     │           │value:
-    │           └─call *Node [tests/emit/ast.rd:79:12-79:68]
+    │           └─call &Node [tests/emit/ast.rd:79:12-79:68]
     │              │function:
-    │              ├─variable (name = parse_binary_left_right) fn (*Scanner, [2]Char, *fn (*Scanner): *Node): *Node [tests/emit/ast.rd:79:12-79:34]
+    │              ├─variable (name = parse_binary_left_right) fn (&Scanner, [2]Char, &fn (&Scanner): &Node): &Node [tests/emit/ast.rd:79:12-79:34]
     │              │arguments:
     │              └─list (3 elements) () [tests/emit/ast.rd:79:36-79:67]
-    │                 ├─variable (name = scan) *Scanner [tests/emit/ast.rd:79:36-79:39]
+    │                 ├─variable (name = scan) &Scanner [tests/emit/ast.rd:79:36-79:39]
     │                 ├─array literal (2 elements) [2]Char [tests/emit/ast.rd:79:42-79:51]
     │                 │  ├─character (value = 43) Char [tests/emit/ast.rd:79:43-79:45]
     │                 │  └─character (value = 45) Char [tests/emit/ast.rd:79:48-79:50]
-    │                 └─address of *fn (*Scanner): *Node [tests/emit/ast.rd:79:54-79:67]
+    │                 └─address of &fn (&Scanner): &Node [tests/emit/ast.rd:79:54-79:67]
     │                    │op:
-    │                    └─variable (name = parse_mul_div) fn (*Scanner): *Node [tests/emit/ast.rd:79:55-79:67]
+    │                    └─variable (name = parse_mul_div) fn (&Scanner): &Node [tests/emit/ast.rd:79:55-79:67]
     ├─function (flags = none) () [tests/emit/ast.rd:82:1-84:1]
     │  │name:
-    │  ├─variable (name = parse_mul_div) fn (*Scanner): *Node [tests/emit/ast.rd:82:4-82:16]
+    │  ├─variable (name = parse_mul_div) fn (&Scanner): &Node [tests/emit/ast.rd:82:4-82:16]
     │  │arguments:
     │  ├─list (1 elements) () [tests/emit/ast.rd:82:18-82:31]
     │  │  └─argument definition () [tests/emit/ast.rd:82:18-82:31]
     │  │     │name:
-    │  │     ├─variable (name = scan) *Scanner [tests/emit/ast.rd:82:18-82:21]
+    │  │     ├─variable (name = scan) &Scanner [tests/emit/ast.rd:82:18-82:21]
     │  │     │type:
-    │  │     └─address of *Scanner [tests/emit/ast.rd:82:24-82:31]
+    │  │     └─address of &Scanner [tests/emit/ast.rd:82:24-82:31]
     │  │        │op:
     │  │        └─variable (name = Scanner) Scanner [tests/emit/ast.rd:82:25-82:31]
     │  │ret_type:
-    │  ├─address of *Node [tests/emit/ast.rd:82:35-82:39]
+    │  ├─address of &Node [tests/emit/ast.rd:82:35-82:39]
     │  │  │op:
     │  │  └─variable (name = Node) Node [tests/emit/ast.rd:82:36-82:39]
     │  │body:
@@ -781,32 +781,32 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │     └─list (1 elements) () [tests/emit/ast.rd:82:42-83:65]
     │        └─return () [tests/emit/ast.rd:83:5-83:64]
     │           │value:
-    │           └─call *Node [tests/emit/ast.rd:83:12-83:64]
+    │           └─call &Node [tests/emit/ast.rd:83:12-83:64]
     │              │function:
-    │              ├─variable (name = parse_binary_left_right) fn (*Scanner, [2]Char, *fn (*Scanner): *Node): *Node [tests/emit/ast.rd:83:12-83:34]
+    │              ├─variable (name = parse_binary_left_right) fn (&Scanner, [2]Char, &fn (&Scanner): &Node): &Node [tests/emit/ast.rd:83:12-83:34]
     │              │arguments:
     │              └─list (3 elements) () [tests/emit/ast.rd:83:36-83:63]
-    │                 ├─variable (name = scan) *Scanner [tests/emit/ast.rd:83:36-83:39]
+    │                 ├─variable (name = scan) &Scanner [tests/emit/ast.rd:83:36-83:39]
     │                 ├─array literal (2 elements) [2]Char [tests/emit/ast.rd:83:42-83:51]
     │                 │  ├─character (value = 42) Char [tests/emit/ast.rd:83:43-83:45]
     │                 │  └─character (value = 47) Char [tests/emit/ast.rd:83:48-83:50]
-    │                 └─address of *fn (*Scanner): *Node [tests/emit/ast.rd:83:54-83:63]
+    │                 └─address of &fn (&Scanner): &Node [tests/emit/ast.rd:83:54-83:63]
     │                    │op:
-    │                    └─variable (name = parse_pow) fn (*Scanner): *Node [tests/emit/ast.rd:83:55-83:63]
+    │                    └─variable (name = parse_pow) fn (&Scanner): &Node [tests/emit/ast.rd:83:55-83:63]
     ├─function (flags = none) () [tests/emit/ast.rd:86:1-99:1]
     │  │name:
-    │  ├─variable (name = parse_pow) fn (*Scanner): *Node [tests/emit/ast.rd:86:4-86:12]
+    │  ├─variable (name = parse_pow) fn (&Scanner): &Node [tests/emit/ast.rd:86:4-86:12]
     │  │arguments:
     │  ├─list (1 elements) () [tests/emit/ast.rd:86:14-86:27]
     │  │  └─argument definition () [tests/emit/ast.rd:86:14-86:27]
     │  │     │name:
-    │  │     ├─variable (name = scan) *Scanner [tests/emit/ast.rd:86:14-86:17]
+    │  │     ├─variable (name = scan) &Scanner [tests/emit/ast.rd:86:14-86:17]
     │  │     │type:
-    │  │     └─address of *Scanner [tests/emit/ast.rd:86:20-86:27]
+    │  │     └─address of &Scanner [tests/emit/ast.rd:86:20-86:27]
     │  │        │op:
     │  │        └─variable (name = Scanner) Scanner [tests/emit/ast.rd:86:21-86:27]
     │  │ret_type:
-    │  ├─address of *Node [tests/emit/ast.rd:86:31-86:35]
+    │  ├─address of &Node [tests/emit/ast.rd:86:31-86:35]
     │  │  │op:
     │  │  └─variable (name = Node) Node [tests/emit/ast.rd:86:32-86:35]
     │  │body:
@@ -815,29 +815,29 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │     └─list (3 elements) () [tests/emit/ast.rd:86:38-98:13]
     │        ├─variable definition () [tests/emit/ast.rd:87:5-87:28]
     │        │  │name:
-    │        │  ├─variable (name = l) *Node [tests/emit/ast.rd:87:9]
+    │        │  ├─variable (name = l) &Node [tests/emit/ast.rd:87:9]
     │        │  │type:
     │        │  ├─null
     │        │  │val:
-    │        │  └─call *Node [tests/emit/ast.rd:87:13-87:28]
+    │        │  └─call &Node [tests/emit/ast.rd:87:13-87:28]
     │        │     │function:
-    │        │     ├─variable (name = parse_base) fn (*Scanner): *Node [tests/emit/ast.rd:87:13-87:22]
+    │        │     ├─variable (name = parse_base) fn (&Scanner): &Node [tests/emit/ast.rd:87:13-87:22]
     │        │     │arguments:
     │        │     └─list (1 elements) () [tests/emit/ast.rd:87:24-87:27]
-    │        │        └─variable (name = scan) *Scanner [tests/emit/ast.rd:87:24-87:27]
+    │        │        └─variable (name = scan) &Scanner [tests/emit/ast.rd:87:24-87:27]
     │        ├─if-else () [tests/emit/ast.rd:88:5-97:5]
     │        │  │condition:
     │        │  ├─and bool [tests/emit/ast.rd:88:8-88:49]
     │        │  │  │left:
     │        │  │  ├─not equal bool [tests/emit/ast.rd:88:8-88:22]
     │        │  │  │  │left:
-    │        │  │  │  ├─variable (name = l) *Node [tests/emit/ast.rd:88:8]
+    │        │  │  │  ├─variable (name = l) &Node [tests/emit/ast.rd:88:8]
     │        │  │  │  │right:
-    │        │  │  │  └─type conversion *Node [tests/emit/ast.rd:88:13-88:22]
+    │        │  │  │  └─type conversion &Node [tests/emit/ast.rd:88:13-88:22]
     │        │  │  │     │left:
     │        │  │  │     ├─integer (value = 0) {integer} [tests/emit/ast.rd:88:13]
     │        │  │  │     │right:
-    │        │  │  │     └─address of *Node [tests/emit/ast.rd:88:18-88:22]
+    │        │  │  │     └─address of &Node [tests/emit/ast.rd:88:18-88:22]
     │        │  │  │        │op:
     │        │  │  │        └─variable (name = Node) Node [tests/emit/ast.rd:88:19-88:22]
     │        │  │  │right:
@@ -845,10 +845,10 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │        │  │     │left:
     │        │  │     ├─call Char [tests/emit/ast.rd:88:27-88:42]
     │        │  │     │  │function:
-    │        │  │     │  ├─variable (name = peek_token) fn (*Scanner): Char [tests/emit/ast.rd:88:27-88:36]
+    │        │  │     │  ├─variable (name = peek_token) fn (&Scanner): Char [tests/emit/ast.rd:88:27-88:36]
     │        │  │     │  │arguments:
     │        │  │     │  └─list (1 elements) () [tests/emit/ast.rd:88:38-88:41]
-    │        │  │     │     └─variable (name = scan) *Scanner [tests/emit/ast.rd:88:38-88:41]
+    │        │  │     │     └─variable (name = scan) &Scanner [tests/emit/ast.rd:88:38-88:41]
     │        │  │     │right:
     │        │  │     └─character (value = 94) Char [tests/emit/ast.rd:88:47-88:49]
     │        │  │if_block:
@@ -857,33 +857,33 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │        │  │  └─list (3 elements) () [tests/emit/ast.rd:88:52-96:9]
     │        │  │     ├─call Char [tests/emit/ast.rd:89:9-89:24]
     │        │  │     │  │function:
-    │        │  │     │  ├─variable (name = next_token) fn (*Scanner): Char [tests/emit/ast.rd:89:9-89:18]
+    │        │  │     │  ├─variable (name = next_token) fn (&Scanner): Char [tests/emit/ast.rd:89:9-89:18]
     │        │  │     │  │arguments:
     │        │  │     │  └─list (1 elements) () [tests/emit/ast.rd:89:20-89:23]
-    │        │  │     │     └─variable (name = scan) *Scanner [tests/emit/ast.rd:89:20-89:23]
+    │        │  │     │     └─variable (name = scan) &Scanner [tests/emit/ast.rd:89:20-89:23]
     │        │  │     ├─variable definition () [tests/emit/ast.rd:90:9-90:31]
     │        │  │     │  │name:
-    │        │  │     │  ├─variable (name = r) *Node [tests/emit/ast.rd:90:13]
+    │        │  │     │  ├─variable (name = r) &Node [tests/emit/ast.rd:90:13]
     │        │  │     │  │type:
     │        │  │     │  ├─null
     │        │  │     │  │val:
-    │        │  │     │  └─call *Node [tests/emit/ast.rd:90:17-90:31]
+    │        │  │     │  └─call &Node [tests/emit/ast.rd:90:17-90:31]
     │        │  │     │     │function:
-    │        │  │     │     ├─variable (name = parse_pow) fn (*Scanner): *Node [tests/emit/ast.rd:90:17-90:25]
+    │        │  │     │     ├─variable (name = parse_pow) fn (&Scanner): &Node [tests/emit/ast.rd:90:17-90:25]
     │        │  │     │     │arguments:
     │        │  │     │     └─list (1 elements) () [tests/emit/ast.rd:90:27-90:30]
-    │        │  │     │        └─variable (name = scan) *Scanner [tests/emit/ast.rd:90:27-90:30]
+    │        │  │     │        └─variable (name = scan) &Scanner [tests/emit/ast.rd:90:27-90:30]
     │        │  │     └─if-else () [tests/emit/ast.rd:91:9-96:9]
     │        │  │        │condition:
     │        │  │        ├─equal bool [tests/emit/ast.rd:91:12-91:26]
     │        │  │        │  │left:
-    │        │  │        │  ├─variable (name = r) *Node [tests/emit/ast.rd:91:12]
+    │        │  │        │  ├─variable (name = r) &Node [tests/emit/ast.rd:91:12]
     │        │  │        │  │right:
-    │        │  │        │  └─type conversion *Node [tests/emit/ast.rd:91:17-91:26]
+    │        │  │        │  └─type conversion &Node [tests/emit/ast.rd:91:17-91:26]
     │        │  │        │     │left:
     │        │  │        │     ├─integer (value = 0) {integer} [tests/emit/ast.rd:91:17]
     │        │  │        │     │right:
-    │        │  │        │     └─address of *Node [tests/emit/ast.rd:91:22-91:26]
+    │        │  │        │     └─address of &Node [tests/emit/ast.rd:91:22-91:26]
     │        │  │        │        │op:
     │        │  │        │        └─variable (name = Node) Node [tests/emit/ast.rd:91:23-91:26]
     │        │  │        │if_block:
@@ -892,50 +892,50 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │        │  │        │  └─list (2 elements) () [tests/emit/ast.rd:91:29-93:18]
     │        │  │        │     ├─call () [tests/emit/ast.rd:92:13-92:24]
     │        │  │        │     │  │function:
-    │        │  │        │     │  ├─variable (name = free_node) fn (*Node): () [tests/emit/ast.rd:92:13-92:21]
+    │        │  │        │     │  ├─variable (name = free_node) fn (&Node): () [tests/emit/ast.rd:92:13-92:21]
     │        │  │        │     │  │arguments:
     │        │  │        │     │  └─list (1 elements) () [tests/emit/ast.rd:92:23]
-    │        │  │        │     │     └─variable (name = l) *Node [tests/emit/ast.rd:92:23]
+    │        │  │        │     │     └─variable (name = l) &Node [tests/emit/ast.rd:92:23]
     │        │  │        │     └─assign () [tests/emit/ast.rd:93:13-93:17]
     │        │  │        │        │left:
-    │        │  │        │        ├─variable (name = l) *Node [tests/emit/ast.rd:93:13]
+    │        │  │        │        ├─variable (name = l) &Node [tests/emit/ast.rd:93:13]
     │        │  │        │        │right:
-    │        │  │        │        └─variable (name = r) *Node [tests/emit/ast.rd:93:17]
+    │        │  │        │        └─variable (name = r) &Node [tests/emit/ast.rd:93:17]
     │        │  │        │else_block:
     │        │  │        └─block () [tests/emit/ast.rd:94:16-96:9]
     │        │  │           │nodes:
     │        │  │           └─list (1 elements) () [tests/emit/ast.rd:94:17-95:46]
     │        │  │              └─assign () [tests/emit/ast.rd:95:13-95:45]
     │        │  │                 │left:
-    │        │  │                 ├─variable (name = l) *Node [tests/emit/ast.rd:95:13]
+    │        │  │                 ├─variable (name = l) &Node [tests/emit/ast.rd:95:13]
     │        │  │                 │right:
-    │        │  │                 └─call *Node [tests/emit/ast.rd:95:17-95:45]
+    │        │  │                 └─call &Node [tests/emit/ast.rd:95:17-95:45]
     │        │  │                    │function:
-    │        │  │                    ├─variable (name = create_binary_node) fn (Char, *Node, *Node): *Node [tests/emit/ast.rd:95:17-95:34]
+    │        │  │                    ├─variable (name = create_binary_node) fn (Char, &Node, &Node): &Node [tests/emit/ast.rd:95:17-95:34]
     │        │  │                    │arguments:
     │        │  │                    └─list (3 elements) () [tests/emit/ast.rd:95:36-95:44]
     │        │  │                       ├─character (value = 94) Char [tests/emit/ast.rd:95:36-95:38]
-    │        │  │                       ├─variable (name = l) *Node [tests/emit/ast.rd:95:41]
-    │        │  │                       └─variable (name = r) *Node [tests/emit/ast.rd:95:44]
+    │        │  │                       ├─variable (name = l) &Node [tests/emit/ast.rd:95:41]
+    │        │  │                       └─variable (name = r) &Node [tests/emit/ast.rd:95:44]
     │        │  │else_block:
     │        │  └─null
     │        └─return () [tests/emit/ast.rd:98:5-98:12]
     │           │value:
-    │           └─variable (name = l) *Node [tests/emit/ast.rd:98:12]
+    │           └─variable (name = l) &Node [tests/emit/ast.rd:98:12]
     ├─function (flags = none) () [tests/emit/ast.rd:101:1-127:1]
     │  │name:
-    │  ├─variable (name = parse_base) fn (*Scanner): *Node [tests/emit/ast.rd:101:4-101:13]
+    │  ├─variable (name = parse_base) fn (&Scanner): &Node [tests/emit/ast.rd:101:4-101:13]
     │  │arguments:
     │  ├─list (1 elements) () [tests/emit/ast.rd:101:15-101:28]
     │  │  └─argument definition () [tests/emit/ast.rd:101:15-101:28]
     │  │     │name:
-    │  │     ├─variable (name = scan) *Scanner [tests/emit/ast.rd:101:15-101:18]
+    │  │     ├─variable (name = scan) &Scanner [tests/emit/ast.rd:101:15-101:18]
     │  │     │type:
-    │  │     └─address of *Scanner [tests/emit/ast.rd:101:21-101:28]
+    │  │     └─address of &Scanner [tests/emit/ast.rd:101:21-101:28]
     │  │        │op:
     │  │        └─variable (name = Scanner) Scanner [tests/emit/ast.rd:101:22-101:28]
     │  │ret_type:
-    │  ├─address of *Node [tests/emit/ast.rd:101:32-101:36]
+    │  ├─address of &Node [tests/emit/ast.rd:101:32-101:36]
     │  │  │op:
     │  │  └─variable (name = Node) Node [tests/emit/ast.rd:101:33-101:36]
     │  │body:
@@ -950,10 +950,10 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │        │  │val:
     │        │  └─call Char [tests/emit/ast.rd:102:13-102:28]
     │        │     │function:
-    │        │     ├─variable (name = peek_token) fn (*Scanner): Char [tests/emit/ast.rd:102:13-102:22]
+    │        │     ├─variable (name = peek_token) fn (&Scanner): Char [tests/emit/ast.rd:102:13-102:22]
     │        │     │arguments:
     │        │     └─list (1 elements) () [tests/emit/ast.rd:102:24-102:27]
-    │        │        └─variable (name = scan) *Scanner [tests/emit/ast.rd:102:24-102:27]
+    │        │        └─variable (name = scan) &Scanner [tests/emit/ast.rd:102:24-102:27]
     │        └─if-else () [tests/emit/ast.rd:103:5-126:5]
     │           │condition:
     │           ├─and bool [tests/emit/ast.rd:103:8-103:27]
@@ -990,20 +990,20 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │           │     │     └─variable (name = int) int [tests/emit/ast.rd:104:30-104:32]
     │           │     ├─call Char [tests/emit/ast.rd:105:9-105:24]
     │           │     │  │function:
-    │           │     │  ├─variable (name = next_token) fn (*Scanner): Char [tests/emit/ast.rd:105:9-105:18]
+    │           │     │  ├─variable (name = next_token) fn (&Scanner): Char [tests/emit/ast.rd:105:9-105:18]
     │           │     │  │arguments:
     │           │     │  └─list (1 elements) () [tests/emit/ast.rd:105:20-105:23]
-    │           │     │     └─variable (name = scan) *Scanner [tests/emit/ast.rd:105:20-105:23]
+    │           │     │     └─variable (name = scan) &Scanner [tests/emit/ast.rd:105:20-105:23]
     │           │     ├─assign () [tests/emit/ast.rd:106:9-106:28]
     │           │     │  │left:
     │           │     │  ├─variable (name = c) Char [tests/emit/ast.rd:106:9]
     │           │     │  │right:
     │           │     │  └─call Char [tests/emit/ast.rd:106:13-106:28]
     │           │     │     │function:
-    │           │     │     ├─variable (name = peek_token) fn (*Scanner): Char [tests/emit/ast.rd:106:13-106:22]
+    │           │     │     ├─variable (name = peek_token) fn (&Scanner): Char [tests/emit/ast.rd:106:13-106:22]
     │           │     │     │arguments:
     │           │     │     └─list (1 elements) () [tests/emit/ast.rd:106:24-106:27]
-    │           │     │        └─variable (name = scan) *Scanner [tests/emit/ast.rd:106:24-106:27]
+    │           │     │        └─variable (name = scan) &Scanner [tests/emit/ast.rd:106:24-106:27]
     │           │     ├─while () [tests/emit/ast.rd:107:9-112:9]
     │           │     │  │condition:
     │           │     │  ├─and bool [tests/emit/ast.rd:107:15-107:34]
@@ -1043,25 +1043,25 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │           │     │        │     └─variable (name = int) int [tests/emit/ast.rd:109:31-109:33]
     │           │     │        ├─call Char [tests/emit/ast.rd:110:13-110:28]
     │           │     │        │  │function:
-    │           │     │        │  ├─variable (name = next_token) fn (*Scanner): Char [tests/emit/ast.rd:110:13-110:22]
+    │           │     │        │  ├─variable (name = next_token) fn (&Scanner): Char [tests/emit/ast.rd:110:13-110:22]
     │           │     │        │  │arguments:
     │           │     │        │  └─list (1 elements) () [tests/emit/ast.rd:110:24-110:27]
-    │           │     │        │     └─variable (name = scan) *Scanner [tests/emit/ast.rd:110:24-110:27]
+    │           │     │        │     └─variable (name = scan) &Scanner [tests/emit/ast.rd:110:24-110:27]
     │           │     │        └─assign () [tests/emit/ast.rd:111:13-111:32]
     │           │     │           │left:
     │           │     │           ├─variable (name = c) Char [tests/emit/ast.rd:111:13]
     │           │     │           │right:
     │           │     │           └─call Char [tests/emit/ast.rd:111:17-111:32]
     │           │     │              │function:
-    │           │     │              ├─variable (name = peek_token) fn (*Scanner): Char [tests/emit/ast.rd:111:17-111:26]
+    │           │     │              ├─variable (name = peek_token) fn (&Scanner): Char [tests/emit/ast.rd:111:17-111:26]
     │           │     │              │arguments:
     │           │     │              └─list (1 elements) () [tests/emit/ast.rd:111:28-111:31]
-    │           │     │                 └─variable (name = scan) *Scanner [tests/emit/ast.rd:111:28-111:31]
+    │           │     │                 └─variable (name = scan) &Scanner [tests/emit/ast.rd:111:28-111:31]
     │           │     └─return () [tests/emit/ast.rd:113:9-113:35]
     │           │        │value:
-    │           │        └─call *Node [tests/emit/ast.rd:113:16-113:35]
+    │           │        └─call &Node [tests/emit/ast.rd:113:16-113:35]
     │           │           │function:
-    │           │           ├─variable (name = create_value_node) fn (int): *Node [tests/emit/ast.rd:113:16-113:32]
+    │           │           ├─variable (name = create_value_node) fn (int): &Node [tests/emit/ast.rd:113:16-113:32]
     │           │           │arguments:
     │           │           └─list (1 elements) () [tests/emit/ast.rd:113:34]
     │           │              └─variable (name = v) int [tests/emit/ast.rd:113:34]
@@ -1079,32 +1079,32 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │              │  └─list (3 elements) () [tests/emit/ast.rd:114:25-123:9]
     │              │     ├─call Char [tests/emit/ast.rd:115:9-115:24]
     │              │     │  │function:
-    │              │     │  ├─variable (name = next_token) fn (*Scanner): Char [tests/emit/ast.rd:115:9-115:18]
+    │              │     │  ├─variable (name = next_token) fn (&Scanner): Char [tests/emit/ast.rd:115:9-115:18]
     │              │     │  │arguments:
     │              │     │  └─list (1 elements) () [tests/emit/ast.rd:115:20-115:23]
-    │              │     │     └─variable (name = scan) *Scanner [tests/emit/ast.rd:115:20-115:23]
+    │              │     │     └─variable (name = scan) &Scanner [tests/emit/ast.rd:115:20-115:23]
     │              │     ├─variable definition () [tests/emit/ast.rd:116:9-116:32]
     │              │     │  │name:
-    │              │     │  ├─variable (name = n) *Node [tests/emit/ast.rd:116:13]
+    │              │     │  ├─variable (name = n) &Node [tests/emit/ast.rd:116:13]
     │              │     │  │type:
     │              │     │  ├─null
     │              │     │  │val:
-    │              │     │  └─call *Node [tests/emit/ast.rd:116:17-116:32]
+    │              │     │  └─call &Node [tests/emit/ast.rd:116:17-116:32]
     │              │     │     │function:
-    │              │     │     ├─variable (name = parse_expr) fn (*Scanner): *Node [tests/emit/ast.rd:116:17-116:26]
+    │              │     │     ├─variable (name = parse_expr) fn (&Scanner): &Node [tests/emit/ast.rd:116:17-116:26]
     │              │     │     │arguments:
     │              │     │     └─list (1 elements) () [tests/emit/ast.rd:116:28-116:31]
-    │              │     │        └─variable (name = scan) *Scanner [tests/emit/ast.rd:116:28-116:31]
+    │              │     │        └─variable (name = scan) &Scanner [tests/emit/ast.rd:116:28-116:31]
     │              │     └─if-else () [tests/emit/ast.rd:117:9-123:9]
     │              │        │condition:
     │              │        ├─not equal bool [tests/emit/ast.rd:117:12-117:34]
     │              │        │  │left:
     │              │        │  ├─call Char [tests/emit/ast.rd:117:12-117:27]
     │              │        │  │  │function:
-    │              │        │  │  ├─variable (name = peek_token) fn (*Scanner): Char [tests/emit/ast.rd:117:12-117:21]
+    │              │        │  │  ├─variable (name = peek_token) fn (&Scanner): Char [tests/emit/ast.rd:117:12-117:21]
     │              │        │  │  │arguments:
     │              │        │  │  └─list (1 elements) () [tests/emit/ast.rd:117:23-117:26]
-    │              │        │  │     └─variable (name = scan) *Scanner [tests/emit/ast.rd:117:23-117:26]
+    │              │        │  │     └─variable (name = scan) &Scanner [tests/emit/ast.rd:117:23-117:26]
     │              │        │  │right:
     │              │        │  └─character (value = 41) Char [tests/emit/ast.rd:117:32-117:34]
     │              │        │if_block:
@@ -1113,17 +1113,17 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │              │        │  └─list (2 elements) () [tests/emit/ast.rd:117:37-119:30]
     │              │        │     ├─call () [tests/emit/ast.rd:118:13-118:24]
     │              │        │     │  │function:
-    │              │        │     │  ├─variable (name = free_node) fn (*Node): () [tests/emit/ast.rd:118:13-118:21]
+    │              │        │     │  ├─variable (name = free_node) fn (&Node): () [tests/emit/ast.rd:118:13-118:21]
     │              │        │     │  │arguments:
     │              │        │     │  └─list (1 elements) () [tests/emit/ast.rd:118:23]
-    │              │        │     │     └─variable (name = n) *Node [tests/emit/ast.rd:118:23]
+    │              │        │     │     └─variable (name = n) &Node [tests/emit/ast.rd:118:23]
     │              │        │     └─return () [tests/emit/ast.rd:119:13-119:29]
     │              │        │        │value:
-    │              │        │        └─type conversion *Node [tests/emit/ast.rd:119:20-119:29]
+    │              │        │        └─type conversion &Node [tests/emit/ast.rd:119:20-119:29]
     │              │        │           │left:
     │              │        │           ├─integer (value = 0) {integer} [tests/emit/ast.rd:119:20]
     │              │        │           │right:
-    │              │        │           └─address of *Node [tests/emit/ast.rd:119:25-119:29]
+    │              │        │           └─address of &Node [tests/emit/ast.rd:119:25-119:29]
     │              │        │              │op:
     │              │        │              └─variable (name = Node) Node [tests/emit/ast.rd:119:26-119:29]
     │              │        │else_block:
@@ -1132,24 +1132,24 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │              │           └─list (2 elements) () [tests/emit/ast.rd:120:17-122:21]
     │              │              ├─call Char [tests/emit/ast.rd:121:13-121:28]
     │              │              │  │function:
-    │              │              │  ├─variable (name = next_token) fn (*Scanner): Char [tests/emit/ast.rd:121:13-121:22]
+    │              │              │  ├─variable (name = next_token) fn (&Scanner): Char [tests/emit/ast.rd:121:13-121:22]
     │              │              │  │arguments:
     │              │              │  └─list (1 elements) () [tests/emit/ast.rd:121:24-121:27]
-    │              │              │     └─variable (name = scan) *Scanner [tests/emit/ast.rd:121:24-121:27]
+    │              │              │     └─variable (name = scan) &Scanner [tests/emit/ast.rd:121:24-121:27]
     │              │              └─return () [tests/emit/ast.rd:122:13-122:20]
     │              │                 │value:
-    │              │                 └─variable (name = n) *Node [tests/emit/ast.rd:122:20]
+    │              │                 └─variable (name = n) &Node [tests/emit/ast.rd:122:20]
     │              │else_block:
     │              └─block () [tests/emit/ast.rd:124:12-126:5]
     │                 │nodes:
     │                 └─list (1 elements) () [tests/emit/ast.rd:124:13-125:26]
     │                    └─return () [tests/emit/ast.rd:125:9-125:25]
     │                       │value:
-    │                       └─type conversion *Node [tests/emit/ast.rd:125:16-125:25]
+    │                       └─type conversion &Node [tests/emit/ast.rd:125:16-125:25]
     │                          │left:
     │                          ├─integer (value = 0) {integer} [tests/emit/ast.rd:125:16]
     │                          │right:
-    │                          └─address of *Node [tests/emit/ast.rd:125:21-125:25]
+    │                          └─address of &Node [tests/emit/ast.rd:125:21-125:25]
     │                             │op:
     │                             └─variable (name = Node) Node [tests/emit/ast.rd:125:22-125:25]
     ├─function (flags = none) () [tests/emit/ast.rd:129:1-137:1]
@@ -1247,14 +1247,14 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │                                └─integer (value = 2) int [tests/emit/ast.rd:135:29]
     ├─function (flags = none) () [tests/emit/ast.rd:139:1-153:1]
     │  │name:
-    │  ├─variable (name = eval_node) fn (*Node): int [tests/emit/ast.rd:139:4-139:12]
+    │  ├─variable (name = eval_node) fn (&Node): int [tests/emit/ast.rd:139:4-139:12]
     │  │arguments:
     │  ├─list (1 elements) () [tests/emit/ast.rd:139:14-139:24]
     │  │  └─argument definition () [tests/emit/ast.rd:139:14-139:24]
     │  │     │name:
-    │  │     ├─variable (name = node) *Node [tests/emit/ast.rd:139:14-139:17]
+    │  │     ├─variable (name = node) &Node [tests/emit/ast.rd:139:14-139:17]
     │  │     │type:
-    │  │     └─address of *Node [tests/emit/ast.rd:139:20-139:24]
+    │  │     └─address of &Node [tests/emit/ast.rd:139:20-139:24]
     │  │        │op:
     │  │        └─variable (name = Node) Node [tests/emit/ast.rd:139:21-139:24]
     │  │ret_type:
@@ -1271,7 +1271,7 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │           │  │  │struct:
     │           │  │  ├─dereference Node [tests/emit/ast.rd:140:9-140:13]
     │           │  │  │  │op:
-    │           │  │  │  └─variable (name = node) *Node [tests/emit/ast.rd:140:10-140:13]
+    │           │  │  │  └─variable (name = node) &Node [tests/emit/ast.rd:140:10-140:13]
     │           │  │  │field:
     │           │  │  └─variable (name = op) [tests/emit/ast.rd:140:16-140:17]
     │           │  │right:
@@ -1286,16 +1286,16 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │           │           │left:
     │           │           ├─call int [tests/emit/ast.rd:141:16-141:43]
     │           │           │  │function:
-    │           │           │  ├─variable (name = eval_node) fn (*Node): int [tests/emit/ast.rd:141:16-141:24]
+    │           │           │  ├─variable (name = eval_node) fn (&Node): int [tests/emit/ast.rd:141:16-141:24]
     │           │           │  │arguments:
     │           │           │  └─list (1 elements) () [tests/emit/ast.rd:141:26-141:42]
-    │           │           │     └─index *Node [tests/emit/ast.rd:141:26-141:42]
+    │           │           │     └─index &Node [tests/emit/ast.rd:141:26-141:42]
     │           │           │        │left:
-    │           │           │        ├─struct index [2]*Node [tests/emit/ast.rd:141:26-141:39]
+    │           │           │        ├─struct index [2]&Node [tests/emit/ast.rd:141:26-141:39]
     │           │           │        │  │struct:
     │           │           │        │  ├─dereference Node [tests/emit/ast.rd:141:27-141:31]
     │           │           │        │  │  │op:
-    │           │           │        │  │  └─variable (name = node) *Node [tests/emit/ast.rd:141:28-141:31]
+    │           │           │        │  │  └─variable (name = node) &Node [tests/emit/ast.rd:141:28-141:31]
     │           │           │        │  │field:
     │           │           │        │  └─variable (name = childs) [tests/emit/ast.rd:141:34-141:39]
     │           │           │        │right:
@@ -1303,16 +1303,16 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │           │           │right:
     │           │           └─call int [tests/emit/ast.rd:141:47-141:74]
     │           │              │function:
-    │           │              ├─variable (name = eval_node) fn (*Node): int [tests/emit/ast.rd:141:47-141:55]
+    │           │              ├─variable (name = eval_node) fn (&Node): int [tests/emit/ast.rd:141:47-141:55]
     │           │              │arguments:
     │           │              └─list (1 elements) () [tests/emit/ast.rd:141:57-141:73]
-    │           │                 └─index *Node [tests/emit/ast.rd:141:57-141:73]
+    │           │                 └─index &Node [tests/emit/ast.rd:141:57-141:73]
     │           │                    │left:
-    │           │                    ├─struct index [2]*Node [tests/emit/ast.rd:141:57-141:70]
+    │           │                    ├─struct index [2]&Node [tests/emit/ast.rd:141:57-141:70]
     │           │                    │  │struct:
     │           │                    │  ├─dereference Node [tests/emit/ast.rd:141:58-141:62]
     │           │                    │  │  │op:
-    │           │                    │  │  └─variable (name = node) *Node [tests/emit/ast.rd:141:59-141:62]
+    │           │                    │  │  └─variable (name = node) &Node [tests/emit/ast.rd:141:59-141:62]
     │           │                    │  │field:
     │           │                    │  └─variable (name = childs) [tests/emit/ast.rd:141:65-141:70]
     │           │                    │right:
@@ -1326,7 +1326,7 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │              │  │  │struct:
     │              │  │  ├─dereference Node [tests/emit/ast.rd:142:16-142:20]
     │              │  │  │  │op:
-    │              │  │  │  └─variable (name = node) *Node [tests/emit/ast.rd:142:17-142:20]
+    │              │  │  │  └─variable (name = node) &Node [tests/emit/ast.rd:142:17-142:20]
     │              │  │  │field:
     │              │  │  └─variable (name = op) [tests/emit/ast.rd:142:23-142:24]
     │              │  │right:
@@ -1341,16 +1341,16 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │              │           │left:
     │              │           ├─call int [tests/emit/ast.rd:143:16-143:43]
     │              │           │  │function:
-    │              │           │  ├─variable (name = eval_node) fn (*Node): int [tests/emit/ast.rd:143:16-143:24]
+    │              │           │  ├─variable (name = eval_node) fn (&Node): int [tests/emit/ast.rd:143:16-143:24]
     │              │           │  │arguments:
     │              │           │  └─list (1 elements) () [tests/emit/ast.rd:143:26-143:42]
-    │              │           │     └─index *Node [tests/emit/ast.rd:143:26-143:42]
+    │              │           │     └─index &Node [tests/emit/ast.rd:143:26-143:42]
     │              │           │        │left:
-    │              │           │        ├─struct index [2]*Node [tests/emit/ast.rd:143:26-143:39]
+    │              │           │        ├─struct index [2]&Node [tests/emit/ast.rd:143:26-143:39]
     │              │           │        │  │struct:
     │              │           │        │  ├─dereference Node [tests/emit/ast.rd:143:27-143:31]
     │              │           │        │  │  │op:
-    │              │           │        │  │  └─variable (name = node) *Node [tests/emit/ast.rd:143:28-143:31]
+    │              │           │        │  │  └─variable (name = node) &Node [tests/emit/ast.rd:143:28-143:31]
     │              │           │        │  │field:
     │              │           │        │  └─variable (name = childs) [tests/emit/ast.rd:143:34-143:39]
     │              │           │        │right:
@@ -1358,16 +1358,16 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │              │           │right:
     │              │           └─call int [tests/emit/ast.rd:143:47-143:74]
     │              │              │function:
-    │              │              ├─variable (name = eval_node) fn (*Node): int [tests/emit/ast.rd:143:47-143:55]
+    │              │              ├─variable (name = eval_node) fn (&Node): int [tests/emit/ast.rd:143:47-143:55]
     │              │              │arguments:
     │              │              └─list (1 elements) () [tests/emit/ast.rd:143:57-143:73]
-    │              │                 └─index *Node [tests/emit/ast.rd:143:57-143:73]
+    │              │                 └─index &Node [tests/emit/ast.rd:143:57-143:73]
     │              │                    │left:
-    │              │                    ├─struct index [2]*Node [tests/emit/ast.rd:143:57-143:70]
+    │              │                    ├─struct index [2]&Node [tests/emit/ast.rd:143:57-143:70]
     │              │                    │  │struct:
     │              │                    │  ├─dereference Node [tests/emit/ast.rd:143:58-143:62]
     │              │                    │  │  │op:
-    │              │                    │  │  └─variable (name = node) *Node [tests/emit/ast.rd:143:59-143:62]
+    │              │                    │  │  └─variable (name = node) &Node [tests/emit/ast.rd:143:59-143:62]
     │              │                    │  │field:
     │              │                    │  └─variable (name = childs) [tests/emit/ast.rd:143:65-143:70]
     │              │                    │right:
@@ -1381,7 +1381,7 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │                 │  │  │struct:
     │                 │  │  ├─dereference Node [tests/emit/ast.rd:144:16-144:20]
     │                 │  │  │  │op:
-    │                 │  │  │  └─variable (name = node) *Node [tests/emit/ast.rd:144:17-144:20]
+    │                 │  │  │  └─variable (name = node) &Node [tests/emit/ast.rd:144:17-144:20]
     │                 │  │  │field:
     │                 │  │  └─variable (name = op) [tests/emit/ast.rd:144:23-144:24]
     │                 │  │right:
@@ -1396,16 +1396,16 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │                 │           │left:
     │                 │           ├─call int [tests/emit/ast.rd:145:16-145:43]
     │                 │           │  │function:
-    │                 │           │  ├─variable (name = eval_node) fn (*Node): int [tests/emit/ast.rd:145:16-145:24]
+    │                 │           │  ├─variable (name = eval_node) fn (&Node): int [tests/emit/ast.rd:145:16-145:24]
     │                 │           │  │arguments:
     │                 │           │  └─list (1 elements) () [tests/emit/ast.rd:145:26-145:42]
-    │                 │           │     └─index *Node [tests/emit/ast.rd:145:26-145:42]
+    │                 │           │     └─index &Node [tests/emit/ast.rd:145:26-145:42]
     │                 │           │        │left:
-    │                 │           │        ├─struct index [2]*Node [tests/emit/ast.rd:145:26-145:39]
+    │                 │           │        ├─struct index [2]&Node [tests/emit/ast.rd:145:26-145:39]
     │                 │           │        │  │struct:
     │                 │           │        │  ├─dereference Node [tests/emit/ast.rd:145:27-145:31]
     │                 │           │        │  │  │op:
-    │                 │           │        │  │  └─variable (name = node) *Node [tests/emit/ast.rd:145:28-145:31]
+    │                 │           │        │  │  └─variable (name = node) &Node [tests/emit/ast.rd:145:28-145:31]
     │                 │           │        │  │field:
     │                 │           │        │  └─variable (name = childs) [tests/emit/ast.rd:145:34-145:39]
     │                 │           │        │right:
@@ -1413,16 +1413,16 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │                 │           │right:
     │                 │           └─call int [tests/emit/ast.rd:145:47-145:74]
     │                 │              │function:
-    │                 │              ├─variable (name = eval_node) fn (*Node): int [tests/emit/ast.rd:145:47-145:55]
+    │                 │              ├─variable (name = eval_node) fn (&Node): int [tests/emit/ast.rd:145:47-145:55]
     │                 │              │arguments:
     │                 │              └─list (1 elements) () [tests/emit/ast.rd:145:57-145:73]
-    │                 │                 └─index *Node [tests/emit/ast.rd:145:57-145:73]
+    │                 │                 └─index &Node [tests/emit/ast.rd:145:57-145:73]
     │                 │                    │left:
-    │                 │                    ├─struct index [2]*Node [tests/emit/ast.rd:145:57-145:70]
+    │                 │                    ├─struct index [2]&Node [tests/emit/ast.rd:145:57-145:70]
     │                 │                    │  │struct:
     │                 │                    │  ├─dereference Node [tests/emit/ast.rd:145:58-145:62]
     │                 │                    │  │  │op:
-    │                 │                    │  │  └─variable (name = node) *Node [tests/emit/ast.rd:145:59-145:62]
+    │                 │                    │  │  └─variable (name = node) &Node [tests/emit/ast.rd:145:59-145:62]
     │                 │                    │  │field:
     │                 │                    │  └─variable (name = childs) [tests/emit/ast.rd:145:65-145:70]
     │                 │                    │right:
@@ -1436,7 +1436,7 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │                    │  │  │struct:
     │                    │  │  ├─dereference Node [tests/emit/ast.rd:146:16-146:20]
     │                    │  │  │  │op:
-    │                    │  │  │  └─variable (name = node) *Node [tests/emit/ast.rd:146:17-146:20]
+    │                    │  │  │  └─variable (name = node) &Node [tests/emit/ast.rd:146:17-146:20]
     │                    │  │  │field:
     │                    │  │  └─variable (name = op) [tests/emit/ast.rd:146:23-146:24]
     │                    │  │right:
@@ -1451,16 +1451,16 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │                    │           │left:
     │                    │           ├─call int [tests/emit/ast.rd:147:16-147:43]
     │                    │           │  │function:
-    │                    │           │  ├─variable (name = eval_node) fn (*Node): int [tests/emit/ast.rd:147:16-147:24]
+    │                    │           │  ├─variable (name = eval_node) fn (&Node): int [tests/emit/ast.rd:147:16-147:24]
     │                    │           │  │arguments:
     │                    │           │  └─list (1 elements) () [tests/emit/ast.rd:147:26-147:42]
-    │                    │           │     └─index *Node [tests/emit/ast.rd:147:26-147:42]
+    │                    │           │     └─index &Node [tests/emit/ast.rd:147:26-147:42]
     │                    │           │        │left:
-    │                    │           │        ├─struct index [2]*Node [tests/emit/ast.rd:147:26-147:39]
+    │                    │           │        ├─struct index [2]&Node [tests/emit/ast.rd:147:26-147:39]
     │                    │           │        │  │struct:
     │                    │           │        │  ├─dereference Node [tests/emit/ast.rd:147:27-147:31]
     │                    │           │        │  │  │op:
-    │                    │           │        │  │  └─variable (name = node) *Node [tests/emit/ast.rd:147:28-147:31]
+    │                    │           │        │  │  └─variable (name = node) &Node [tests/emit/ast.rd:147:28-147:31]
     │                    │           │        │  │field:
     │                    │           │        │  └─variable (name = childs) [tests/emit/ast.rd:147:34-147:39]
     │                    │           │        │right:
@@ -1468,16 +1468,16 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │                    │           │right:
     │                    │           └─call int [tests/emit/ast.rd:147:47-147:74]
     │                    │              │function:
-    │                    │              ├─variable (name = eval_node) fn (*Node): int [tests/emit/ast.rd:147:47-147:55]
+    │                    │              ├─variable (name = eval_node) fn (&Node): int [tests/emit/ast.rd:147:47-147:55]
     │                    │              │arguments:
     │                    │              └─list (1 elements) () [tests/emit/ast.rd:147:57-147:73]
-    │                    │                 └─index *Node [tests/emit/ast.rd:147:57-147:73]
+    │                    │                 └─index &Node [tests/emit/ast.rd:147:57-147:73]
     │                    │                    │left:
-    │                    │                    ├─struct index [2]*Node [tests/emit/ast.rd:147:57-147:70]
+    │                    │                    ├─struct index [2]&Node [tests/emit/ast.rd:147:57-147:70]
     │                    │                    │  │struct:
     │                    │                    │  ├─dereference Node [tests/emit/ast.rd:147:58-147:62]
     │                    │                    │  │  │op:
-    │                    │                    │  │  └─variable (name = node) *Node [tests/emit/ast.rd:147:59-147:62]
+    │                    │                    │  │  └─variable (name = node) &Node [tests/emit/ast.rd:147:59-147:62]
     │                    │                    │  │field:
     │                    │                    │  └─variable (name = childs) [tests/emit/ast.rd:147:65-147:70]
     │                    │                    │right:
@@ -1491,7 +1491,7 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │                       │  │  │struct:
     │                       │  │  ├─dereference Node [tests/emit/ast.rd:148:16-148:20]
     │                       │  │  │  │op:
-    │                       │  │  │  └─variable (name = node) *Node [tests/emit/ast.rd:148:17-148:20]
+    │                       │  │  │  └─variable (name = node) &Node [tests/emit/ast.rd:148:17-148:20]
     │                       │  │  │field:
     │                       │  │  └─variable (name = op) [tests/emit/ast.rd:148:23-148:24]
     │                       │  │right:
@@ -1509,32 +1509,32 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │                       │           └─list (2 elements) () [tests/emit/ast.rd:149:20-149:77]
     │                       │              ├─call int [tests/emit/ast.rd:149:20-149:47]
     │                       │              │  │function:
-    │                       │              │  ├─variable (name = eval_node) fn (*Node): int [tests/emit/ast.rd:149:20-149:28]
+    │                       │              │  ├─variable (name = eval_node) fn (&Node): int [tests/emit/ast.rd:149:20-149:28]
     │                       │              │  │arguments:
     │                       │              │  └─list (1 elements) () [tests/emit/ast.rd:149:30-149:46]
-    │                       │              │     └─index *Node [tests/emit/ast.rd:149:30-149:46]
+    │                       │              │     └─index &Node [tests/emit/ast.rd:149:30-149:46]
     │                       │              │        │left:
-    │                       │              │        ├─struct index [2]*Node [tests/emit/ast.rd:149:30-149:43]
+    │                       │              │        ├─struct index [2]&Node [tests/emit/ast.rd:149:30-149:43]
     │                       │              │        │  │struct:
     │                       │              │        │  ├─dereference Node [tests/emit/ast.rd:149:31-149:35]
     │                       │              │        │  │  │op:
-    │                       │              │        │  │  └─variable (name = node) *Node [tests/emit/ast.rd:149:32-149:35]
+    │                       │              │        │  │  └─variable (name = node) &Node [tests/emit/ast.rd:149:32-149:35]
     │                       │              │        │  │field:
     │                       │              │        │  └─variable (name = childs) [tests/emit/ast.rd:149:38-149:43]
     │                       │              │        │right:
     │                       │              │        └─integer (value = 0) {integer} [tests/emit/ast.rd:149:45]
     │                       │              └─call int [tests/emit/ast.rd:149:50-149:77]
     │                       │                 │function:
-    │                       │                 ├─variable (name = eval_node) fn (*Node): int [tests/emit/ast.rd:149:50-149:58]
+    │                       │                 ├─variable (name = eval_node) fn (&Node): int [tests/emit/ast.rd:149:50-149:58]
     │                       │                 │arguments:
     │                       │                 └─list (1 elements) () [tests/emit/ast.rd:149:60-149:76]
-    │                       │                    └─index *Node [tests/emit/ast.rd:149:60-149:76]
+    │                       │                    └─index &Node [tests/emit/ast.rd:149:60-149:76]
     │                       │                       │left:
-    │                       │                       ├─struct index [2]*Node [tests/emit/ast.rd:149:60-149:73]
+    │                       │                       ├─struct index [2]&Node [tests/emit/ast.rd:149:60-149:73]
     │                       │                       │  │struct:
     │                       │                       │  ├─dereference Node [tests/emit/ast.rd:149:61-149:65]
     │                       │                       │  │  │op:
-    │                       │                       │  │  └─variable (name = node) *Node [tests/emit/ast.rd:149:62-149:65]
+    │                       │                       │  │  └─variable (name = node) &Node [tests/emit/ast.rd:149:62-149:65]
     │                       │                       │  │field:
     │                       │                       │  └─variable (name = childs) [tests/emit/ast.rd:149:68-149:73]
     │                       │                       │right:
@@ -1549,7 +1549,7 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │                                   │struct:
     │                                   ├─dereference Node [tests/emit/ast.rd:151:17-151:21]
     │                                   │  │op:
-    │                                   │  └─variable (name = node) *Node [tests/emit/ast.rd:151:18-151:21]
+    │                                   │  └─variable (name = node) &Node [tests/emit/ast.rd:151:18-151:21]
     │                                   │field:
     │                                   └─variable (name = val) [tests/emit/ast.rd:151:24-151:26]
     └─function (flags = public) () [tests/emit/ast.rd:155:1-185:1]
@@ -1602,10 +1602,10 @@ root () [tests/emit/ast.rd:1:1-185:1]
              │           │  │left:
              │           │  ├─call Char [tests/emit/ast.rd:159:12-159:28]
              │           │  │  │function:
-             │           │  │  ├─variable (name = peek_token) fn (*Scanner): Char [tests/emit/ast.rd:159:12-159:21]
+             │           │  │  ├─variable (name = peek_token) fn (&Scanner): Char [tests/emit/ast.rd:159:12-159:21]
              │           │  │  │arguments:
              │           │  │  └─list (1 elements) () [tests/emit/ast.rd:159:23-159:27]
-             │           │  │     └─address of *Scanner [tests/emit/ast.rd:159:23-159:27]
+             │           │  │     └─address of &Scanner [tests/emit/ast.rd:159:23-159:27]
              │           │  │        │op:
              │           │  │        └─variable (name = scan) Scanner [tests/emit/ast.rd:159:24-159:27]
              │           │  │right:
@@ -1625,16 +1625,16 @@ root () [tests/emit/ast.rd:1:1-185:1]
              │              └─list (2 elements) () [tests/emit/ast.rd:161:17-181:13]
              │                 ├─variable definition () [tests/emit/ast.rd:162:13-162:40]
              │                 │  │name:
-             │                 │  ├─variable (name = node) *Node [tests/emit/ast.rd:162:17-162:20]
+             │                 │  ├─variable (name = node) &Node [tests/emit/ast.rd:162:17-162:20]
              │                 │  │type:
              │                 │  ├─null
              │                 │  │val:
-             │                 │  └─call *Node [tests/emit/ast.rd:162:24-162:40]
+             │                 │  └─call &Node [tests/emit/ast.rd:162:24-162:40]
              │                 │     │function:
-             │                 │     ├─variable (name = parse_expr) fn (*Scanner): *Node [tests/emit/ast.rd:162:24-162:33]
+             │                 │     ├─variable (name = parse_expr) fn (&Scanner): &Node [tests/emit/ast.rd:162:24-162:33]
              │                 │     │arguments:
              │                 │     └─list (1 elements) () [tests/emit/ast.rd:162:35-162:39]
-             │                 │        └─address of *Scanner [tests/emit/ast.rd:162:35-162:39]
+             │                 │        └─address of &Scanner [tests/emit/ast.rd:162:35-162:39]
              │                 │           │op:
              │                 │           └─variable (name = scan) Scanner [tests/emit/ast.rd:162:36-162:39]
              │                 └─if-else () [tests/emit/ast.rd:163:13-181:13]
@@ -1645,10 +1645,10 @@ root () [tests/emit/ast.rd:1:1-185:1]
              │                    │  │  │left:
              │                    │  │  ├─call Char [tests/emit/ast.rd:163:16-163:32]
              │                    │  │  │  │function:
-             │                    │  │  │  ├─variable (name = peek_token) fn (*Scanner): Char [tests/emit/ast.rd:163:16-163:25]
+             │                    │  │  │  ├─variable (name = peek_token) fn (&Scanner): Char [tests/emit/ast.rd:163:16-163:25]
              │                    │  │  │  │arguments:
              │                    │  │  │  └─list (1 elements) () [tests/emit/ast.rd:163:27-163:31]
-             │                    │  │  │     └─address of *Scanner [tests/emit/ast.rd:163:27-163:31]
+             │                    │  │  │     └─address of &Scanner [tests/emit/ast.rd:163:27-163:31]
              │                    │  │  │        │op:
              │                    │  │  │        └─variable (name = scan) Scanner [tests/emit/ast.rd:163:28-163:31]
              │                    │  │  │right:
@@ -1656,13 +1656,13 @@ root () [tests/emit/ast.rd:1:1-185:1]
              │                    │  │right:
              │                    │  └─not equal bool [tests/emit/ast.rd:163:45-163:62]
              │                    │     │left:
-             │                    │     ├─variable (name = node) *Node [tests/emit/ast.rd:163:45-163:48]
+             │                    │     ├─variable (name = node) &Node [tests/emit/ast.rd:163:45-163:48]
              │                    │     │right:
-             │                    │     └─type conversion *Node [tests/emit/ast.rd:163:53-163:62]
+             │                    │     └─type conversion &Node [tests/emit/ast.rd:163:53-163:62]
              │                    │        │left:
              │                    │        ├─integer (value = 0) {integer} [tests/emit/ast.rd:163:53]
              │                    │        │right:
-             │                    │        └─address of *Node [tests/emit/ast.rd:163:58-163:62]
+             │                    │        └─address of &Node [tests/emit/ast.rd:163:58-163:62]
              │                    │           │op:
              │                    │           └─variable (name = Node) Node [tests/emit/ast.rd:163:59-163:62]
              │                    │if_block:
@@ -1671,51 +1671,51 @@ root () [tests/emit/ast.rd:1:1-185:1]
              │                    │  └─list (3 elements) () [tests/emit/ast.rd:163:65-166:32]
              │                    │     ├─call Char [tests/emit/ast.rd:164:17-164:33]
              │                    │     │  │function:
-             │                    │     │  ├─variable (name = next_token) fn (*Scanner): Char [tests/emit/ast.rd:164:17-164:26]
+             │                    │     │  ├─variable (name = next_token) fn (&Scanner): Char [tests/emit/ast.rd:164:17-164:26]
              │                    │     │  │arguments:
              │                    │     │  └─list (1 elements) () [tests/emit/ast.rd:164:28-164:32]
-             │                    │     │     └─address of *Scanner [tests/emit/ast.rd:164:28-164:32]
+             │                    │     │     └─address of &Scanner [tests/emit/ast.rd:164:28-164:32]
              │                    │     │        │op:
              │                    │     │        └─variable (name = scan) Scanner [tests/emit/ast.rd:164:29-164:32]
-             │                    │     ├─call i32 [tests/emit/ast.rd:165:17-165:51]
+             │                    │     ├─call i32 [tests/emit/ast.rd:165:17-165:52]
              │                    │     │  │function:
-             │                    │     │  ├─variable (name = printf) fn (*u8, ..): i32 [tests/emit/ast.rd:165:17-165:22]
+             │                    │     │  ├─variable (name = printf) fn (&u8, ..): i32 [tests/emit/ast.rd:165:17-165:22]
              │                    │     │  │arguments:
-             │                    │     │  └─list (2 elements) () [tests/emit/ast.rd:165:24-165:50]
-             │                    │     │     ├─string (value =  = %li
-) *u8 [tests/emit/ast.rd:165:24-165:33]
-             │                    │     │     └─call int [tests/emit/ast.rd:165:36-165:50]
+             │                    │     │  └─list (2 elements) () [tests/emit/ast.rd:165:24-165:51]
+             │                    │     │     ├─string (value =  = %lli
+) &u8 [tests/emit/ast.rd:165:24-165:34]
+             │                    │     │     └─call int [tests/emit/ast.rd:165:37-165:51]
              │                    │     │        │function:
-             │                    │     │        ├─variable (name = eval_node) fn (*Node): int [tests/emit/ast.rd:165:36-165:44]
+             │                    │     │        ├─variable (name = eval_node) fn (&Node): int [tests/emit/ast.rd:165:37-165:45]
              │                    │     │        │arguments:
-             │                    │     │        └─list (1 elements) () [tests/emit/ast.rd:165:46-165:49]
-             │                    │     │           └─variable (name = node) *Node [tests/emit/ast.rd:165:46-165:49]
+             │                    │     │        └─list (1 elements) () [tests/emit/ast.rd:165:47-165:50]
+             │                    │     │           └─variable (name = node) &Node [tests/emit/ast.rd:165:47-165:50]
              │                    │     └─call () [tests/emit/ast.rd:166:17-166:31]
              │                    │        │function:
-             │                    │        ├─variable (name = free_node) fn (*Node): () [tests/emit/ast.rd:166:17-166:25]
+             │                    │        ├─variable (name = free_node) fn (&Node): () [tests/emit/ast.rd:166:17-166:25]
              │                    │        │arguments:
              │                    │        └─list (1 elements) () [tests/emit/ast.rd:166:27-166:30]
-             │                    │           └─variable (name = node) *Node [tests/emit/ast.rd:166:27-166:30]
+             │                    │           └─variable (name = node) &Node [tests/emit/ast.rd:166:27-166:30]
              │                    │else_block:
              │                    └─block () [tests/emit/ast.rd:167:20-181:13]
              │                       │nodes:
              │                       └─list (2 elements) () [tests/emit/ast.rd:167:21-180:17]
              │                          ├─call () [tests/emit/ast.rd:168:17-168:31]
              │                          │  │function:
-             │                          │  ├─variable (name = free_node) fn (*Node): () [tests/emit/ast.rd:168:17-168:25]
+             │                          │  ├─variable (name = free_node) fn (&Node): () [tests/emit/ast.rd:168:17-168:25]
              │                          │  │arguments:
              │                          │  └─list (1 elements) () [tests/emit/ast.rd:168:27-168:30]
-             │                          │     └─variable (name = node) *Node [tests/emit/ast.rd:168:27-168:30]
+             │                          │     └─variable (name = node) &Node [tests/emit/ast.rd:168:27-168:30]
              │                          └─if-else () [tests/emit/ast.rd:169:17-180:17]
              │                             │condition:
              │                             ├─less or equal bool [tests/emit/ast.rd:169:20-169:41]
              │                             │  │left:
              │                             │  ├─call Char [tests/emit/ast.rd:169:20-169:36]
              │                             │  │  │function:
-             │                             │  │  ├─variable (name = peek_token) fn (*Scanner): Char [tests/emit/ast.rd:169:20-169:29]
+             │                             │  │  ├─variable (name = peek_token) fn (&Scanner): Char [tests/emit/ast.rd:169:20-169:29]
              │                             │  │  │arguments:
              │                             │  │  └─list (1 elements) () [tests/emit/ast.rd:169:31-169:35]
-             │                             │  │     └─address of *Scanner [tests/emit/ast.rd:169:31-169:35]
+             │                             │  │     └─address of &Scanner [tests/emit/ast.rd:169:31-169:35]
              │                             │  │        │op:
              │                             │  │        └─variable (name = scan) Scanner [tests/emit/ast.rd:169:32-169:35]
              │                             │  │right:
@@ -1750,10 +1750,10 @@ root () [tests/emit/ast.rd:1:1-185:1]
              │                                   │     └─list (2 elements) () [tests/emit/ast.rd:172:41-174:38]
              │                                   │        ├─call i32 [tests/emit/ast.rd:173:25-173:35]
              │                                   │        │  │function:
-             │                                   │        │  ├─variable (name = printf) fn (*u8, ..): i32 [tests/emit/ast.rd:173:25-173:30]
+             │                                   │        │  ├─variable (name = printf) fn (&u8, ..): i32 [tests/emit/ast.rd:173:25-173:30]
              │                                   │        │  │arguments:
              │                                   │        │  └─list (1 elements) () [tests/emit/ast.rd:173:32-173:34]
-             │                                   │        │     └─string (value =  ) *u8 [tests/emit/ast.rd:173:32-173:34]
+             │                                   │        │     └─string (value =  ) &u8 [tests/emit/ast.rd:173:32-173:34]
              │                                   │        └─sub assign () [tests/emit/ast.rd:174:25-174:37]
              │                                   │           │left:
              │                                   │           ├─struct index int [tests/emit/ast.rd:174:25-174:32]
@@ -1765,21 +1765,21 @@ root () [tests/emit/ast.rd:1:1-185:1]
              │                                   │           └─integer (value = 1) int [tests/emit/ast.rd:174:37]
              │                                   ├─call i32 [tests/emit/ast.rd:176:21-176:46]
              │                                   │  │function:
-             │                                   │  ├─variable (name = printf) fn (*u8, ..): i32 [tests/emit/ast.rd:176:21-176:26]
+             │                                   │  ├─variable (name = printf) fn (&u8, ..): i32 [tests/emit/ast.rd:176:21-176:26]
              │                                   │  │arguments:
              │                                   │  └─list (1 elements) () [tests/emit/ast.rd:176:28-176:45]
              │                                   │     └─string (value = ^ syntax error
-) *u8 [tests/emit/ast.rd:176:28-176:45]
+) &u8 [tests/emit/ast.rd:176:28-176:45]
              │                                   └─while () [tests/emit/ast.rd:177:21-179:21]
              │                                      │condition:
              │                                      ├─not equal bool [tests/emit/ast.rd:177:27-177:51]
              │                                      │  │left:
              │                                      │  ├─call Char [tests/emit/ast.rd:177:27-177:43]
              │                                      │  │  │function:
-             │                                      │  │  ├─variable (name = next_token) fn (*Scanner): Char [tests/emit/ast.rd:177:27-177:36]
+             │                                      │  │  ├─variable (name = next_token) fn (&Scanner): Char [tests/emit/ast.rd:177:27-177:36]
              │                                      │  │  │arguments:
              │                                      │  │  └─list (1 elements) () [tests/emit/ast.rd:177:38-177:42]
-             │                                      │  │     └─address of *Scanner [tests/emit/ast.rd:177:38-177:42]
+             │                                      │  │     └─address of &Scanner [tests/emit/ast.rd:177:38-177:42]
              │                                      │  │        │op:
              │                                      │  │        └─variable (name = scan) Scanner [tests/emit/ast.rd:177:39-177:42]
              │                                      │  │right:

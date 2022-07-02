@@ -234,7 +234,7 @@ static void buildTypeNameInto(StringBuilder* dst, Type* type) {
             }
             case TYPE_POINTER: {
                 TypePointer* t = (TypePointer*)type;
-                pushToStringBuilder(dst, str("*"));
+                pushToStringBuilder(dst, str("&"));
                 buildTypeNameInto(dst, t->base);
                 break;
             }

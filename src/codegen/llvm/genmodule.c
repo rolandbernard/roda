@@ -571,39 +571,32 @@ LlvmCodegenValue buildLlvmFunctionBody(LlvmCodegenContext* context, LlvmCodegenM
         }
         case AST_INDEX: {
             AstBinary* n = (AstBinary*)node;
-            if (isPointerType(n->left->res_type)) {
-                LLVMValueRef pointer = getCodegenValue(context, data, n->left);
-                LLVMValueRef index = getCodegenValue(context, data, n->right);
-                LLVMValueRef value = LLVMBuildGEP2(data->builder, generateLlvmType(context, n->res_type), pointer, &index, 1, "index");
+            LlvmCodegenValue array = buildLlvmFunctionBody(context, data, n->left);
+            LLVMValueRef index = getCodegenValue(context, data, n->right);
+            LLVMValueRef indicies[2] = {
+                LLVMConstInt(LLVMIntPtrTypeInContext(context->llvm_cxt, context->target_data), 0, false), index
+            };
+            if (array.is_reference) {
+                LLVMValueRef value = LLVMBuildGEP2(
+                    data->builder, generateLlvmType(context, n->left->res_type), array.value, indicies, 2, "index"
+                );
                 return createLlvmCodegenValue(value, true);
+            } else if (LLVMIsConstant(index)) {
+                size_t idx = LLVMConstIntGetZExtValue(index);
+                LLVMValueRef value = LLVMBuildExtractValue(data->builder, array.value, idx, "index");
+                return createLlvmCodegenValue(value, false);
             } else {
-                LlvmCodegenValue array = buildLlvmFunctionBody(context, data, n->left);
-                LLVMValueRef index = getCodegenValue(context, data, n->right);
-                LLVMValueRef indicies[2] = {
-                    LLVMConstInt(LLVMIntPtrTypeInContext(context->llvm_cxt, context->target_data), 0, false), index
-                };
-                if (array.is_reference) {
-                    LLVMValueRef value = LLVMBuildGEP2(
-                        data->builder, generateLlvmType(context, n->left->res_type), array.value, indicies, 2, "index"
-                    );
-                    return createLlvmCodegenValue(value, true);
-                } else if (LLVMIsConstant(index)) {
-                    size_t idx = LLVMConstIntGetZExtValue(index);
-                    LLVMValueRef value = LLVMBuildExtractValue(data->builder, array.value, idx, "index");
-                    return createLlvmCodegenValue(value, false);
-                } else {
-                    LLVMValueRef stack = buildLlvmIntrinsicCall(context, data, "llvm.stacksave", NULL, 0, "stacksave", false);
-                    LLVMValueRef tmp = LLVMBuildAlloca(
-                        data->builder, generateLlvmType(context, n->left->res_type), "tmp"
-                    );
-                    buildLlvmStore(context, data, n->left->res_type, array.value, tmp);
-                    LLVMValueRef value_ref = LLVMBuildGEP2(
-                        data->builder, generateLlvmType(context, n->left->res_type), tmp, indicies, 2, "index"
-                    );
-                    LLVMValueRef value = LLVMBuildLoad2(data->builder, generateLlvmType(context, n->res_type), value_ref, "tmp");
-                    buildLlvmIntrinsicCall(context, data, "llvm.stackrestore", &stack, 1, "", false);
-                    return createLlvmCodegenValue(value, false);
-                }
+                LLVMValueRef stack = buildLlvmIntrinsicCall(context, data, "llvm.stacksave", NULL, 0, "stacksave", false);
+                LLVMValueRef tmp = LLVMBuildAlloca(
+                    data->builder, generateLlvmType(context, n->left->res_type), "tmp"
+                );
+                buildLlvmStore(context, data, n->left->res_type, array.value, tmp);
+                LLVMValueRef value_ref = LLVMBuildGEP2(
+                    data->builder, generateLlvmType(context, n->left->res_type), tmp, indicies, 2, "index"
+                );
+                LLVMValueRef value = LLVMBuildLoad2(data->builder, generateLlvmType(context, n->res_type), value_ref, "tmp");
+                buildLlvmIntrinsicCall(context, data, "llvm.stackrestore", &stack, 1, "", false);
+                return createLlvmCodegenValue(value, false);
             }
         }
         case AST_CONTINUE:

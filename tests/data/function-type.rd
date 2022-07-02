@@ -5,8 +5,8 @@ fn foo(a: int, b: int): int {
 }
 
 pub fn main(): bool {
-    let a = *foo;
-    let b = *a;
-    let c = *b;
-    return (& & &c)(2, 3) != 12;
+    let a = &foo;
+    let b = &a;
+    let c = &b;
+    return (***c)(2, 3) != 12;
 }

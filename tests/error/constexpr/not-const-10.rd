@@ -3,6 +3,6 @@
 
 pub fn main(): int {
     let a: int;
-    let b: [*a]u8;
+    let b: [&a]u8;
     return 0;
 }

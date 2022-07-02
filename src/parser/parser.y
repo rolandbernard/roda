@@ -206,7 +206,8 @@ type    : var                                   { $$ = (AstNode*)$1; }
         | '(' arg_def_list ',' ')'              { fitAstList($2); $$ = (AstNode*)$2; $$->kind = AST_STRUCT_TYPE; $$->location = @$; }
         | '(' type_list_nonempty ')'            { fitAstList($2); $$ = (AstNode*)$2; $$->kind = AST_TUPLE_TYPE; $$->location = @$; }
         | '(' type_list_nonempty ',' ')'        { fitAstList($2); $$ = (AstNode*)$2; $$->kind = AST_TUPLE_TYPE; $$->location = @$; }
-        | '*' type          %prec UNARY_PRE     { $$ = (AstNode*)createAstUnary(@$, AST_ADDR, $2); }
+        | '&' type          %prec UNARY_PRE     { $$ = (AstNode*)createAstUnary(@$, AST_ADDR, $2); }
+        | "&&" type         %prec UNARY_PRE     { $$ = (AstNode*)createAstUnary(@$, AST_ADDR, (AstNode*)createAstUnary(@$, AST_ADDR, $2)); }
         | '[' expr ']' type %prec UNARY_PRE     { $$ = (AstNode*)createAstBinary(@$, AST_ARRAY, $2, $4); }
         | "fn" '(' arg_types ')'                { $$ = (AstNode*)createAstFnType(@$, $3.list, NULL, $3.flags != AST_FN_FLAG_NONE); }
         | "fn" '(' arg_types ')' ':' type       { $$ = (AstNode*)createAstFnType(@$, $3.list, $6, $3.flags != AST_FN_FLAG_NONE); }
@@ -245,8 +246,9 @@ expr    : var                           { $$ = (AstNode*)$1; }
         | '(' tuple_vals ')'            { fitAstList($2); $$ = (AstNode*)$2; $$->kind = AST_TUPLE_LIT; $$->location = @$; }
         | '-' expr %prec UNARY_PRE      { $$ = (AstNode*)createAstUnary(@$, AST_NEG, $2); }
         | '+' expr %prec UNARY_PRE      { $$ = (AstNode*)createAstUnary(@$, AST_POS, $2); }
-        | '*' expr %prec UNARY_PRE      { $$ = (AstNode*)createAstUnary(@$, AST_ADDR, $2); }
-        | '&' expr %prec UNARY_PRE      { $$ = (AstNode*)createAstUnary(@$, AST_DEREF, $2); }
+        | '&' expr %prec UNARY_PRE      { $$ = (AstNode*)createAstUnary(@$, AST_ADDR, $2); }
+        | "&&" expr %prec UNARY_PRE     { $$ = (AstNode*)createAstUnary(@$, AST_ADDR, (AstNode*)createAstUnary(@$, AST_ADDR, $2)); }
+        | '*' expr %prec UNARY_PRE      { $$ = (AstNode*)createAstUnary(@$, AST_DEREF, $2); }
         | '!' expr %prec UNARY_PRE      { $$ = (AstNode*)createAstUnary(@$, AST_NOT, $2); }
         | expr '[' expr ']'             { $$ = (AstNode*)createAstBinary(@$, AST_INDEX, $1, $3); }
         | expr '(' list ')'             { fitAstList($3); $$ = (AstNode*)createAstCall(@$, $1, $3); }

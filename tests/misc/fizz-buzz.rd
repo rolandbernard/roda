@@ -1,7 +1,7 @@
 // test: FizzBuzz should be printed
 // stdout: != 
 
-extern fn printf(fmt: *u8, ..);
+extern fn printf(fmt: &u8, ..);
 
 pub fn main(): int {
     let i = 1;
