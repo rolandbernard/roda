@@ -1,10 +1,10 @@
 
+#include "types/eval.h"
 #include "ast/astprinter.h"
-#include "compiler/typecheck.h"
-#include "compiler/typeeval.h"
-#include "compiler/typeinfer.h"
 #include "errors/fatalerror.h"
 #include "text/format.h"
+#include "types/check.h"
+#include "types/infer.h"
 
 #include "consteval/eval.h"
 
@@ -177,14 +177,16 @@ static ConstValue raiseTypeErrorNotInConst(CompilerContext* context, AstNode* no
 #define BINARY_OP(ACTION) {                                                                         \
     AstBinary* n = (AstBinary*)node;                                                                \
     ConstValue left = evaluateConstExpr(context, n->left);                                          \
-    ConstValue right = evaluateConstExpr(context, n->right);                                        \
     if (isErrorType(left.type)) {                                                                   \
         res = left;                                                                                 \
-    } else if (isErrorType(right.type)) {                                                           \
-        res = right;                                                                                \
-    } else if (!compareStructuralTypes(left.type, right.type)) {                                    \
-        res = raiseTypeErrorDifferent(context, node, n->left, n->right, left.type, right.type);     \
-    } else { ACTION }                                                                               \
+    } else {                                                                                        \
+        ConstValue right = evaluateConstExpr(context, n->right);                                    \
+        if (isErrorType(right.type)) {                                                              \
+            res = right;                                                                            \
+        } else if (!compareStructuralTypes(left.type, right.type)) {                                \
+            res = raiseTypeErrorDifferent(context, node, n->left, n->right, left.type, right.type); \
+        } else { ACTION }                                                                           \
+    }                                                                                               \
     break;                                                                                          \
 }
 
@@ -231,6 +233,8 @@ static ConstValue raiseTypeErrorNotInConst(CompilerContext* context, AstNode* no
     } else { ACTION }                                   \
     break;                                              \
 }
+
+#define RECURSION_CHECK_TYPE ((Type*)-1)
 
 ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
     if (node == NULL) {
@@ -286,10 +290,18 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
             case AST_VAR: {
                 AstVar* n = (AstVar*)node;
                 SymbolVariable* var = (SymbolVariable*)n->binding;
-                if (var->value.type == NULL) {
-                    evaluateConstantDefinition(context, (AstVarDef*)var->def->parent);
+                if (var->value.type == RECURSION_CHECK_TYPE) {
+                    addMessageToContext(&context->msgs, createMessage(ERROR_INVALID_CONST,
+                        createFormattedString("recursive reference in constant definition of `%s`", var->name), 1,
+                        createMessageFragment(MESSAGE_ERROR, copyFromCString("recursive reference to constant"), node->location)
+                    ));
+                    res = createConstError(context);
+                } else {
+                    if (var->value.type == NULL) {
+                        evaluateConstantDefinition(context, (AstVarDef*)var->def->parent);
+                    }
+                    res = var->value;
                 }
-                res = var->value;
                 break;
             }
             case AST_BLOCK_EXPR: {
@@ -589,14 +601,8 @@ void evaluateConstantDefinition(CompilerContext* context, AstVarDef* def) {
     }
     if (context->msgs.error_count == old_error && def->name->binding != NULL) {
         SymbolVariable* var = (SymbolVariable*)def->name->binding;
-        var->value = createConstError(context);
+        var->value.type = RECURSION_CHECK_TYPE;
         var->value = evaluateConstExpr(context, def->val);
-        if (isErrorType(var->value.type) && context->msgs.error_count == old_error) {
-            addMessageToContext(&context->msgs, createMessage(ERROR_INVALID_CONST,
-                    copyFromCString("invalid value for constant definition"), 1,
-                    createMessageFragment(MESSAGE_ERROR, copyFromCString("invalid value"), def->val->location)
-            ));
-        }
     }
 }
 

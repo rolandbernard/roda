@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#include "compiler/types.h"
+#include "types/types.h"
 
 typedef struct {
     Type* type;

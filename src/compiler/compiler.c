@@ -1,12 +1,13 @@
 
 #include "ast/astprinter.h"
-#include "compiler/typeinfer.h"
-#include "compiler/typecheck.h"
+#include "codegen/codegen.h"
 #include "compiler/controlflow.h"
 #include "compiler/varbuild.h"
+#include "consteval/defeval.h"
 #include "errors/msgprint.h"
 #include "parser/wrapper.h"
-#include "codegen/codegen.h"
+#include "types/check.h"
+#include "types/infer.h"
 #include "util/debug.h"
 
 #include "compiler/compiler.h"

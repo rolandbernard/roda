@@ -2,15 +2,15 @@
 #include <string.h>
 
 #include "consteval/eval.h"
-#include "compiler/typecheck.h"
-#include "compiler/typeinfer.h"
 #include "errors/fatalerror.h"
 #include "errors/msgkind.h"
 #include "text/format.h"
+#include "types/check.h"
+#include "types/infer.h"
 #include "util/alloc.h"
 #include "util/sort.h"
 
-#include "compiler/typeeval.h"
+#include "types/eval.h"
 
 static void swapStructFields(size_t i, size_t j, void* cxt) {
     AstStructField** fields = (AstStructField**)cxt;

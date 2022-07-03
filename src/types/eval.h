@@ -2,8 +2,8 @@
 #define _RODA_COMPILER_TYPEEVAL_H_
 
 #include "ast/ast.h"
-#include "compiler/types.h"
 #include "compiler/context.h"
+#include "types/types.h"
 
 Type* evaluateTypeExpr(CompilerContext* context, AstNode* node);
 

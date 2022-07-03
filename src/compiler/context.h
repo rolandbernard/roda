@@ -2,10 +2,10 @@
 #define _RODA_COMPILER_CONTEXT_H_
 
 #include "compiler/symboltable.h"
-#include "compiler/types.h"
 #include "errors/msgcontext.h"
 #include "files/fileset.h"
 #include "text/symbol.h"
+#include "types/types.h"
 #include "util/tmpalloc.h"
 
 typedef enum {

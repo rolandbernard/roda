@@ -1,10 +1,10 @@
 
-#include "compiler/typeeval.h"
 #include "errors/fatalerror.h"
+#include "types/check.h"
+#include "types/eval.h"
 #include "util/alloc.h"
-#include "compiler/typecheck.h"
 
-#include "compiler/typeinfer.h"
+#include "types/infer.h"
 
 static void raiseConflictingTypes(CompilerContext* context, AstNode* node, Type* other) {
     String fst_type = buildTypeName(node->res_type);

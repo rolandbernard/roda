@@ -3,14 +3,14 @@
 #include <string.h>
 
 #include "compiler/variable.h"
-#include "compiler/typeeval.h"
+#include "types/eval.h"
 #include "errors/fatalerror.h"
 #include "text/format.h"
 #include "util/alloc.h"
 #include "util/hash.h"
 #include "util/sort.h"
 
-#include "compiler/types.h"
+#include "types/types.h"
 
 #define INITIAL_CAPACITY 32
 

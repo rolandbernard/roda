@@ -1,9 +1,9 @@
 
 #include "ast/astprinter.h"
-#include "compiler/typeeval.h"
+#include "types/eval.h"
 #include "errors/fatalerror.h"
 
-#include "compiler/typecheck.h"
+#include "types/check.h"
 
 static void checkForUntypedVariables(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
