@@ -1,21 +1,9 @@
-#ifndef _RODA_COMPILER_CONSTEVAL_H_
-#define _RODA_COMPILER_CONSTEVAL_H_
-
-#include <stdint.h>
+#ifndef _RODA_CONSTEVAL_EVAL_H_
+#define _RODA_CONSTEVAL_EVAL_H_
 
 #include "ast/ast.h"
 #include "compiler/context.h"
-
-typedef struct {
-    Type* type;
-    union {
-        intmax_t sint;
-        uintmax_t uint;
-        float f32;
-        double f64;
-        bool boolean;
-    };
-} ConstValue;
+#include "consteval/value.h"
 
 ConstValue createConstError(CompilerContext* context);
 
@@ -32,5 +20,7 @@ ConstValue createConstBool(CompilerContext* context, bool value);
 ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node);
 
 bool checkValidInConstExpr(CompilerContext* context, AstNode* node);
+
+void evaluateConstantDefinition(CompilerContext* context, AstVarDef* def);
 
 #endif

@@ -1,6 +1,7 @@
 
 #include "ast/ast.h"
 #include "ast/astprinter.h"
+#include "consteval/eval.h"
 #include "errors/fatalerror.h"
 #include "text/format.h"
 #include "text/string.h"
@@ -147,12 +148,13 @@ static void buildLocalSymbolTables(CompilerContext* context, AstNode* node, Symb
                 buildLocalSymbolTables(context, (AstNode*)n->nodes, &n->vars, type);
                 break;
             }
+            case AST_CONSTDEF:
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
                 buildLocalSymbolTables(context, n->type, scope, true);
                 buildLocalSymbolTables(context, n->val, scope, type);
                 if (n->name->binding == NULL) { // Might be global and therefore already initialized
-                    n->name->binding = (SymbolEntry*)createVariableSymbol(n->name->name, n->name);
+                    n->name->binding = (SymbolEntry*)createVariableSymbol(n->name->name, n->name, node->kind == AST_CONSTDEF);
                     addSymbolToTable(scope, n->name->binding);
                 }
                 break;
@@ -200,7 +202,7 @@ static void buildLocalSymbolTables(CompilerContext* context, AstNode* node, Symb
                 AstArgDef* n = (AstArgDef*)node;
                 buildLocalSymbolTables(context, n->type, scope, true);
                 if (checkNotExisting(context, scope, n->name, SYMBOL_VARIABLE)) {
-                    n->name->binding = (SymbolEntry*)createVariableSymbol(n->name->name, n->name);
+                    n->name->binding = (SymbolEntry*)createVariableSymbol(n->name->name, n->name, false);
                     addSymbolToTable(scope, n->name->binding);
                 }
                 break;
@@ -269,7 +271,7 @@ static void buildRootSymbolTables(CompilerContext* context, AstNode* node, Symbo
             case AST_FN: {
                 AstFn* n = (AstFn*)node;
                 if (checkNotExisting(context, scope, n->name, SYMBOL_VARIABLE)) {
-                    n->name->binding = (SymbolEntry*)createVariableSymbol(n->name->name, n->name);
+                    n->name->binding = (SymbolEntry*)createVariableSymbol(n->name->name, n->name, false);
                     addSymbolToTable(scope, n->name->binding);
                 }
                 break;
@@ -282,10 +284,11 @@ static void buildRootSymbolTables(CompilerContext* context, AstNode* node, Symbo
                 }
                 break;
             }
+            case AST_CONSTDEF:
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
                 if (checkNotExisting(context, scope, n->name, SYMBOL_VARIABLE)) {
-                    n->name->binding = (SymbolEntry*)createVariableSymbol(n->name->name, n->name);
+                    n->name->binding = (SymbolEntry*)createVariableSymbol(n->name->name, n->name, node->kind == AST_CONSTDEF);
                     addSymbolToTable(scope, n->name->binding);
                 }
                 break;
@@ -427,6 +430,14 @@ static void buildControlFlowReferences(CompilerContext* context, ControlFlowRefB
                 buildControlFlowReferences(context, data, (AstNode*)n->nodes);
                 break;
             }
+            case AST_CONSTDEF: {
+                AstVarDef* n = (AstVarDef*)node;
+                AstNode* prev = data->break_target;
+                data->break_target = NULL;
+                buildControlFlowReferences(context, data, n->val);
+                data->break_target = prev;
+                break;
+            }
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
                 buildControlFlowReferences(context, data, n->val);
@@ -495,6 +506,39 @@ void runControlFlowReferenceResolution(CompilerContext* context) {
     };
     FOR_ALL_MODULES({
         buildControlFlowReferences(context, &data, file->ast);
+    });
+}
+
+static void evaluateConstantValueDefinitions(CompilerContext* context, AstNode* node) {
+    if (node != NULL) {
+        switch (node->kind) {
+            case AST_LIST: {
+                AstList* n = (AstList*)node;
+                for (size_t i = 0; i < n->count; i++) {
+                    evaluateConstantValueDefinitions(context, n->nodes[i]);
+                }
+                break;
+            }
+            case AST_ROOT: {
+                AstRoot* n = (AstRoot*)node;
+                evaluateConstantValueDefinitions(context, (AstNode*)n->nodes);
+                break;
+            }
+            case AST_CONSTDEF: {
+                AstVarDef* n = (AstVarDef*)node;
+                evaluateConstantDefinition(context, n);
+                break;
+            }
+            default:
+                // We only want to consider the global scope
+                break;
+        }
+    }
+}
+
+void runConstantValueEvaluation(CompilerContext* context) {
+    FOR_ALL_MODULES({
+        evaluateConstantValueDefinitions(context, file->ast);
     });
 }
 

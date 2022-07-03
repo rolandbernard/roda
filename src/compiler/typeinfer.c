@@ -189,6 +189,7 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
                 }
                 break;
             }
+            case AST_CONSTDEF:
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
                 if (n->val != NULL) {
@@ -787,15 +788,17 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                 evaluateTypeHints(context, (AstNode*)n->nodes);
                 break;
             }
+            case AST_CONSTDEF:
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
                 moveTypeIntoAstNode(context, node, createUnsizedPrimitiveType(&context->types, node, TYPE_VOID));
                 if (n->type != NULL) {
                     n->name->res_type = evaluateTypeExpr(context, n->type);
                     if (!isValidType(n->name->res_type)) {
+                        const char* type = node->kind == AST_CONSTDEF ? "constant" : "variable";
                         String type_name = buildTypeName(n->name->res_type);
                         addMessageToContext(&context->msgs, createMessage(ERROR_INVALID_TYPE,
-                            createFormattedString("type error, variable has invalid type `%s`", cstr(type_name)), 1,
+                            createFormattedString("type error, %s has invalid type `%s`", type, cstr(type_name)), 1,
                             createMessageFragment(MESSAGE_ERROR, createFormattedString("this type is invalid"), n->type->location)
                         ));
                         freeString(type_name);
@@ -1057,6 +1060,7 @@ static void propagateAllTypes(CompilerContext* context, AstNode* node) {
                 propagateVariableReferences(context, n->name);
                 break;
             }
+            case AST_CONSTDEF:
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
                 propagateVariableReferences(context, n->name);
@@ -1156,6 +1160,7 @@ static void assumeAmbiguousTypes(CompilerContext* context, AssumeAmbiguousPhase 
                 }
                 break;
             }
+            case AST_CONSTDEF:
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
                 assumeAmbiguousTypes(context, phase, n->val);
@@ -1296,6 +1301,7 @@ static void assumeAmbiguousTypes(CompilerContext* context, AssumeAmbiguousPhase 
 void typeInferExpr(CompilerContext* context, AstNode* node, Type* assumption) {
     evaluateTypeHints(context, node);
     propagateAllTypes(context, node); 
+    assumeAmbiguousTypes(context, ASSUME_SIZEOF | ASSUME_INDEX, node);
     assumeAmbiguousTypes(context, ASSUME_LITERALS, node);
     assumeAmbiguousTypes(context, ASSUME_CASTS, node);
     if (assumption != NULL && node->res_type == NULL) {
@@ -1303,6 +1309,12 @@ void typeInferExpr(CompilerContext* context, AstNode* node, Type* assumption) {
         if (moveTypeIntoAstNode(context, node, type)) {
             propagateTypes(context, node->parent);
         }
+    }
+    if (context->msgs.error_count == 0) {
+        checkTypeConstraints(context, node);
+    }
+    if (context->msgs.error_count == 0) {
+        assumeAmbiguousTypes(context, ASSUME_VARS, node); 
     }
 }
 

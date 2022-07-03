@@ -60,6 +60,7 @@ typedef enum {
     // Other
     AST_VAR,
     AST_VARDEF,
+    AST_CONSTDEF,
     AST_IF_ELSE,
     AST_IF_ELSE_EXPR,
     AST_WHILE,
@@ -277,7 +278,7 @@ AstIfElse* createAstIfElse(Span loc, AstNodeKind kind, AstNode* cond, AstNode* i
 
 AstVar* createAstVar(Span loc, Symbol name);
 
-AstVarDef* createAstVarDef(Span loc, AstVar* name, AstNode* type, AstNode* val, AstVarFlags flags);
+AstVarDef* createAstVarDef(Span loc, AstNodeKind kind, AstVar* name, AstNode* type, AstNode* val, AstVarFlags flags);
 
 AstWhile* createAstWhile(Span loc, AstNode* cond, AstNode* block);
 

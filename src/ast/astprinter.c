@@ -71,6 +71,7 @@ static const char* ast_type_names[] = {
     // Other
     [AST_VAR] = "variable",
     [AST_VARDEF] = "variable definition",
+    [AST_CONSTDEF] = "constant definition",
     [AST_IF_ELSE] = "if-else",
     [AST_IF_ELSE_EXPR] = "if-else",
     [AST_WHILE] = "while",
@@ -315,6 +316,7 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
                 fprintf(file, "\n");
                 break;
             }
+            case AST_CONSTDEF:
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
                 if (n->flags != AST_VAR_FLAG_NONE) {

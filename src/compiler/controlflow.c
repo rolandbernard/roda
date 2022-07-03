@@ -110,6 +110,8 @@ static bool controlFlowEndsWithReturn(CompilerContext* context, AstNode* node) {
                 AstBlock* n = (AstBlock*)node;
                 return controlFlowEndsWithReturn(context, (AstNode*)n->nodes);
             }
+            case AST_CONSTDEF:
+                return false;
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
                 return controlFlowEndsWithReturn(context, n->val);

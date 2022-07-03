@@ -1,10 +1,12 @@
 
 #include "ast/astprinter.h"
+#include "compiler/typecheck.h"
+#include "compiler/typeeval.h"
+#include "compiler/typeinfer.h"
 #include "errors/fatalerror.h"
 #include "text/format.h"
-#include "compiler/typeeval.h"
 
-#include "compiler/consteval.h"
+#include "consteval/eval.h"
 
 ConstValue createConstError(CompilerContext* context) {
     ConstValue ret = { .type = getErrorType(&context->types) };
@@ -80,7 +82,7 @@ static ConstValue raiseTypeErrorDifferent(
         &context->msgs,
         createMessage(
             ERROR_INCOMPATIBLE_TYPE,
-            createFormattedString("type error, incompatible types in %s expression, `%s ` and `%s`", getAstPrintName(node->kind), cstr(lhs_type), cstr(rhs_type)), 3,
+            createFormattedString("type error, incompatible types in %s expression, `%s` and `%s`", getAstPrintName(node->kind), cstr(lhs_type), cstr(rhs_type)), 3,
             createMessageFragment(MESSAGE_ERROR, createFormattedString("types `%s` and `%s` are incompatible", cstr(lhs_type), cstr(rhs_type)), node->location),
             createMessageFragment(MESSAGE_NOTE, createFormattedString("note: lhs has type `%s`", cstr(lhs_type)), left->location),
             createMessageFragment(MESSAGE_NOTE, createFormattedString("note: rhs has type `%s`", cstr(rhs_type)), right->location)
@@ -266,8 +268,8 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
             case AST_ARRAY:
             case AST_LIST:
             case AST_BLOCK:
+            case AST_CONSTDEF:
             case AST_VARDEF:
-            case AST_VAR:
             case AST_INDEX:
             case AST_VOID:
             case AST_ARRAY_LIT:
@@ -281,6 +283,15 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
             case AST_ADDR:
             case AST_DEREF:
                 UNREACHABLE("should not evaluate");
+            case AST_VAR: {
+                AstVar* n = (AstVar*)node;
+                SymbolVariable* var = (SymbolVariable*)n->binding;
+                if (var->value.type == NULL) {
+                    evaluateConstantDefinition(context, (AstVarDef*)var->def->parent);
+                }
+                res = var->value;
+                break;
+            }
             case AST_BLOCK_EXPR: {
                 AstBlock* n = (AstBlock*)node;
                 for (size_t i = 0; i < n->nodes->count; i++) {
@@ -484,9 +495,9 @@ bool checkValidInConstExpr(CompilerContext* context, AstNode* node) {
             case AST_ARRAY:
             case AST_LIST:
             case AST_BLOCK:
+            case AST_CONSTDEF:
             case AST_VARDEF:
             case AST_VOID:
-            case AST_VAR: // TODO: constant variables?
             case AST_INDEX: // TODO: constant arrays?
             case AST_ARRAY_LIT:
             case AST_TUPLE_INDEX: // TODO: tuple in const?
@@ -501,6 +512,16 @@ bool checkValidInConstExpr(CompilerContext* context, AstNode* node) {
                 // None of these are allowed in constant expressions.
                 raiseOpErrorNotInConst(context, node);
                 return false;
+            }
+            case AST_VAR: {
+                AstVar* n = (AstVar*)node;
+                SymbolVariable* var = (SymbolVariable*)n->binding;
+                if (var != NULL && var->constant) {
+                    return true;
+                } else {
+                    raiseOpErrorNotInConst(context, node);
+                    return false;
+                }
             }
             case AST_BLOCK_EXPR: {
                 AstBlock* n = (AstBlock*)node;
@@ -557,6 +578,25 @@ bool checkValidInConstExpr(CompilerContext* context, AstNode* node) {
             }
         }
         return false;
+    }
+}
+
+void evaluateConstantDefinition(CompilerContext* context, AstVarDef* def) {
+    size_t old_error = context->msgs.error_count;
+    if (checkValidInConstExpr(context, def->val)) {
+        typeInferExpr(context, (AstNode*)def, NULL);
+        typeCheckExpr(context, (AstNode*)def);
+    }
+    if (context->msgs.error_count == old_error && def->name->binding != NULL) {
+        SymbolVariable* var = (SymbolVariable*)def->name->binding;
+        var->value = createConstError(context);
+        var->value = evaluateConstExpr(context, def->val);
+        if (isErrorType(var->value.type) && context->msgs.error_count == old_error) {
+            addMessageToContext(&context->msgs, createMessage(ERROR_INVALID_CONST,
+                    copyFromCString("invalid value for constant definition"), 1,
+                    createMessageFragment(MESSAGE_ERROR, copyFromCString("invalid value"), def->val->location)
+            ));
+        }
     }
 }
 

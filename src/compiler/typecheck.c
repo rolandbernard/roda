@@ -150,19 +150,33 @@ static void checkForUntypedVariables(CompilerContext* context, AstNode* node) {
                 AstArgDef* n = (AstArgDef*)node;
                 if (n->name->res_type == NULL) {
                     addMessageToContext(&context->msgs, createMessage(ERROR_UNINFERRED_TYPE,
-                        createFormattedString("type error, unable to infer the type of variable `%s`", n->name->name), 1,
-                        createMessageFragment(MESSAGE_ERROR, copyFromCString("unable to infer the type of this variable"), n->name->location)
+                        createFormattedString("type error, unable to infer the type of parameter `%s`", n->name->name), 1,
+                        createMessageFragment(MESSAGE_ERROR, copyFromCString("unable to infer the type of this parameter"), n->name->location)
                     ));
                 }
                 break;
             }
+            case AST_CONSTDEF:
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
                 if (isPartialType(n->name->res_type)) {
-                    addMessageToContext(&context->msgs, createMessage(ERROR_UNINFERRED_TYPE,
-                        createFormattedString("type error, unable to infer the type of variable `%s`", n->name->name), 1,
-                        createMessageFragment(MESSAGE_ERROR, copyFromCString("unable to infer the type of this variable"), n->name->location)
-                    ));
+                    const char* type = node->kind == AST_CONSTDEF ? "constant" : "variable";
+                    addMessageToContext(
+                        &context->msgs,
+                        createMessage(
+                            ERROR_UNINFERRED_TYPE,
+                            createFormattedString(
+                                "type error, unable to infer the type of %s `%s`", type,
+                                n->name->name
+                            ),
+                            1,
+                            createMessageFragment(
+                                MESSAGE_ERROR,
+                                createFormattedString("unable to infer the type of this %s", type),
+                                n->name->location
+                            )
+                        )
+                    );
                     fillPartialType(n->name->res_type, getErrorType(&context->types));
                 }
                 checkForUntypedVariables(context, n->val);
@@ -324,6 +338,7 @@ static void checkForUntypedNodes(CompilerContext* context, AstNode* node) {
                     checkForUntypedNodes(context, n->body);
                     break;
                 }
+                case AST_CONSTDEF:
                 case AST_VARDEF: {
                     AstVarDef* n = (AstVarDef*)node;
                     checkForUntypedNodes(context, n->val);
@@ -637,7 +652,11 @@ void raiseLiteralLengthMismatchError(CompilerContext* context, AstNode* node, co
 static bool isAddressableValue(AstNode* node) {
     if (node == NULL) {
         return false;
-    } else if (node->kind == AST_VAR || node->kind == AST_DEREF) {
+    } else if (node->kind == AST_VAR) {
+        AstVar* n = (AstVar*)node;
+        SymbolVariable* var = (SymbolVariable*)n->binding;
+        return !var->constant;
+    } else if (node->kind == AST_DEREF) {
         return true;
     } else if (node->kind == AST_INDEX) {
         AstBinary* n = (AstBinary*)node;
@@ -1100,22 +1119,24 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                 if (n->name->res_type != NULL && !isErrorType(n->name->res_type) && !isSizedType(n->name->res_type)) {
                     String type_name = buildTypeName(n->name->res_type);
                     addMessageToContext(&context->msgs, createMessage(ERROR_INVALID_TYPE,
-                        createFormattedString("type error, unsized type `%s` for variable `%s`", cstr(type_name), n->name->name), 1,
-                        createMessageFragment(MESSAGE_ERROR, copyFromCString("variable with unsized type"), n->name->location)
+                        createFormattedString("type error, unsized type `%s` for parameter `%s`", cstr(type_name), n->name->name), 1,
+                        createMessageFragment(MESSAGE_ERROR, copyFromCString("parameter with unsized type"), n->name->location)
                     ));
                     freeString(type_name);
                     break;
                 }
                 break;
             }
+            case AST_CONSTDEF:
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
                 checkTypeConstraints(context, n->val);
                 if (n->name->res_type != NULL && !isErrorType(n->name->res_type) && !isSizedType(n->name->res_type)) {
+                    const char* type = node->kind == AST_CONSTDEF ? "constant" : "variable";
                     String type_name = buildTypeName(n->name->res_type);
                     addMessageToContext(&context->msgs, createMessage(ERROR_INVALID_TYPE,
-                        createFormattedString("type error, unsized type `%s` for variable `%s`", cstr(type_name), n->name->name), 1,
-                        createMessageFragment(MESSAGE_ERROR, copyFromCString("variable with unsized type"), n->name->location)
+                        createFormattedString("type error, unsized type `%s` for %s `%s`", cstr(type_name), type, n->name->name), 1,
+                        createMessageFragment(MESSAGE_ERROR, createFormattedString("%s with unsized type", type), n->name->location)
                     ));
                     freeString(type_name);
                     break;

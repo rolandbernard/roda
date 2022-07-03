@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <string.h>
 
+#include "codegen/llvm/genconst.h"
 #include "codegen/llvm/gentype.h"
 #include "codegen/llvm/typedebug.h"
 #include "errors/fatalerror.h"
@@ -290,7 +291,11 @@ LlvmCodegenValue buildLlvmFunctionBody(LlvmCodegenContext* context, LlvmCodegenM
         case AST_VAR: {
             AstVar* n = (AstVar*)node;
             SymbolVariable* var = (SymbolVariable*)n->binding;
-            return createLlvmCodegenValue(CODEGEN(var)->value, true);
+            if (var->constant) {
+                return createLlvmCodegenValue(generateLlvmConstValue(context, var->value), false);
+            } else {
+                return createLlvmCodegenValue(CODEGEN(var)->value, true);
+            }
         }
         case AST_VOID: {
             LLVMValueRef value = LLVMGetUndef(generateLlvmType(context, node->res_type));
@@ -447,6 +452,8 @@ LlvmCodegenValue buildLlvmFunctionBody(LlvmCodegenContext* context, LlvmCodegenM
             LLVMValueRef value = getCodegenValue(context, data, n->op);
             return createLlvmCodegenValue(value, true);
         }
+        case AST_CONSTDEF:
+            return createLlvmCodegenVoidValue(context);
         case AST_VARDEF: {
             AstVarDef* n = (AstVarDef*)node;
             if (n->val != NULL) {
@@ -795,6 +802,8 @@ static void buildFunctionVariables(LlvmCodegenContext* context, LlvmCodegenModul
                 }
                 break;
             }
+            case AST_CONSTDEF:
+                break;
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
                 SymbolVariable* var = (SymbolVariable*)n->name->binding;
@@ -988,6 +997,8 @@ static void buildGlobalsAndFunctionStubs(LlvmCodegenContext* context, LlvmCodege
                 CODEGEN(func)->value = value;
                 break;
             }
+            case AST_CONSTDEF:
+                break;
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
                 SymbolVariable* var = (SymbolVariable*)n->name->binding;

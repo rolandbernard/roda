@@ -26,6 +26,7 @@ static const char* message_kind_strings[] = {
     [ERROR_DUPLICATE_STRUCT_FIELD] = "duplicate-struct-field",
     [ERROR_NO_SUCH_FIELD] = "no-such-filed",
     [ERROR_NO_SUCH_TARGET] = "no-target",
+    [ERROR_INVALID_CONST] = "invalid-const",
     [WARNING_UNKNOWN] = "unknown",
     [WARNING_CMD_ARGS] = "cmd-line-args",
     [WARNING_LLVM_BACKEND_WARNING] = "llvm-backend-warning",

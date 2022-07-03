@@ -67,9 +67,9 @@ AstVar* createAstVar(Span loc, Symbol name) {
     return node;
 }
 
-AstVarDef* createAstVarDef(Span loc, AstVar* name, AstNode* type, AstNode* val, AstVarFlags flags) {
+AstVarDef* createAstVarDef(Span loc, AstNodeKind kind, AstVar* name, AstNode* type, AstNode* val, AstVarFlags flags) {
     AstVarDef* node = NEW(AstVarDef);
-    initAstNode((AstNode*)node, AST_VARDEF, loc);
+    initAstNode((AstNode*)node, kind, loc);
     node->name = name;
     node->type = type;
     node->val = val;
@@ -311,6 +311,7 @@ void freeAstNode(AstNode* node) {
                 freeAstNode((AstNode*)n->nodes);
                 break;
             }
+            case AST_CONSTDEF:
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
                 freeAstNode((AstNode*)n->name);

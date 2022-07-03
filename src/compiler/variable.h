@@ -2,6 +2,7 @@
 #define _RODA_ANALYSIS_VARIABLE_H_
 
 #include "compiler/types.h"
+#include "consteval/value.h"
 #include "files/file.h"
 #include "text/string.h"
 #include "text/symbol.h"
@@ -26,7 +27,8 @@ typedef struct SymbolEntry {
 typedef struct {
     SYMBOL_ENTRY_BASE
     Type* type;
-    struct AstNode* type_reasoning;
+    bool constant;
+    ConstValue value;
 } SymbolVariable;
 
 typedef struct SymbolType {
@@ -44,7 +46,7 @@ typedef struct SymbolType {
 
 void freeSymbolEntry(SymbolEntry* var);
 
-SymbolVariable* createVariableSymbol(Symbol name, struct AstVar* def);
+SymbolVariable* createVariableSymbol(Symbol name, struct AstVar* def, bool constant);
 
 SymbolType* createTypeSymbol(Symbol name, struct AstVar* def);
 

@@ -1,7 +1,7 @@
 
 #include <string.h>
 
-#include "compiler/consteval.h"
+#include "consteval/eval.h"
 #include "compiler/typecheck.h"
 #include "compiler/typeinfer.h"
 #include "errors/fatalerror.h"
@@ -135,6 +135,7 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
             case AST_LIST:
             case AST_BLOCK:
             case AST_BLOCK_EXPR:
+            case AST_CONSTDEF:
             case AST_VARDEF: {
                 UNREACHABLE("should not evaluate");
             }

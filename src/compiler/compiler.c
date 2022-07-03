@@ -28,6 +28,10 @@ void runCompilation(CompilerContext* context) {
         printAndClearMessages(context, stderr);
     }
     if (context->msgs.error_count == 0) {
+        runConstantValueEvaluation(context);
+        DEBUG_LOG(context, "finished constant value evaluation");
+    }
+    if (context->msgs.error_count == 0) {
         runTypeInference(context);
         DEBUG_LOG(context, "finished type inference");
         DEBUG_DO(context, COMPILER_DEBUG_TYPED_AST, {
