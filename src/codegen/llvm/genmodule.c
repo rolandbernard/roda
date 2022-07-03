@@ -452,6 +452,7 @@ LlvmCodegenValue buildLlvmFunctionBody(LlvmCodegenContext* context, LlvmCodegenM
             LLVMValueRef value = getCodegenValue(context, data, n->op);
             return createLlvmCodegenValue(value, true);
         }
+        case AST_STATICDEF:
         case AST_CONSTDEF:
             return createLlvmCodegenVoidValue(context);
         case AST_VARDEF: {
@@ -802,6 +803,7 @@ static void buildFunctionVariables(LlvmCodegenContext* context, LlvmCodegenModul
                 }
                 break;
             }
+            case AST_STATICDEF:
             case AST_CONSTDEF:
                 break;
             case AST_VARDEF: {
@@ -997,9 +999,7 @@ static void buildGlobalsAndFunctionStubs(LlvmCodegenContext* context, LlvmCodege
                 CODEGEN(func)->value = value;
                 break;
             }
-            case AST_CONSTDEF:
-                break;
-            case AST_VARDEF: {
+            case AST_STATICDEF: {
                 AstVarDef* n = (AstVarDef*)node;
                 SymbolVariable* var = (SymbolVariable*)n->name->binding;
                 LLVMTypeRef type = generateLlvmType(context, var->type);

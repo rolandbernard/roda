@@ -189,6 +189,7 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
                 }
                 break;
             }
+            case AST_STATICDEF:
             case AST_CONSTDEF:
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
@@ -788,6 +789,7 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                 evaluateTypeHints(context, (AstNode*)n->nodes);
                 break;
             }
+            case AST_STATICDEF:
             case AST_CONSTDEF:
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
@@ -795,7 +797,7 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                 if (n->type != NULL) {
                     n->name->res_type = evaluateTypeExpr(context, n->type);
                     if (!isValidType(n->name->res_type)) {
-                        const char* type = node->kind == AST_CONSTDEF ? "constant" : "variable";
+                        const char* type = node->kind == AST_CONSTDEF ? "constant" : (node->kind == AST_STATICDEF ? "static" : "variable");
                         String type_name = buildTypeName(n->name->res_type);
                         addMessageToContext(&context->msgs, createMessage(ERROR_INVALID_TYPE,
                             createFormattedString("type error, %s has invalid type `%s`", type, cstr(type_name)), 1,
@@ -1060,6 +1062,7 @@ static void propagateAllTypes(CompilerContext* context, AstNode* node) {
                 propagateVariableReferences(context, n->name);
                 break;
             }
+            case AST_STATICDEF:
             case AST_CONSTDEF:
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
@@ -1160,6 +1163,7 @@ static void assumeAmbiguousTypes(CompilerContext* context, AssumeAmbiguousPhase 
                 }
                 break;
             }
+            case AST_STATICDEF:
             case AST_CONSTDEF:
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;

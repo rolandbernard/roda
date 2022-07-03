@@ -272,6 +272,7 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
             case AST_ARRAY:
             case AST_LIST:
             case AST_BLOCK:
+            case AST_STATICDEF:
             case AST_CONSTDEF:
             case AST_VARDEF:
             case AST_INDEX:
@@ -507,6 +508,7 @@ bool checkValidInConstExpr(CompilerContext* context, AstNode* node) {
             case AST_ARRAY:
             case AST_LIST:
             case AST_BLOCK:
+            case AST_STATICDEF:
             case AST_CONSTDEF:
             case AST_VARDEF:
             case AST_VOID:

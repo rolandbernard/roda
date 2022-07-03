@@ -61,6 +61,7 @@ typedef enum {
     AST_VAR,
     AST_VARDEF,
     AST_CONSTDEF,
+    AST_STATICDEF,
     AST_IF_ELSE,
     AST_IF_ELSE_EXPR,
     AST_WHILE,

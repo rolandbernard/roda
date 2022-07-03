@@ -311,6 +311,7 @@ void freeAstNode(AstNode* node) {
                 freeAstNode((AstNode*)n->nodes);
                 break;
             }
+            case AST_STATICDEF:
             case AST_CONSTDEF:
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;

@@ -2,7 +2,7 @@
 
 const x: int = 3;
 const y: f64 = 3.5;
-const z = 5;
+const z: int = 5;
 
 pub fn main(): int {
     let a: [3]int;

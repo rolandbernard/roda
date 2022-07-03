@@ -3,7 +3,7 @@
 
 type File = ();
 
-extern let stderr: &File;
+extern static stderr: &File;
 extern fn fprintf(file: &File, fmt: &u8, ..): i32;
 
 pub fn main(): int {

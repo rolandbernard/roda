@@ -148,15 +148,19 @@ static void buildLocalSymbolTables(CompilerContext* context, AstNode* node, Symb
                 buildLocalSymbolTables(context, (AstNode*)n->nodes, &n->vars, type);
                 break;
             }
-            case AST_CONSTDEF:
+            case AST_STATICDEF:
+            case AST_CONSTDEF: {
+                AstVarDef* n = (AstVarDef*)node;
+                buildLocalSymbolTables(context, n->type, scope, true);
+                buildLocalSymbolTables(context, n->val, scope, type);
+                break;
+            }
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
                 buildLocalSymbolTables(context, n->type, scope, true);
                 buildLocalSymbolTables(context, n->val, scope, type);
-                if (n->name->binding == NULL) { // Might be global and therefore already initialized
-                    n->name->binding = (SymbolEntry*)createVariableSymbol(n->name->name, n->name, node->kind == AST_CONSTDEF);
-                    addSymbolToTable(scope, n->name->binding);
-                }
+                n->name->binding = (SymbolEntry*)createVariableSymbol(n->name->name, n->name, false);
+                addSymbolToTable(scope, n->name->binding);
                 break;
             }
             case AST_IF_ELSE_EXPR:
@@ -284,8 +288,8 @@ static void buildRootSymbolTables(CompilerContext* context, AstNode* node, Symbo
                 }
                 break;
             }
-            case AST_CONSTDEF:
-            case AST_VARDEF: {
+            case AST_STATICDEF:
+            case AST_CONSTDEF: {
                 AstVarDef* n = (AstVarDef*)node;
                 if (checkNotExisting(context, scope, n->name, SYMBOL_VARIABLE)) {
                     n->name->binding = (SymbolEntry*)createVariableSymbol(n->name->name, n->name, node->kind == AST_CONSTDEF);
@@ -430,12 +434,16 @@ static void buildControlFlowReferences(CompilerContext* context, ControlFlowRefB
                 buildControlFlowReferences(context, data, (AstNode*)n->nodes);
                 break;
             }
+            case AST_STATICDEF:
             case AST_CONSTDEF: {
                 AstVarDef* n = (AstVarDef*)node;
-                AstNode* prev = data->break_target;
+                AstFn* prev_func = data->function;
+                AstNode* prev_break = data->break_target;
+                data->function = NULL;
                 data->break_target = NULL;
                 buildControlFlowReferences(context, data, n->val);
-                data->break_target = prev;
+                data->function = prev_func;
+                data->break_target = prev_break;
                 break;
             }
             case AST_VARDEF: {

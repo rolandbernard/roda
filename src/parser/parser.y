@@ -78,6 +78,7 @@ extern void yyerror(YYLTYPE* yyllocp, yyscan_t scanner, ParserContext* context, 
 %token BREAK            "break"
 %token CONTINUE         "continue"
 %token CONST            "const"
+%token STATIC           "static"
 %token EQ               "=="
 %token NE               "!="
 %token LE               "<="
@@ -132,10 +133,10 @@ root_stmt : error                                               { $$ = createAst
           | "extern" "fn" var '(' arg_defs ')' opt_type ';'     { $$ = (AstNode*)createAstFn(@$, $3, $5.list, $7, NULL, AST_FN_FLAG_EXTERN | $5.flags); }
           | "fn" var '(' arg_defs ')' opt_type block            { $$ = (AstNode*)createAstFn(@$, $2, $4.list, $6, $7, $4.flags); }
           | "type" var '=' type ';'                             { $$ = (AstNode*)createAstTypeDef(@$, $2, $4); }
-          | "let" var opt_type                                  { $$ = (AstNode*)createAstVarDef(@$, AST_VARDEF, $2, $3, NULL, AST_VAR_FLAG_NONE); }
-          | "pub" "let" var opt_type                            { $$ = (AstNode*)createAstVarDef(@$, AST_VARDEF, $3, $4, NULL, AST_VAR_FLAG_PUBLIC); }
-          | "extern" "let" var opt_type                         { $$ = (AstNode*)createAstVarDef(@$, AST_VARDEF, $3, $4, NULL, AST_VAR_FLAG_EXTERN); }
-          | "const" var opt_type '=' expr                       { $$ = (AstNode*)createAstVarDef(@$, AST_CONSTDEF, $2, $3, $5, AST_VAR_FLAG_NONE); }
+          | "static" var ':' type                               { $$ = (AstNode*)createAstVarDef(@$, AST_STATICDEF, $2, $4, NULL, AST_VAR_FLAG_NONE); }
+          | "pub" "static" var ':' type                         { $$ = (AstNode*)createAstVarDef(@$, AST_STATICDEF, $3, $5, NULL, AST_VAR_FLAG_PUBLIC); }
+          | "extern" "static" var ':' type                      { $$ = (AstNode*)createAstVarDef(@$, AST_STATICDEF, $3, $5, NULL, AST_VAR_FLAG_EXTERN); }
+          | "const" var ':' type '=' expr                       { $$ = (AstNode*)createAstVarDef(@$, AST_CONSTDEF, $2, $4, $6, AST_VAR_FLAG_NONE); }
           ;
 
 opt_type : %empty   { $$ = NULL; }

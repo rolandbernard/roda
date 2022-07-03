@@ -8,7 +8,7 @@ pub fn main(): int {
     return 0;
 }
 
-const z = x * 2 - 1;
+const z: int = x * 2 - 1;
 const x: int = 3;
 const y: f64 = x as f64 + 0.5;
 

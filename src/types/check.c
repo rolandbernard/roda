@@ -156,11 +156,12 @@ static void checkForUntypedVariables(CompilerContext* context, AstNode* node) {
                 }
                 break;
             }
+            case AST_STATICDEF:
             case AST_CONSTDEF:
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
                 if (isPartialType(n->name->res_type)) {
-                    const char* type = node->kind == AST_CONSTDEF ? "constant" : "variable";
+                    const char* type = node->kind == AST_CONSTDEF ? "constant" : (node->kind == AST_STATICDEF ? "static" : "variable");
                     addMessageToContext(
                         &context->msgs,
                         createMessage(
@@ -338,6 +339,7 @@ static void checkForUntypedNodes(CompilerContext* context, AstNode* node) {
                     checkForUntypedNodes(context, n->body);
                     break;
                 }
+                case AST_STATICDEF:
                 case AST_CONSTDEF:
                 case AST_VARDEF: {
                     AstVarDef* n = (AstVarDef*)node;
@@ -1127,12 +1129,13 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                 }
                 break;
             }
+            case AST_STATICDEF:
             case AST_CONSTDEF:
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
                 checkTypeConstraints(context, n->val);
                 if (n->name->res_type != NULL && !isErrorType(n->name->res_type) && !isSizedType(n->name->res_type)) {
-                    const char* type = node->kind == AST_CONSTDEF ? "constant" : "variable";
+                    const char* type = node->kind == AST_CONSTDEF ? "constant" : (node->kind == AST_STATICDEF ? "static" : "variable");
                     String type_name = buildTypeName(n->name->res_type);
                     addMessageToContext(&context->msgs, createMessage(ERROR_INVALID_TYPE,
                         createFormattedString("type error, unsized type `%s` for %s `%s`", cstr(type_name), type, n->name->name), 1,

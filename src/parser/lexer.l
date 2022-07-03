@@ -61,6 +61,7 @@ REAL    [0-9][_0-9]*(\.[0-9][_0-9]*)?([eE][-+]?[0-9][_0-9]*)?
 "break"         { return BREAK; }
 "continue"      { return CONTINUE; }
 "const"         { return CONST; }
+"static"        { return STATIC; }
 
 "=="            { return EQ; }
 "!="            { return NE; }

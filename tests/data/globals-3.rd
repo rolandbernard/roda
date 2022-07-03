@@ -10,7 +10,7 @@ pub fn main(): int {
     return 0;
 }
 
-let a: int;
-let b: int;
-let c;
+static a: int;
+static b: int;
+static c: int;
 

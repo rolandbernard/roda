@@ -2,7 +2,7 @@
 
 const x: int = 3;
 const y: f64 = x as f64 + 0.5;
-const z = x * 2 - 1;
+const z: int = x * 2 - 1;
 
 pub fn main(): int {
     let a: [3]int;
