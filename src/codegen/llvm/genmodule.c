@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <string.h>
 
+#include "ast/astwalk.h"
 #include "codegen/llvm/genconst.h"
 #include "codegen/llvm/gentype.h"
 #include "codegen/llvm/typedebug.h"
@@ -676,116 +677,11 @@ LlvmCodegenValue buildLlvmFunctionBody(LlvmCodegenContext* context, LlvmCodegenM
 static void buildFunctionVariables(LlvmCodegenContext* context, LlvmCodegenModuleContext* data, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
-            case AST_FN_TYPE:
-            case AST_STRUCT_TYPE:
-            case AST_TUPLE_TYPE:
-            case AST_ARRAY: {
-                UNREACHABLE("should not evaluate");
-            }
-            case AST_ERROR:
-            case AST_VAR:
-            case AST_VOID:
-            case AST_STR:
-            case AST_INT:
-            case AST_CHAR:
-            case AST_BOOL:
-            case AST_REAL:
-            case AST_BREAK:
-            case AST_CONTINUE:
+            case AST_CONSTDEF:
+            case AST_STATICDEF:
+            case AST_TYPEDEF:
+            case AST_FN:
                 break;
-            case AST_ADD_ASSIGN:
-            case AST_SUB_ASSIGN:
-            case AST_MUL_ASSIGN:
-            case AST_DIV_ASSIGN:
-            case AST_MOD_ASSIGN:
-            case AST_SHL_ASSIGN:
-            case AST_SHR_ASSIGN:
-            case AST_BAND_ASSIGN:
-            case AST_BOR_ASSIGN:
-            case AST_BXOR_ASSIGN:
-            case AST_ASSIGN: {
-                AstBinary* n = (AstBinary*)node;
-                buildFunctionVariables(context, data, n->right);
-                buildFunctionVariables(context, data, n->left);
-                break;
-            }
-            case AST_AS: {
-                AstBinary* n = (AstBinary*)node;
-                buildFunctionVariables(context, data, n->left);
-                break;
-            }
-            case AST_INDEX:
-            case AST_SUB:
-            case AST_MUL:
-            case AST_DIV:
-            case AST_MOD:
-            case AST_SHL:
-            case AST_SHR:
-            case AST_BAND:
-            case AST_BOR:
-            case AST_BXOR:
-            case AST_ADD: {
-                AstBinary* n = (AstBinary*)node;
-                buildFunctionVariables(context, data, n->left);
-                buildFunctionVariables(context, data, n->right);
-                break;
-            }
-            case AST_OR:
-            case AST_AND: {
-                AstBinary* n = (AstBinary*)node;
-                buildFunctionVariables(context, data, n->left);
-                buildFunctionVariables(context, data, n->right);
-                break;
-            }
-            case AST_EQ:
-            case AST_NE:
-            case AST_LE:
-            case AST_GE:
-            case AST_LT:
-            case AST_GT: {
-                AstBinary* n = (AstBinary*)node;
-                buildFunctionVariables(context, data, n->left);
-                buildFunctionVariables(context, data, n->right);
-                break;
-            }
-            case AST_SIZEOF:
-                break;
-            case AST_POS:
-            case AST_NEG:
-            case AST_ADDR:
-            case AST_NOT:
-            case AST_DEREF: {
-                AstUnary* n = (AstUnary*)node;
-                buildFunctionVariables(context, data, n->op);
-                break;
-            }
-            case AST_RETURN: {
-                AstReturn* n = (AstReturn*)node;
-                buildFunctionVariables(context, data, n->value);
-                break;
-            }
-            case AST_STRUCT_LIT: {
-                AstList* n = (AstList*)node;
-                for (size_t i = 0; i < n->count; i++) {
-                    AstStructField* field = (AstStructField*)n->nodes[i];
-                    buildFunctionVariables(context, data, field->field_value);
-                }
-                break;
-            }
-            case AST_TUPLE_LIT:
-            case AST_ARRAY_LIT:
-            case AST_LIST: {
-                AstList* n = (AstList*)node;
-                for (size_t i = 0; i < n->count; i++) {
-                    buildFunctionVariables(context, data, n->nodes[i]);
-                }
-                break;
-            }
-            case AST_ROOT: {
-                AstRoot* n = (AstRoot*)node;
-                buildFunctionVariables(context, data, (AstNode*)n->nodes);
-                break;
-            }
             case AST_BLOCK_EXPR:
             case AST_BLOCK: {
                 AstBlock* n = (AstBlock*)node;
@@ -803,9 +699,6 @@ static void buildFunctionVariables(LlvmCodegenContext* context, LlvmCodegenModul
                 }
                 break;
             }
-            case AST_STATICDEF:
-            case AST_CONSTDEF:
-                break;
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
                 SymbolVariable* var = (SymbolVariable*)n->name->binding;
@@ -833,29 +726,6 @@ static void buildFunctionVariables(LlvmCodegenContext* context, LlvmCodegenModul
                 buildFunctionVariables(context, data, n->val);
                 break;
             }
-            case AST_IF_ELSE_EXPR:
-            case AST_IF_ELSE: {
-                AstIfElse* n = (AstIfElse*)node;
-                buildFunctionVariables(context, data, n->condition);
-                buildFunctionVariables(context, data, n->if_block);
-                buildFunctionVariables(context, data, n->else_block);
-                break;
-            }
-            case AST_WHILE: {
-                AstWhile* n = (AstWhile*)node;
-                buildFunctionVariables(context, data, n->condition);
-                buildFunctionVariables(context, data, n->block);
-                break;
-            }
-            case AST_CALL: {
-                AstCall* n = (AstCall*)node;
-                buildFunctionVariables(context, data, n->function);
-                buildFunctionVariables(context, data, (AstNode*)n->arguments);
-                break;
-            }
-            case AST_TYPEDEF:
-            case AST_FN:
-                break;
             case AST_ARGDEF: {
                 AstArgDef* n = (AstArgDef*)node;
                 SymbolVariable* var = (SymbolVariable*)n->name->binding;
@@ -881,16 +751,11 @@ static void buildFunctionVariables(LlvmCodegenContext* context, LlvmCodegenModul
                 }
                 break;
             }
-            case AST_STRUCT_INDEX: {
-                AstStructIndex* n = (AstStructIndex*)node;
-                buildFunctionVariables(context, data, n->strct);
+            default:
+                AST_FOR_EACH_CHILD(node, false, false, true, {
+                    buildFunctionVariables(context, data, child);
+                });
                 break;
-            }
-            case AST_TUPLE_INDEX: {
-                AstTupleIndex* n = (AstTupleIndex*)node;
-                buildFunctionVariables(context, data, n->tuple);
-                break;
-            }
         }
     }
 }

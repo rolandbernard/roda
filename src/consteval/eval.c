@@ -246,48 +246,6 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
                 res = createConstError(context);
                 break;
             }
-            case AST_IF_ELSE:
-            case AST_FN:
-            case AST_TYPEDEF:
-            case AST_ARGDEF:
-            case AST_WHILE:
-            case AST_ADD_ASSIGN:
-            case AST_SUB_ASSIGN:
-            case AST_MUL_ASSIGN:
-            case AST_DIV_ASSIGN:
-            case AST_MOD_ASSIGN:
-            case AST_SHL_ASSIGN:
-            case AST_SHR_ASSIGN:
-            case AST_BAND_ASSIGN:
-            case AST_BOR_ASSIGN:
-            case AST_BXOR_ASSIGN:
-            case AST_FN_TYPE:
-            case AST_STRUCT_TYPE:
-            case AST_TUPLE_TYPE:
-            case AST_ASSIGN:
-            case AST_RETURN:
-            case AST_BREAK:
-            case AST_CONTINUE:
-            case AST_ROOT:
-            case AST_ARRAY:
-            case AST_LIST:
-            case AST_BLOCK:
-            case AST_STATICDEF:
-            case AST_CONSTDEF:
-            case AST_VARDEF:
-            case AST_INDEX:
-            case AST_VOID:
-            case AST_ARRAY_LIT:
-            case AST_TUPLE_LIT:
-            case AST_STRUCT_INDEX:
-            case AST_TUPLE_INDEX:
-            case AST_STRUCT_LIT:
-            case AST_CALL:
-            case AST_STR:
-            case AST_SIZEOF:
-            case AST_ADDR:
-            case AST_DEREF:
-                UNREACHABLE("should not evaluate");
             case AST_VAR: {
                 AstVar* n = (AstVar*)node;
                 SymbolVariable* var = (SymbolVariable*)n->binding;
@@ -469,6 +427,8 @@ ConstValue evaluateConstExpr(CompilerContext* context, AstNode* node) {
                 }
                 break;
             }
+            default:
+                UNREACHABLE("should not evaluate");
         }
         node->res_type = res.type;
         return res;
@@ -482,51 +442,6 @@ bool checkValidInConstExpr(CompilerContext* context, AstNode* node) {
         switch (node->kind) {
             case AST_ERROR:
                 return true;
-            case AST_IF_ELSE:
-            case AST_FN:
-            case AST_TYPEDEF:
-            case AST_ARGDEF:
-            case AST_WHILE:
-            case AST_ADD_ASSIGN:
-            case AST_SUB_ASSIGN:
-            case AST_MUL_ASSIGN:
-            case AST_DIV_ASSIGN:
-            case AST_MOD_ASSIGN:
-            case AST_SHL_ASSIGN:
-            case AST_SHR_ASSIGN:
-            case AST_BAND_ASSIGN:
-            case AST_BOR_ASSIGN:
-            case AST_BXOR_ASSIGN:
-            case AST_FN_TYPE:
-            case AST_STRUCT_TYPE:
-            case AST_TUPLE_TYPE:
-            case AST_ASSIGN:
-            case AST_RETURN:
-            case AST_BREAK:
-            case AST_CONTINUE:
-            case AST_ROOT:
-            case AST_ARRAY:
-            case AST_LIST:
-            case AST_BLOCK:
-            case AST_STATICDEF:
-            case AST_CONSTDEF:
-            case AST_VARDEF:
-            case AST_VOID:
-            case AST_INDEX: // TODO: constant arrays?
-            case AST_ARRAY_LIT:
-            case AST_TUPLE_INDEX: // TODO: tuple in const?
-            case AST_TUPLE_LIT:
-            case AST_STRUCT_INDEX: // TODO: structs in const?
-            case AST_STRUCT_LIT:
-            case AST_CALL: // TODO: constant calls?
-            case AST_STR: // TODO: constant strings?
-            case AST_SIZEOF: // TODO: would need llvm to make this const?
-            case AST_ADDR:
-            case AST_DEREF: {
-                // None of these are allowed in constant expressions.
-                raiseOpErrorNotInConst(context, node);
-                return false;
-            }
             case AST_VAR: {
                 AstVar* n = (AstVar*)node;
                 SymbolVariable* var = (SymbolVariable*)n->binding;
@@ -589,6 +504,11 @@ bool checkValidInConstExpr(CompilerContext* context, AstNode* node) {
             case AST_REAL:
             case AST_BOOL: {
                 return true;
+            }
+            default: {
+                // None of these are allowed in constant expressions.
+                raiseOpErrorNotInConst(context, node);
+                return false;
             }
         }
         return false;

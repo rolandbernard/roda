@@ -7,15 +7,15 @@
 
 #include "compiler/context.h"
 
-typedef struct LlvmCodegenTypeData {
-    struct LlvmCodegenTypeData* next;
+typedef struct LlvmCodegenData {
+    struct LlvmCodegenData* next;
     LLVMTypeRef type;
     LLVMValueRef value;
 #define return_value value
     LLVMMetadataRef debug;
     size_t* struct_mapping;
     LLVMBasicBlockRef return_target;
-#define break_target return_target
+    LLVMBasicBlockRef break_target;
     LLVMBasicBlockRef continue_target;
 } LlvmCodegenData;
 
