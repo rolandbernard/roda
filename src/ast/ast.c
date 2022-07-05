@@ -10,6 +10,7 @@
 void initAstNode(AstNode* node, AstNodeKind kind, Span loc) {
     node->kind = kind;
     node->parent = NULL;
+    node->parent_idx = 0;
     node->location = loc;
     node->res_type = NULL;
     node->codegen = NULL;

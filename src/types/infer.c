@@ -1,4 +1,5 @@
 
+#include "ast/astwalk.h"
 #include "errors/fatalerror.h"
 #include "types/check.h"
 #include "types/eval.h"
@@ -594,22 +595,14 @@ static void propagateToVariableReferences(CompilerContext* context, AstVar* node
 
 static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
+        AST_FOR_EACH_CHILD(node, false, false, true, {
+            evaluateTypeHints(context, child);
+        });
         switch (node->kind) {
-            case AST_STRUCT_TYPE:
-            case AST_TUPLE_TYPE:
-            case AST_FN_TYPE:
-            case AST_ARRAY: {
-                UNREACHABLE("should not evaluate");
-            }
             case AST_ERROR: {
                 moveTypeIntoAstNode(context, node, getErrorType(&context->types));
                 break;
             }
-            case AST_VAR:
-            case AST_INT:
-            case AST_CHAR:
-            case AST_REAL:
-                break;
             case AST_ADD_ASSIGN:
             case AST_SUB_ASSIGN:
             case AST_MUL_ASSIGN:
@@ -620,19 +613,25 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
             case AST_BAND_ASSIGN:
             case AST_BOR_ASSIGN:
             case AST_BXOR_ASSIGN:
-            case AST_ASSIGN: {
-                AstBinary* n = (AstBinary*)node;
+            case AST_ASSIGN:
+            case AST_VOID:
+            case AST_CONTINUE:
+            case AST_BREAK:
+            case AST_RETURN:
+            case AST_LIST:
+            case AST_ROOT:
+            case AST_BLOCK: {
                 moveTypeIntoAstNode(context, node, createUnsizedPrimitiveType(&context->types, node, TYPE_VOID));
-                evaluateTypeHints(context, n->right);
-                evaluateTypeHints(context, n->left);
                 break;
             }
-            case AST_BOOL: {
+            case AST_BOOL:
+            case AST_EQ:
+            case AST_NE:
+            case AST_LE:
+            case AST_GE:
+            case AST_LT:
+            case AST_GT: {
                 moveTypeIntoAstNode(context, node, createUnsizedPrimitiveType(&context->types, node, TYPE_BOOL));
-                break;
-            }
-            case AST_VOID: {
-                moveTypeIntoAstNode(context, node, createUnsizedPrimitiveType(&context->types, node, TYPE_VOID));
                 break;
             }
             case AST_STR: {
@@ -654,33 +653,6 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                     n->right->res_type = getErrorType(&context->types);
                 }
                 moveTypeIntoAstNode(context, node, n->right->res_type);
-                evaluateTypeHints(context, n->left);
-                break;
-            }
-            case AST_INDEX:
-            case AST_SUB:
-            case AST_MUL:
-            case AST_DIV:
-            case AST_MOD:
-            case AST_SHL:
-            case AST_SHR:
-            case AST_BAND:
-            case AST_BOR:
-            case AST_BXOR:
-            case AST_ADD: {
-                AstBinary* n = (AstBinary*)node;
-                evaluateTypeHints(context, n->left);
-                evaluateTypeHints(context, n->right);
-                break;
-            }
-            case AST_STRUCT_INDEX: {
-                AstStructIndex* n = (AstStructIndex*)node;
-                evaluateTypeHints(context, n->strct);
-                break;
-            }
-            case AST_TUPLE_INDEX: {
-                AstTupleIndex* n = (AstTupleIndex*)node;
-                evaluateTypeHints(context, n->tuple);
                 break;
             }
             case AST_OR:
@@ -690,29 +662,6 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                 moveTypeIntoAstNode(context, node, bool_type);
                 moveTypeIntoAstNode(context, n->left, bool_type);
                 moveTypeIntoAstNode(context, n->right, bool_type);
-                evaluateTypeHints(context, n->left);
-                evaluateTypeHints(context, n->right);
-                break;
-            }
-            case AST_EQ:
-            case AST_NE:
-            case AST_LE:
-            case AST_GE:
-            case AST_LT:
-            case AST_GT: {
-                AstBinary* n = (AstBinary*)node;
-                moveTypeIntoAstNode(context, node, createUnsizedPrimitiveType(&context->types, node, TYPE_BOOL));
-                evaluateTypeHints(context, n->left);
-                evaluateTypeHints(context, n->right);
-                break;
-            }
-            case AST_POS:
-            case AST_NEG:
-            case AST_ADDR:
-            case AST_NOT:
-            case AST_DEREF: {
-                AstUnary* n = (AstUnary*)node;
-                evaluateTypeHints(context, n->op);
                 break;
             }
             case AST_SIZEOF: {
@@ -737,58 +686,6 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                 }
                 break;
             }
-            case AST_CONTINUE:
-            case AST_BREAK: {
-                moveTypeIntoAstNode(context, node, createUnsizedPrimitiveType(&context->types, node, TYPE_VOID));
-                break;
-            }
-            case AST_RETURN: {
-                AstReturn* n = (AstReturn*)node;
-                moveTypeIntoAstNode(context, node, createUnsizedPrimitiveType(&context->types, node, TYPE_VOID));
-                evaluateTypeHints(context, n->value);
-                break;
-            }
-            case AST_STRUCT_LIT: {
-                AstList* n = (AstList*)node;
-                for (size_t i = 0; i < n->count; i++) {
-                    AstStructField* field = (AstStructField*)n->nodes[i];
-                    evaluateTypeHints(context, field->field_value);
-                }
-                break;
-            }
-            case AST_TUPLE_LIT:
-            case AST_ARRAY_LIT: {
-                AstList* n = (AstList*)node;
-                for (size_t i = 0; i < n->count; i++) {
-                    evaluateTypeHints(context, n->nodes[i]);
-                }
-                break;
-            }
-            case AST_LIST: {
-                AstList* n = (AstList*)node;
-                moveTypeIntoAstNode(context, node, createUnsizedPrimitiveType(&context->types, node, TYPE_VOID));
-                for (size_t i = 0; i < n->count; i++) {
-                    evaluateTypeHints(context, n->nodes[i]);
-                }
-                break;
-            }
-            case AST_ROOT: {
-                AstRoot* n = (AstRoot*)node;
-                moveTypeIntoAstNode(context, node, createUnsizedPrimitiveType(&context->types, node, TYPE_VOID));
-                evaluateTypeHints(context, (AstNode*)n->nodes);
-                break;
-            }
-            case AST_BLOCK_EXPR: {
-                AstBlock* n = (AstBlock*)node;
-                evaluateTypeHints(context, (AstNode*)n->nodes);
-                break;
-            }
-            case AST_BLOCK: {
-                AstBlock* n = (AstBlock*)node;
-                moveTypeIntoAstNode(context, node, createUnsizedPrimitiveType(&context->types, node, TYPE_VOID));
-                evaluateTypeHints(context, (AstNode*)n->nodes);
-                break;
-            }
             case AST_STATICDEF:
             case AST_CONSTDEF:
             case AST_VARDEF: {
@@ -808,38 +705,23 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                     }
                     propagateToVariableReferences(context, n->name);
                 }
-                evaluateTypeHints(context, n->val);
                 break;
             }
             case AST_IF_ELSE_EXPR: {
                 AstIfElse* n = (AstIfElse*)node;
                 n->condition->res_type = createUnsizedPrimitiveType(&context->types, n->condition, TYPE_BOOL);
-                evaluateTypeHints(context, n->condition);
-                evaluateTypeHints(context, n->if_block);
-                evaluateTypeHints(context, n->else_block);
                 break;
             }
             case AST_IF_ELSE: {
                 AstIfElse* n = (AstIfElse*)node;
                 n->res_type = createUnsizedPrimitiveType(&context->types, node, TYPE_VOID);
                 n->condition->res_type = createUnsizedPrimitiveType(&context->types, n->condition, TYPE_BOOL);
-                evaluateTypeHints(context, n->condition);
-                evaluateTypeHints(context, n->if_block);
-                evaluateTypeHints(context, n->else_block);
                 break;
             }
             case AST_WHILE: {
                 AstWhile* n = (AstWhile*)node;
                 n->res_type = createUnsizedPrimitiveType(&context->types, node, TYPE_VOID);
                 n->condition->res_type = createUnsizedPrimitiveType(&context->types, n->condition, TYPE_BOOL);
-                evaluateTypeHints(context, n->condition);
-                evaluateTypeHints(context, n->block);
-                break;
-            }
-            case AST_CALL: {
-                AstCall* n = (AstCall*)node;
-                evaluateTypeHints(context, n->function);
-                evaluateTypeHints(context, (AstNode*)n->arguments);
                 break;
             }
             case AST_TYPEDEF:{
@@ -850,7 +732,6 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
             case AST_FN: {
                 AstFn* n = (AstFn*)node;
                 n->res_type = createUnsizedPrimitiveType(&context->types, node, TYPE_VOID);
-                evaluateTypeHints(context, (AstNode*)n->arguments);
                 Type* ret_type;
                 if (n->ret_type != NULL) {
                     ret_type = evaluateTypeExpr(context, n->ret_type);
@@ -876,7 +757,6 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                     n->name->res_type = getErrorType(&context->types);
                 }
                 propagateToVariableReferences(context, n->name);
-                evaluateTypeHints(context, n->body);
                 break;
             }
             case AST_ARGDEF: {
@@ -897,6 +777,8 @@ static void evaluateTypeHints(CompilerContext* context, AstNode* node) {
                 }
                 break;
             }
+            default:
+                break;
         }
     }
 }
@@ -914,147 +796,9 @@ static void propagateVariableReferences(CompilerContext* context, AstVar* node) 
 static void propagateAllTypes(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
-            case AST_STRUCT_TYPE:
-            case AST_TUPLE_TYPE:
-            case AST_ARRAY:
-            case AST_FN_TYPE:
-                UNREACHABLE("should not evaluate");
-            case AST_ERROR:
-            case AST_TYPEDEF:
-            case AST_VAR:
-            case AST_VOID:
-            case AST_STR:
-            case AST_INT:
-            case AST_CHAR:
-            case AST_BOOL:
-            case AST_REAL:
-                break;
-            case AST_ADD_ASSIGN:
-            case AST_SUB_ASSIGN:
-            case AST_MUL_ASSIGN:
-            case AST_DIV_ASSIGN:
-            case AST_MOD_ASSIGN:
-            case AST_SHL_ASSIGN:
-            case AST_SHR_ASSIGN:
-            case AST_BAND_ASSIGN:
-            case AST_BOR_ASSIGN:
-            case AST_BXOR_ASSIGN:
-            case AST_ASSIGN: {
-                AstBinary* n = (AstBinary*)node;
-                propagateAllTypes(context, n->right);
-                propagateAllTypes(context, n->left);
-                break;
-            }
-            case AST_AS: {
-                AstBinary* n = (AstBinary*)node;
-                propagateAllTypes(context, n->left);
-                break;
-            }
-            case AST_INDEX:
-            case AST_SUB:
-            case AST_MUL:
-            case AST_DIV:
-            case AST_MOD:
-            case AST_SHL:
-            case AST_SHR:
-            case AST_BAND:
-            case AST_BOR:
-            case AST_BXOR:
-            case AST_ADD:
-            case AST_OR:
-            case AST_AND:
-            case AST_EQ:
-            case AST_NE:
-            case AST_LE:
-            case AST_GE:
-            case AST_LT:
-            case AST_GT: {
-                AstBinary* n = (AstBinary*)node;
-                propagateAllTypes(context, n->left);
-                propagateAllTypes(context, n->right);
-                break;
-            }
-            case AST_STRUCT_INDEX: {
-                AstStructIndex* n = (AstStructIndex*)node;
-                propagateAllTypes(context, n->strct);
-                break;
-            }
-            case AST_TUPLE_INDEX: {
-                AstTupleIndex* n = (AstTupleIndex*)node;
-                propagateAllTypes(context, n->tuple);
-                break;
-            }
-            case AST_POS:
-            case AST_NEG:
-            case AST_ADDR:
-            case AST_NOT:
-            case AST_DEREF: {
-                AstUnary* n = (AstUnary*)node;
-                propagateAllTypes(context, n->op);
-                break;
-            }
-            case AST_SIZEOF:
-            case AST_BREAK:
-            case AST_CONTINUE:
-                break;
-            case AST_RETURN: {
-                AstReturn* n = (AstReturn*)node;
-                propagateAllTypes(context, n->value);
-                break;
-            }
-            case AST_STRUCT_LIT: {
-                AstList* n = (AstList*)node;
-                for (size_t i = 0; i < n->count; i++) {
-                    AstStructField* field = (AstStructField*)n->nodes[i];
-                    propagateAllTypes(context, field->field_value);
-                }
-                break;
-            }
-            case AST_TUPLE_LIT:
-            case AST_ARRAY_LIT:
-            case AST_LIST: {
-                AstList* n = (AstList*)node;
-                for (size_t i = 0; i < n->count; i++) {
-                    propagateAllTypes(context, n->nodes[i]);
-                }
-                break;
-            }
-            case AST_ROOT: {
-                AstRoot* n = (AstRoot*)node;
-                propagateAllTypes(context, (AstNode*)n->nodes);
-                break;
-            }
-            case AST_BLOCK_EXPR:
-            case AST_BLOCK: {
-                AstBlock* n = (AstBlock*)node;
-                propagateAllTypes(context, (AstNode*)n->nodes);
-                break;
-            }
-            case AST_IF_ELSE_EXPR:
-            case AST_IF_ELSE: {
-                AstIfElse* n = (AstIfElse*)node;
-                propagateAllTypes(context, n->condition);
-                propagateAllTypes(context, n->if_block);
-                propagateAllTypes(context, n->else_block);
-                break;
-            }
-            case AST_WHILE: {
-                AstWhile* n = (AstWhile*)node;
-                propagateAllTypes(context, n->condition);
-                propagateAllTypes(context, n->block);
-                break;
-            }
-            case AST_CALL: {
-                AstCall* n = (AstCall*)node;
-                propagateAllTypes(context, n->function);
-                propagateAllTypes(context, (AstNode*)n->arguments);
-                break;
-            }
             case AST_FN: {
                 AstFn* n = (AstFn*)node;
                 propagateVariableReferences(context, n->name);
-                propagateAllTypes(context, (AstNode*)n->arguments);
-                propagateAllTypes(context, n->body);
                 break;
             }
             case AST_ARGDEF: {
@@ -1067,10 +811,14 @@ static void propagateAllTypes(CompilerContext* context, AstNode* node) {
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
                 propagateVariableReferences(context, n->name);
-                propagateAllTypes(context, n->val);
                 break;
             }
+            default:
+                break;
         }
+        AST_FOR_EACH_CHILD(node, false, false, true, {
+            propagateAllTypes(context, child);
+        });
         propagateTypes(context, node);
     }
 }
@@ -1086,22 +834,10 @@ typedef enum {
 
 static void assumeAmbiguousTypes(CompilerContext* context, AssumeAmbiguousPhase phase, AstNode* node) {
     if (node != NULL) {
+        AST_FOR_EACH_CHILD(node, false, false, true, {
+            assumeAmbiguousTypes(context, phase, child);
+        });
         switch (node->kind) {
-            case AST_STRUCT_TYPE:
-            case AST_TUPLE_TYPE:
-            case AST_ARRAY:
-            case AST_FN_TYPE:
-                UNREACHABLE("should not evaluate");
-            case AST_ERROR:
-            case AST_VAR:
-            case AST_TYPEDEF:
-            case AST_ARGDEF:
-            case AST_STR:
-            case AST_VOID:
-            case AST_BOOL:
-            case AST_BREAK:
-            case AST_CONTINUE:
-                break;
             case AST_CHAR:
                 if ((phase & ASSUME_LITERALS) != 0 && node->res_type == NULL) {
                     Type* type = createSizedPrimitiveType(&context->types, node, TYPE_UINT, 8);
@@ -1140,7 +876,6 @@ static void assumeAmbiguousTypes(CompilerContext* context, AssumeAmbiguousPhase 
                 break;
             case AST_AS: {
                 AstBinary* n = (AstBinary*)node;
-                assumeAmbiguousTypes(context, phase, n->left);
                 if ((phase & ASSUME_CASTS) != 0 && n->left->res_type == NULL && n->right->res_type != NULL) {
                     Type* type = n->right->res_type;
                     type = createUnsureType(&context->types, node, UNSURE_ANY, type);
@@ -1152,8 +887,6 @@ static void assumeAmbiguousTypes(CompilerContext* context, AssumeAmbiguousPhase 
             }
             case AST_INDEX: {
                 AstBinary* n = (AstBinary*)node;
-                assumeAmbiguousTypes(context, phase, n->left);
-                assumeAmbiguousTypes(context, phase, n->right);
                 if ((phase & ASSUME_INDEX) != 0 && n->right->res_type == NULL) {
                     Type* type = createSizedPrimitiveType(&context->types, n->right, TYPE_UINT, SIZE_SIZE);
                     type = createUnsureType(&context->types, node, UNSURE_INTEGER, type);
@@ -1167,7 +900,6 @@ static void assumeAmbiguousTypes(CompilerContext* context, AssumeAmbiguousPhase 
             case AST_CONSTDEF:
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
-                assumeAmbiguousTypes(context, phase, n->val);
                 if ((phase & ASSUME_VARS) != 0 && n->name->res_type == NULL) {
                     Type* type = createUnsureType(&context->types, node, UNSURE_ANY, NULL);
                     if (moveTypeIntoAstNode(context, (AstNode*)n->name, type)) {
@@ -1181,123 +913,8 @@ static void assumeAmbiguousTypes(CompilerContext* context, AssumeAmbiguousPhase 
                 }
                 break;
             }
-            case AST_ADD_ASSIGN:
-            case AST_SUB_ASSIGN:
-            case AST_MUL_ASSIGN:
-            case AST_DIV_ASSIGN:
-            case AST_MOD_ASSIGN:
-            case AST_SHL_ASSIGN:
-            case AST_SHR_ASSIGN:
-            case AST_BAND_ASSIGN:
-            case AST_BOR_ASSIGN:
-            case AST_BXOR_ASSIGN:
-            case AST_ASSIGN: {
-                AstBinary* n = (AstBinary*)node;
-                assumeAmbiguousTypes(context, phase, n->right);
-                assumeAmbiguousTypes(context, phase, n->left);
+            default:
                 break;
-            }
-            case AST_STRUCT_INDEX: {
-                AstStructIndex* n = (AstStructIndex*)node;
-                assumeAmbiguousTypes(context, phase, n->strct);
-                break;
-            }
-            case AST_TUPLE_INDEX: {
-                AstTupleIndex* n = (AstTupleIndex*)node;
-                assumeAmbiguousTypes(context, phase, n->tuple);
-                break;
-            }
-            case AST_SUB:
-            case AST_MUL:
-            case AST_DIV:
-            case AST_MOD:
-            case AST_SHL:
-            case AST_SHR:
-            case AST_BAND:
-            case AST_BOR:
-            case AST_BXOR:
-            case AST_ADD:
-            case AST_OR:
-            case AST_AND:
-            case AST_EQ:
-            case AST_NE:
-            case AST_LE:
-            case AST_GE:
-            case AST_LT:
-            case AST_GT: {
-                AstBinary* n = (AstBinary*)node;
-                assumeAmbiguousTypes(context, phase, n->left);
-                assumeAmbiguousTypes(context, phase, n->right);
-                break;
-            }
-            case AST_POS:
-            case AST_NEG:
-            case AST_ADDR:
-            case AST_NOT:
-            case AST_DEREF: {
-                AstUnary* n = (AstUnary*)node;
-                assumeAmbiguousTypes(context, phase, n->op);
-                break;
-            }
-            case AST_RETURN: {
-                AstReturn* n = (AstReturn*)node;
-                assumeAmbiguousTypes(context, phase, n->value);
-                break;
-            }
-            case AST_STRUCT_LIT: {
-                AstList* n = (AstList*)node;
-                for (size_t i = 0; i < n->count; i++) {
-                    AstStructField* field = (AstStructField*)n->nodes[i];
-                    assumeAmbiguousTypes(context, phase, field->field_value);
-                }
-                break;
-            }
-            case AST_TUPLE_LIT:
-            case AST_ARRAY_LIT:
-            case AST_LIST: {
-                AstList* n = (AstList*)node;
-                for (size_t i = 0; i < n->count; i++) {
-                    assumeAmbiguousTypes(context, phase, n->nodes[i]);
-                }
-                break;
-            }
-            case AST_ROOT: {
-                AstRoot* n = (AstRoot*)node;
-                assumeAmbiguousTypes(context, phase, (AstNode*)n->nodes);
-                break;
-            }
-            case AST_BLOCK_EXPR:
-            case AST_BLOCK: {
-                AstBlock* n = (AstBlock*)node;
-                assumeAmbiguousTypes(context, phase, (AstNode*)n->nodes);
-                break;
-            }
-            case AST_IF_ELSE_EXPR:
-            case AST_IF_ELSE: {
-                AstIfElse* n = (AstIfElse*)node;
-                assumeAmbiguousTypes(context, phase, n->condition);
-                assumeAmbiguousTypes(context, phase, n->if_block);
-                assumeAmbiguousTypes(context, phase, n->else_block);
-                break;
-            }
-            case AST_WHILE: {
-                AstWhile* n = (AstWhile*)node;
-                assumeAmbiguousTypes(context, phase, n->condition);
-                assumeAmbiguousTypes(context, phase, n->block);
-                break;
-            }
-            case AST_FN: {
-                AstFn* n = (AstFn*)node;
-                assumeAmbiguousTypes(context, phase, (AstNode*)n->arguments);
-                assumeAmbiguousTypes(context, phase, n->body);
-                break;
-            }
-            case AST_CALL: {
-                AstCall* n = (AstCall*)node;
-                assumeAmbiguousTypes(context, phase, n->function);
-                assumeAmbiguousTypes(context, phase, (AstNode*)n->arguments);
-                break;
-            }
         }
     }
 }

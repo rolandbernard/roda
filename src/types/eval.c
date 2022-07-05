@@ -75,71 +75,6 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
                 node->res_type = getErrorType(&context->types);
                 break;
             }
-            case AST_IF_ELSE_EXPR:
-            case AST_IF_ELSE:
-            case AST_FN:
-            case AST_TYPEDEF:
-            case AST_ARGDEF:
-            case AST_WHILE:
-            case AST_ADD_ASSIGN:
-            case AST_SUB_ASSIGN:
-            case AST_MUL_ASSIGN:
-            case AST_DIV_ASSIGN:
-            case AST_MOD_ASSIGN:
-            case AST_SHL_ASSIGN:
-            case AST_SHR_ASSIGN:
-            case AST_BAND_ASSIGN:
-            case AST_BOR_ASSIGN:
-            case AST_BXOR_ASSIGN:
-            case AST_ASSIGN:
-            case AST_RETURN:
-            case AST_BREAK:
-            case AST_CONTINUE:
-            case AST_INDEX:
-            case AST_STRUCT_INDEX:
-            case AST_TUPLE_INDEX:
-            case AST_AS:
-            case AST_CALL:
-            case AST_STR:
-            case AST_DEREF:
-            case AST_INT:
-            case AST_CHAR:
-            case AST_BOOL:
-            case AST_REAL:
-            case AST_ADD:
-            case AST_SUB:
-            case AST_MUL:
-            case AST_DIV:
-            case AST_MOD:
-            case AST_SHL:
-            case AST_SHR:
-            case AST_BAND:
-            case AST_BOR:
-            case AST_BXOR:
-            case AST_EQ:
-            case AST_NE:
-            case AST_LE:
-            case AST_GE:
-            case AST_LT:
-            case AST_GT:
-            case AST_OR:
-            case AST_AND:
-            case AST_POS:
-            case AST_NEG:
-            case AST_NOT:
-            case AST_SIZEOF:
-            case AST_ROOT:
-            case AST_TUPLE_LIT:
-            case AST_ARRAY_LIT:
-            case AST_STRUCT_LIT:
-            case AST_LIST:
-            case AST_BLOCK:
-            case AST_BLOCK_EXPR:
-            case AST_CONSTDEF:
-            case AST_STATICDEF:
-            case AST_VARDEF: {
-                UNREACHABLE("should not evaluate");
-            }
             case AST_VAR: {
                 AstVar* n = (AstVar*)node;
                 if (n->binding == NULL) {
@@ -243,6 +178,8 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
                 n->res_type = createTypeTuple(&context->types, node, types, n->count);
                 break;
             }
+            default:
+                UNREACHABLE("should not evaluate");
         }
         return node->res_type;
     }

@@ -203,6 +203,6 @@
         if (((TYPE) && is_type) || ((EXPR) && !is_type)) {      \
             ACTION                                              \
         }                                                       \
-    }
+    })
 
 #endif
