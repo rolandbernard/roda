@@ -1,5 +1,6 @@
 
 #include "ast/astprinter.h"
+#include "ast/astwalk.h"
 #include "types/eval.h"
 #include "errors/fatalerror.h"
 
@@ -7,133 +8,10 @@
 
 static void checkForUntypedVariables(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
+        AST_FOR_EACH_CHILD(node, false, false, true, {
+            checkForUntypedVariables(context, child);
+        });
         switch (node->kind) {
-            case AST_TUPLE_TYPE:
-            case AST_STRUCT_TYPE:
-            case AST_ARRAY:
-            case AST_FN_TYPE:
-                UNREACHABLE("should not evaluate");
-            case AST_ERROR:
-            case AST_TYPEDEF:
-            case AST_VAR:
-            case AST_VOID:
-            case AST_STR:
-            case AST_INT:
-            case AST_CHAR:
-            case AST_BOOL:
-            case AST_REAL:
-                break;
-            case AST_ADD_ASSIGN:
-            case AST_SUB_ASSIGN:
-            case AST_MUL_ASSIGN:
-            case AST_DIV_ASSIGN:
-            case AST_MOD_ASSIGN:
-            case AST_SHL_ASSIGN:
-            case AST_SHR_ASSIGN:
-            case AST_BAND_ASSIGN:
-            case AST_BOR_ASSIGN:
-            case AST_BXOR_ASSIGN:
-            case AST_ASSIGN: {
-                AstBinary* n = (AstBinary*)node;
-                checkForUntypedVariables(context, n->right);
-                checkForUntypedVariables(context, n->left);
-                break;
-            }
-            case AST_AS: {
-                AstBinary* n = (AstBinary*)node;
-                checkForUntypedVariables(context, n->left);
-                break;
-            }
-            case AST_INDEX:
-            case AST_SUB:
-            case AST_MUL:
-            case AST_DIV:
-            case AST_MOD:
-            case AST_SHL:
-            case AST_SHR:
-            case AST_BAND:
-            case AST_BOR:
-            case AST_BXOR:
-            case AST_ADD:
-            case AST_OR:
-            case AST_AND:
-            case AST_EQ:
-            case AST_NE:
-            case AST_LE:
-            case AST_GE:
-            case AST_LT:
-            case AST_GT: {
-                AstBinary* n = (AstBinary*)node;
-                checkForUntypedVariables(context, n->left);
-                checkForUntypedVariables(context, n->right);
-                break;
-            }
-            case AST_POS:
-            case AST_NEG:
-            case AST_ADDR:
-            case AST_NOT:
-            case AST_DEREF: {
-                AstUnary* n = (AstUnary*)node;
-                checkForUntypedVariables(context, n->op);
-                break;
-            }
-            case AST_SIZEOF:
-            case AST_BREAK:
-            case AST_CONTINUE:
-                break;
-            case AST_RETURN: {
-                AstReturn* n = (AstReturn*)node;
-                checkForUntypedVariables(context, n->value);
-                break;
-            }
-            case AST_STRUCT_LIT: {
-                AstList* n = (AstList*)node;
-                for (size_t i = 0; i < n->count; i++) {
-                    AstStructField* field = (AstStructField*)n->nodes[i];
-                    checkForUntypedVariables(context, field->field_value);
-                }
-                break;
-            }
-            case AST_TUPLE_LIT:
-            case AST_ARRAY_LIT:
-            case AST_LIST: {
-                AstList* n = (AstList*)node;
-                for (size_t i = 0; i < n->count; i++) {
-                    checkForUntypedVariables(context, n->nodes[i]);
-                }
-                break;
-            }
-            case AST_ROOT: {
-                AstRoot* n = (AstRoot*)node;
-                checkForUntypedVariables(context, (AstNode*)n->nodes);
-                break;
-            }
-            case AST_BLOCK_EXPR:
-            case AST_BLOCK: {
-                AstBlock* n = (AstBlock*)node;
-                checkForUntypedVariables(context, (AstNode*)n->nodes);
-                break;
-            }
-            case AST_IF_ELSE_EXPR:
-            case AST_IF_ELSE: {
-                AstIfElse* n = (AstIfElse*)node;
-                checkForUntypedVariables(context, n->condition);
-                checkForUntypedVariables(context, n->if_block);
-                checkForUntypedVariables(context, n->else_block);
-                break;
-            }
-            case AST_WHILE: {
-                AstWhile* n = (AstWhile*)node;
-                checkForUntypedVariables(context, n->condition);
-                checkForUntypedVariables(context, n->block);
-                break;
-            }
-            case AST_CALL: {
-                AstCall* n = (AstCall*)node;
-                checkForUntypedVariables(context, n->function);
-                checkForUntypedVariables(context, (AstNode*)n->arguments);
-                break;
-            }
             case AST_FN: {
                 AstFn* n = (AstFn*)node;
                 if (n->name->res_type == NULL) {
@@ -142,8 +20,6 @@ static void checkForUntypedVariables(CompilerContext* context, AstNode* node) {
                         createMessageFragment(MESSAGE_ERROR, createFormattedString("unable to infer the type of this function"), n->name->location)
                     ));
                 }
-                checkForUntypedVariables(context, (AstNode*)n->arguments);
-                checkForUntypedVariables(context, n->body);
                 break;
             }
             case AST_ARGDEF: {
@@ -180,19 +56,10 @@ static void checkForUntypedVariables(CompilerContext* context, AstNode* node) {
                     );
                     fillPartialType(n->name->res_type, getErrorType(&context->types));
                 }
-                checkForUntypedVariables(context, n->val);
                 break;
             }
-            case AST_STRUCT_INDEX: {
-                AstStructIndex* n = (AstStructIndex*)node;
-                checkForUntypedVariables(context, n->strct);
+            default:
                 break;
-            }
-            case AST_TUPLE_INDEX: {
-                AstTupleIndex* n = (AstTupleIndex*)node;
-                checkForUntypedVariables(context, n->tuple);
-                break;
-            }
         }
     }
 }
@@ -205,158 +72,9 @@ static void checkForUntypedNodes(CompilerContext* context, AstNode* node) {
                 createMessageFragment(MESSAGE_ERROR, copyFromCString("unable to infer the type of this expression"), node->location)
             ));
         } else {
-            switch (node->kind) {
-                case AST_STRUCT_TYPE:
-                case AST_TUPLE_TYPE:
-                case AST_ARRAY:
-                case AST_FN_TYPE:
-                    UNREACHABLE("should not evaluate");
-                case AST_ERROR:
-                case AST_TYPEDEF:
-                case AST_ARGDEF:
-                case AST_VAR:
-                case AST_VOID:
-                case AST_STR:
-                case AST_INT:
-                case AST_CHAR:
-                case AST_BOOL:
-                case AST_REAL:
-                    break;
-                case AST_ADD_ASSIGN:
-                case AST_SUB_ASSIGN:
-                case AST_MUL_ASSIGN:
-                case AST_DIV_ASSIGN:
-                case AST_MOD_ASSIGN:
-                case AST_SHL_ASSIGN:
-                case AST_SHR_ASSIGN:
-                case AST_BAND_ASSIGN:
-                case AST_BOR_ASSIGN:
-                case AST_BXOR_ASSIGN:
-                case AST_ASSIGN: {
-                    AstBinary* n = (AstBinary*)node;
-                    checkForUntypedNodes(context, n->right);
-                    checkForUntypedNodes(context, n->left);
-                    break;
-                }
-                case AST_AS: {
-                    AstBinary* n = (AstBinary*)node;
-                    checkForUntypedNodes(context, n->left);
-                    break;
-                }
-                case AST_INDEX:
-                case AST_SUB:
-                case AST_MUL:
-                case AST_DIV:
-                case AST_MOD:
-                case AST_SHL:
-                case AST_SHR:
-                case AST_BAND:
-                case AST_BOR:
-                case AST_BXOR:
-                case AST_ADD:
-                case AST_OR:
-                case AST_AND:
-                case AST_EQ:
-                case AST_NE:
-                case AST_LE:
-                case AST_GE:
-                case AST_LT:
-                case AST_GT: {
-                    AstBinary* n = (AstBinary*)node;
-                    checkForUntypedNodes(context, n->left);
-                    checkForUntypedNodes(context, n->right);
-                    break;
-                }
-                case AST_POS:
-                case AST_NEG:
-                case AST_ADDR:
-                case AST_NOT:
-                case AST_DEREF: {
-                    AstUnary* n = (AstUnary*)node;
-                    checkForUntypedNodes(context, n->op);
-                    break;
-                }
-                case AST_SIZEOF:
-                case AST_BREAK:
-                case AST_CONTINUE:
-                    break;
-                case AST_RETURN: {
-                    AstReturn* n = (AstReturn*)node;
-                    checkForUntypedNodes(context, n->value);
-                    break;
-                }
-                case AST_STRUCT_LIT: {
-                    AstList* n = (AstList*)node;
-                    for (size_t i = 0; i < n->count; i++) {
-                        AstStructField* field = (AstStructField*)n->nodes[i];
-                        checkForUntypedNodes(context, field->field_value);
-                    }
-                    break;
-                }
-                case AST_TUPLE_LIT:
-                case AST_ARRAY_LIT:
-                case AST_LIST: {
-                    AstList* n = (AstList*)node;
-                    for (size_t i = 0; i < n->count; i++) {
-                        checkForUntypedNodes(context, n->nodes[i]);
-                    }
-                    break;
-                }
-                case AST_ROOT: {
-                    AstRoot* n = (AstRoot*)node;
-                    checkForUntypedNodes(context, (AstNode*)n->nodes);
-                    break;
-                }
-                case AST_BLOCK_EXPR:
-                case AST_BLOCK: {
-                    AstBlock* n = (AstBlock*)node;
-                    checkForUntypedNodes(context, (AstNode*)n->nodes);
-                    break;
-                }
-                case AST_IF_ELSE_EXPR:
-                case AST_IF_ELSE: {
-                    AstIfElse* n = (AstIfElse*)node;
-                    checkForUntypedNodes(context, n->condition);
-                    checkForUntypedNodes(context, n->if_block);
-                    checkForUntypedNodes(context, n->else_block);
-                    break;
-                }
-                case AST_WHILE: {
-                    AstWhile* n = (AstWhile*)node;
-                    checkForUntypedNodes(context, n->condition);
-                    checkForUntypedNodes(context, n->block);
-                    break;
-                }
-                case AST_CALL: {
-                    AstCall* n = (AstCall*)node;
-                    checkForUntypedNodes(context, n->function);
-                    checkForUntypedNodes(context, (AstNode*)n->arguments);
-                    break;
-                }
-                case AST_FN: {
-                    AstFn* n = (AstFn*)node;
-                    checkForUntypedNodes(context, (AstNode*)n->arguments);
-                    checkForUntypedNodes(context, n->body);
-                    break;
-                }
-                case AST_STATICDEF:
-                case AST_CONSTDEF:
-                case AST_VARDEF: {
-                    AstVarDef* n = (AstVarDef*)node;
-                    checkForUntypedNodes(context, n->val);
-                    break;
-                }
-                case AST_STRUCT_INDEX: {
-                    AstStructIndex* n = (AstStructIndex*)node;
-                    checkForUntypedNodes(context, n->strct);
-                    break;
-                }
-                case AST_TUPLE_INDEX: {
-                    AstTupleIndex* n = (AstTupleIndex*)node;
-                    checkForUntypedNodes(context, n->tuple);
-                    break;
-                }
-            }
+            AST_FOR_EACH_CHILD(node, false, false, true, {
+                checkForUntypedNodes(context, child);
+            });
         }
     }
 }
@@ -711,17 +429,6 @@ static void checkNodeIsWritable(CompilerContext* context, AstNode* node) {
 void checkTypeConstraints(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
-            case AST_STRUCT_TYPE:
-            case AST_TUPLE_TYPE:
-            case AST_ARRAY:
-            case AST_FN_TYPE:
-                UNREACHABLE("should not evaluate");
-            case AST_ERROR:
-            case AST_TYPEDEF:
-            case AST_VAR:
-            case AST_BREAK:
-            case AST_CONTINUE:
-                break;
             case AST_VOID: {
                 if (node->res_type != NULL && !isErrorType(node->res_type)) {
                     if (!isVoidType(node->res_type)) {
@@ -780,12 +487,10 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                 if (n->left->res_type != NULL && !isErrorType(n->left->res_type)) {
                     if (!isNumericType(n->left->res_type)) {
                         raiseOpTypeError(context, node, n->left, n->left->res_type, ", must be a numeric value");
-                        break;
+                        return;
                     }
                 }
                 checkNodeIsWritable(context, n->left);
-                checkTypeConstraints(context, n->right);
-                checkTypeConstraints(context, n->left);
                 break;
             }
             case AST_MOD_ASSIGN:
@@ -798,19 +503,15 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                 if (n->left->res_type != NULL && !isErrorType(n->left->res_type)) {
                     if (!isIntegerType(n->left->res_type)) {
                         raiseOpTypeError(context, node, n->left, n->left->res_type, ", must be an integer value");
-                        break;
+                        return;
                     }
                 }
                 checkNodeIsWritable(context, n->left);
-                checkTypeConstraints(context, n->right);
-                checkTypeConstraints(context, n->left);
                 break;
             }
             case AST_ASSIGN: {
                 AstBinary* n = (AstBinary*)node;
                 checkNodeIsWritable(context, n->left);
-                checkTypeConstraints(context, n->right);
-                checkTypeConstraints(context, n->left);
                 break;
             }
             case AST_AS: {
@@ -819,24 +520,23 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                     if (isIntegerType(n->res_type)) {
                         if (!isIntegerType(n->left->res_type) && !isPointerType(n->left->res_type) && !isRealType(n->left->res_type)) {
                             raiseUnsupportedCast(context, node, n->left->res_type, n->res_type);
-                            break;
+                            return;
                         }
                     } else if (isRealType(n->res_type)) {
                         if (!isRealType(n->left->res_type) && !isIntegerType(n->left->res_type)) {
                             raiseUnsupportedCast(context, node, n->left->res_type, n->res_type);
-                            break;
+                            return;
                         }
                     } else if (isPointerType(n->res_type)) {
                         if (!isPointerType(n->left->res_type) && !isIntegerType(n->left->res_type)) {
                             raiseUnsupportedCast(context, node, n->left->res_type, n->res_type);
-                            break;
+                            return;
                         }
                     } else {
                         raiseUnsupportedCast(context, node, n->left->res_type, n->res_type);
-                        break;
+                        return;
                     }
                 }
-                checkTypeConstraints(context, n->left);
                 break;
             }
             case AST_INDEX: {
@@ -844,15 +544,13 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                 if (n->left->res_type != NULL && !isErrorType(n->left->res_type)) {
                     if (!isArrayType(n->left->res_type)) {
                         raiseOpTypeError(context, node, n->left, n->left->res_type, ", must be an array");
-                        break;
+                        return;
                     }
                 }
                 if (n->right->res_type != NULL && !isErrorType(n->right->res_type) && !isIntegerType(n->right->res_type)) {
                     raiseOpTypeError(context, node, n->right, n->right->res_type, ", must be an integer value");
-                    break;
+                    return;
                 }
-                checkTypeConstraints(context, n->left);
-                checkTypeConstraints(context, n->right);
                 break;
             }
             case AST_SUB:
@@ -862,10 +560,8 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                 AstBinary* n = (AstBinary*)node;
                 if (n->res_type != NULL && !isErrorType(n->res_type) && !isNumericType(n->res_type)) {
                     raiseOpTypeError(context, node, n->left, n->res_type, ", must be a numeric value");
-                    break;
+                    return;
                 }
-                checkTypeConstraints(context, n->left);
-                checkTypeConstraints(context, n->right);
                 break;
             }
             case AST_MOD:
@@ -877,17 +573,8 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                 AstBinary* n = (AstBinary*)node;
                 if (n->res_type != NULL && !isErrorType(n->res_type) && !isIntegerType(n->res_type)) {
                     raiseOpTypeError(context, node, n->left, n->res_type, ", must be an integer value");
-                    break;
+                    return;
                 }
-                checkTypeConstraints(context, n->left);
-                checkTypeConstraints(context, n->right);
-                break;
-            }
-            case AST_OR:
-            case AST_AND: {
-                AstBinary* n = (AstBinary*)node;
-                checkTypeConstraints(context, n->left);
-                checkTypeConstraints(context, n->right);
                 break;
             }
             case AST_EQ:
@@ -896,11 +583,9 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                 if (n->left->res_type != NULL && !isErrorType(n->left->res_type)) {
                     if (!isNumericType(n->left->res_type) && !isBooleanType(n->left->res_type) && !isPointerType(n->left->res_type)) {
                         raiseOpTypeError(context, node, n->left, n->left->res_type, ", must be a numeric value, boolean or pointer");
-                        break;
+                        return;
                     }
                 }
-                checkTypeConstraints(context, n->left);
-                checkTypeConstraints(context, n->right);
                 break;
             }
             case AST_LE:
@@ -911,38 +596,33 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                 if (n->left->res_type != NULL && !isErrorType(n->left->res_type)) {
                     if (!isNumericType(n->left->res_type) && !isPointerType(n->left->res_type)) {
                         raiseOpTypeError(context, node, n->left, n->left->res_type, ", must be a numeric value or pointer");
-                        break;
+                        return;
                     }
                 }
-                checkTypeConstraints(context, n->left);
-                checkTypeConstraints(context, n->right);
                 break;
             }
             case AST_POS: {
                 AstUnary* n = (AstUnary*)node;
                 if (n->res_type != NULL && !isErrorType(n->res_type) && !isNumericType(n->res_type)) {
                     raiseOpTypeError(context, node, n->op, n->res_type, ", must be a numeric value");
-                    break;
+                    return;
                 }
-                checkTypeConstraints(context, n->op);
                 break;
             }
             case AST_NEG: {
                 AstUnary* n = (AstUnary*)node;
                 if (n->res_type != NULL && !isErrorType(n->res_type) && !isRealType(n->res_type) && !isSignedIntegerType(n->res_type)) {
                     raiseOpTypeError(context, node, n->op, n->res_type, ", must be a signed numeric value");
-                    break;
+                    return;
                 }
-                checkTypeConstraints(context, n->op);
                 break;
             }
             case AST_NOT: {
                 AstUnary* n = (AstUnary*)node;
                 if (n->res_type != NULL && !isErrorType(n->res_type) && !isIntegerType(n->res_type) && !isBooleanType(n->res_type)) {
                     raiseOpTypeError(context, node, n->op, n->res_type, ", must be an integer or boolean value");
-                    break;
+                    return;
                 }
-                checkTypeConstraints(context, n->op);
                 break;
             }
             case AST_ADDR: {
@@ -950,11 +630,10 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                 if (node->res_type != NULL && !isErrorType(node->res_type)) {
                     if (!isPointerType(node->res_type)) {
                         raiseOpTypeError(context, node, node, node->res_type, ", always returns a pointer");
-                        break;
+                        return;
                     }
                 }
                 checkNodeIsAddressable(context, n->op);
-                checkTypeConstraints(context, n->op);
                 break;
             }
             case AST_DEREF: {
@@ -962,10 +641,9 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                 if (n->op->res_type != NULL && !isErrorType(n->op->res_type)) {
                     if (!isPointerType(n->op->res_type)) {
                         raiseOpTypeError(context, node, n->op, n->op->res_type, ", must be a pointer");
-                        break;
+                        return;
                     }
                 }
-                checkTypeConstraints(context, n->op);
                 break;
             }
             case AST_RETURN: {
@@ -975,10 +653,9 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                     ASSERT(func != NULL);
                     if (n->value == NULL && !isVoidType(func->ret_type)) {
                         raiseVoidReturnError(context, n, func->ret_type);
-                        break;
+                        return;
                     }
                 }
-                checkTypeConstraints(context, n->value);
                 break;
             }
             case AST_STRUCT_LIT: {
@@ -989,28 +666,20 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                         sortStructFieldsByName(n);
                         if (type->count != n->count) {
                             raiseStructFieldMismatchError(context, node);
-                            break;
+                            return;
                         } else {
-                            size_t i = 0;
-                            for (; i < type->count; i++) {
+                            for (size_t i = 0; i < type->count; i++) {
                                 AstStructField* field = (AstStructField*)n->nodes[i];
                                 if (type->names[i] != field->name->name) {
                                     raiseStructFieldMismatchError(context, node);
-                                    break;
+                                    return;
                                 }
-                            }
-                            if (i < type->count) {
-                                break;
                             }
                         }
                     } else {
                         raiseLiteralTypeError(context, node, "struct literal");
-                        break;
+                        return;
                     }
-                }
-                for (size_t i = 0; i < n->count; i++) {
-                    AstStructField* field = (AstStructField*)n->nodes[i];
-                    checkTypeConstraints(context, field->field_value);
                 }
                 break;
             }
@@ -1021,15 +690,12 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                     if (type != NULL) {
                         if (type->count != n->count) {
                             raiseLiteralLengthMismatchError(context, node, "tuple");
-                            break;
+                            return;
                         }
                     } else {
                         raiseLiteralTypeError(context, node, "tuple literal");
-                        break;
+                        return;
                     }
-                }
-                for (size_t i = 0; i < n->count; i++) {
-                    checkTypeConstraints(context, n->nodes[i]);
                 }
                 break;
             }
@@ -1040,48 +706,13 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                     if (type != NULL) {
                         if (type->size != n->count) {
                             raiseLiteralLengthMismatchError(context, node, "array");
-                            break;
+                            return;
                         }
                     } else {
                         raiseLiteralTypeError(context, node, "array literal");
-                        break;
+                        return;
                     }
                 }
-                for (size_t i = 0; i < n->count; i++) {
-                    checkTypeConstraints(context, n->nodes[i]);
-                }
-                break;
-            }
-            case AST_LIST: {
-                AstList* n = (AstList*)node;
-                for (size_t i = 0; i < n->count; i++) {
-                    checkTypeConstraints(context, n->nodes[i]);
-                }
-                break;
-            }
-            case AST_ROOT: {
-                AstRoot* n = (AstRoot*)node;
-                checkTypeConstraints(context, (AstNode*)n->nodes);
-                break;
-            }
-            case AST_BLOCK_EXPR:
-            case AST_BLOCK: {
-                AstBlock* n = (AstBlock*)node;
-                checkTypeConstraints(context, (AstNode*)n->nodes);
-                break;
-            }
-            case AST_IF_ELSE_EXPR:
-            case AST_IF_ELSE: {
-                AstIfElse* n = (AstIfElse*)node;
-                checkTypeConstraints(context, n->condition);
-                checkTypeConstraints(context, n->if_block);
-                checkTypeConstraints(context, n->else_block);
-                break;
-            }
-            case AST_WHILE: {
-                AstWhile* n = (AstWhile*)node;
-                checkTypeConstraints(context, n->condition);
-                checkTypeConstraints(context, n->block);
                 break;
             }
             case AST_CALL: {
@@ -1095,25 +726,17 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                                 context, node, n->function, n->function->res_type, ", must be a function",
                                 "help: consider dereferencing before the function call, e.g. `(*_)(..)`", invalidSpan()
                             );
-                            break;
+                            return;
                         } else {
                             raiseOpTypeError(context, node, n->function, n->function->res_type, ", must be a function");
-                            break;
+                            return;
                         }
                     } else if (type->arg_count != n->arguments->count && (!type->vararg || type->arg_count > n->arguments->count)) {
                         raiseArgCountError(context, type, n->arguments);
-                        break;
+                        return;
                     }
                 }
                 checkNodeIsAddressable(context, n->function);
-                checkTypeConstraints(context, n->function);
-                checkTypeConstraints(context, (AstNode*)n->arguments);
-                break;
-            }
-            case AST_FN: {
-                AstFn* n = (AstFn*)node;
-                checkTypeConstraints(context, (AstNode*)n->arguments);
-                checkTypeConstraints(context, n->body);
                 break;
             }
             case AST_ARGDEF: {
@@ -1125,7 +748,7 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                         createMessageFragment(MESSAGE_ERROR, copyFromCString("parameter with unsized type"), n->name->location)
                     ));
                     freeString(type_name);
-                    break;
+                    return;
                 }
                 break;
             }
@@ -1133,7 +756,6 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
             case AST_CONSTDEF:
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
-                checkTypeConstraints(context, n->val);
                 if (n->name->res_type != NULL && !isErrorType(n->name->res_type) && !isSizedType(n->name->res_type)) {
                     const char* type = node->kind == AST_CONSTDEF ? "constant" : (node->kind == AST_STATICDEF ? "static" : "variable");
                     String type_name = buildTypeName(n->name->res_type);
@@ -1142,45 +764,48 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                         createMessageFragment(MESSAGE_ERROR, createFormattedString("%s with unsized type", type), n->name->location)
                     ));
                     freeString(type_name);
-                    break;
+                    return;
                 }
                 break;
             }
             case AST_STRUCT_INDEX: {
                 AstStructIndex* n = (AstStructIndex*)node;
-                checkTypeConstraints(context, n->strct);
                 if (n->strct->res_type != NULL && !isErrorType(n->strct->res_type)) {
                     TypeStruct* type = (TypeStruct*)getTypeOfKind(n->strct->res_type, TYPE_STRUCT);
                     if (type == NULL) {
                         raiseOpTypeError(
                             context, node, n->strct, n->strct->res_type, ", must be a struct"
                         );
-                        break;
+                        return;
                     } else if (lookupIndexOfStructField(type, n->field->name) == NO_POS) {
                         raiseNoSuchFieldError(context, n);
-                        break;
+                        return;
                     }
                 }
                 break;
             }
             case AST_TUPLE_INDEX: {
                 AstTupleIndex* n = (AstTupleIndex*)node;
-                checkTypeConstraints(context, n->tuple);
                 if (n->tuple->res_type != NULL && !isErrorType(n->tuple->res_type)) {
                     TypeTuple* type = (TypeTuple*)getTypeOfKind(n->tuple->res_type, TYPE_TUPLE);
                     if (type == NULL) {
                         raiseOpTypeError(
                             context, node, n->tuple, n->tuple->res_type, ", must be a tuple"
                         );
-                        break;
+                        return;
                     } else if (n->field->number >= type->count) {
                         raiseNoSuchTupleFieldError(context, n);
-                        break;
+                        return;
                     }
                 }
                 break;
             }
+            default:
+                break;
         }
+        AST_FOR_EACH_CHILD(node, false, false, true, {
+            checkTypeConstraints(context, child);
+        });
     }
 }
 
