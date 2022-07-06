@@ -1,27 +1,41 @@
 
 #include "ast/ast.h"
+#include "ast/astwalk.h"
 #include "consteval/eval.h"
 #include "types/check.h"
 #include "types/infer.h"
 
 #include "consteval/defeval.h"
 
-static void evaluateConstantValueDefinitions(CompilerContext* context, AstNode* node) {
+static void evaluateGlobalInitializers(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
-            case AST_LIST: {
-                AstList* n = (AstList*)node;
-                for (size_t i = 0; i < n->count; i++) {
-                    evaluateConstantValueDefinitions(context, n->nodes[i]);
+            case AST_STATICDEF: {
+                AstVarDef* n = (AstVarDef*)node;
+                if (n->val != NULL && checkValidInConstExpr(context, n->val)) {
+                    SymbolVariable* var = (SymbolVariable*)n->name->binding;
+                    var->value = evaluateConstExpr(context, n->val);
                 }
                 break;
             }
-            case AST_ROOT: {
-                AstRoot* n = (AstRoot*)node;
-                evaluateConstantValueDefinitions(context, (AstNode*)n->nodes);
+            default:
                 break;
-            }
-            case AST_STATICDEF:
+        }
+        AST_FOR_EACH_CHILD(node, false, false, true, {
+            evaluateGlobalInitializers(context, child);
+        });
+    }
+}
+
+void runGlobalInitEvaluation(CompilerContext* context) {
+    FOR_ALL_MODULES_IF_OK({
+        evaluateGlobalInitializers(context, file->ast);
+    });
+}
+
+static void evaluateConstantValueDefinitions(CompilerContext* context, AstNode* node) {
+    if (node != NULL) {
+        switch (node->kind) {
             case AST_CONSTDEF: {
                 AstVarDef* n = (AstVarDef*)node;
                 if (n->val != NULL) {
@@ -30,9 +44,11 @@ static void evaluateConstantValueDefinitions(CompilerContext* context, AstNode* 
                 break;
             }
             default:
-                // We only want to consider the global scope
                 break;
         }
+        AST_FOR_EACH_CHILD(node, false, false, true, {
+            evaluateConstantValueDefinitions(context, child);
+        });
     }
 }
 

@@ -11,6 +11,12 @@ pub fn main(): int {
     if a[0] != 1 && a[1] != 2 {
         return 1;
     }
+    let c: MyTypeA = a;
     let b: TypeB;
+    b = &b;
+    let d: MyTypeB = b;
     return 0;
+
+    type MyTypeA = [2 as TypeC]int;
+    type MyTypeB = &MyTypeB;
 }

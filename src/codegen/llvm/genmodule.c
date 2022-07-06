@@ -763,18 +763,6 @@ static void buildFunctionVariables(LlvmCodegenContext* context, LlvmCodegenModul
 static void buildFunctionBodies(LlvmCodegenContext* context, LlvmCodegenModuleContext* data, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
-            case AST_LIST: {
-                AstList* n = (AstList*)node;
-                for (size_t i = 0; i < n->count; i++) {
-                    buildFunctionBodies(context, data, n->nodes[i]);
-                }
-                break;
-            }
-            case AST_ROOT: {
-                AstRoot* n = (AstRoot*)node;
-                buildFunctionBodies(context, data, (AstNode*)n->nodes);
-                break;
-            }
             case AST_FN: {
                 AstFn* n = (AstFn*)node;
                 if (n->body != NULL) {
@@ -814,27 +802,17 @@ static void buildFunctionBodies(LlvmCodegenContext* context, LlvmCodegenModuleCo
                 break;
             }
             default:
-                // We only want to consider the global scope
                 break;
         }
+        AST_FOR_EACH_CHILD(node, false, false, true, {
+            buildFunctionBodies(context, data, child);
+        });
     }
 }
 
 static void buildGlobalsAndFunctionStubs(LlvmCodegenContext* context, LlvmCodegenModuleContext* data, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
-            case AST_LIST: {
-                AstList* n = (AstList*)node;
-                for (size_t i = 0; i < n->count; i++) {
-                    buildGlobalsAndFunctionStubs(context, data, n->nodes[i]);
-                }
-                break;
-            }
-            case AST_ROOT: {
-                AstRoot* n = (AstRoot*)node;
-                buildGlobalsAndFunctionStubs(context, data, (AstNode*)n->nodes);
-                break;
-            }
             case AST_FN: {
                 AstFn* n = (AstFn*)node;
                 SymbolVariable* func = (SymbolVariable*)n->name->binding;
@@ -899,9 +877,11 @@ static void buildGlobalsAndFunctionStubs(LlvmCodegenContext* context, LlvmCodege
                 }
             }
             default:
-                // We only want to consider the global scope
                 break;
         }
+        AST_FOR_EACH_CHILD(node, false, false, true, {
+            buildGlobalsAndFunctionStubs(context, data, child);
+        });
     }
 }
 

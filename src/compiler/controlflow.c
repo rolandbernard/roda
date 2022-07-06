@@ -49,18 +49,6 @@ static bool controlFlowEndsWithReturn(CompilerContext* context, AstNode* node) {
 static void checkControlFlowConstraints(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
-            case AST_LIST: {
-                AstList* n = (AstList*)node;
-                for (size_t i = 0; i < n->count; i++) {
-                    checkControlFlowConstraints(context, n->nodes[i]);
-                }
-                break;
-            }
-            case AST_ROOT: {
-                AstRoot* n = (AstRoot*)node;
-                checkControlFlowConstraints(context, (AstNode*)n->nodes);
-                break;
-            }
             case AST_FN: {
                 AstFn* n = (AstFn*)node;
                 if (n->ret_type != NULL && n->body != NULL && !controlFlowEndsWithReturn(context, n->body)) {
@@ -72,9 +60,11 @@ static void checkControlFlowConstraints(CompilerContext* context, AstNode* node)
                 break;
             }
             default:
-                // We only care about functions, which can only be at top level
                 break;
         }
+        AST_FOR_EACH_CHILD(node, false, false, true, {
+            checkControlFlowConstraints(context, child);
+        });
     }
 }
 

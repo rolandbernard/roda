@@ -50,6 +50,10 @@ void runCompilation(CompilerContext* context) {
         printAndClearMessages(context, stderr);
     }
     if (context->msgs.error_count == 0) {
+        runGlobalInitEvaluation(context);
+        DEBUG_LOG(context, "finished global initializer evaluation");
+    }
+    if (context->msgs.error_count == 0) {
         runCodeGeneration(context);
         printAndClearMessages(context, stderr);
     }

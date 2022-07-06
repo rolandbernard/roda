@@ -509,18 +509,6 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
 static void evaluateTypeDefinitions(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
-            case AST_LIST: {
-                AstList* n = (AstList*)node;
-                for (size_t i = 0; i < n->count; i++) {
-                    evaluateTypeDefinitions(context, n->nodes[i]);
-                }
-                break;
-            }
-            case AST_ROOT: {
-                AstRoot* n = (AstRoot*)node;
-                evaluateTypeDefinitions(context, (AstNode*)n->nodes);
-                break;
-            }
             case AST_TYPEDEF: {
                 AstTypeDef* n = (AstTypeDef*)node;
                 SymbolType* type = (SymbolType*)n->name->binding;
@@ -531,7 +519,9 @@ static void evaluateTypeDefinitions(CompilerContext* context, AstNode* node) {
                 break;
             }
             default:
-                // Type definitions must be global
+                AST_FOR_EACH_CHILD(node, false, false, true, {
+                    evaluateTypeDefinitions(context, child);
+                });
                 break;
         }
     }
@@ -540,24 +530,6 @@ static void evaluateTypeDefinitions(CompilerContext* context, AstNode* node) {
 static void checkTypeDefinitions(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
-            case AST_LIST: {
-                AstList* n = (AstList*)node;
-                for (size_t i = 0; i < n->count; i++) {
-                    checkTypeDefinitions(context, n->nodes[i]);
-                }
-                break;
-            }
-            case AST_ROOT: {
-                AstRoot* n = (AstRoot*)node;
-                checkTypeDefinitions(context, (AstNode*)n->nodes);
-                break;
-            }
-            case AST_BLOCK_EXPR:
-            case AST_BLOCK: {
-                AstBlock* n = (AstBlock*)node;
-                checkTypeDefinitions(context, (AstNode*)n->nodes);
-                break;
-            }
             case AST_TYPEDEF: {
                 AstTypeDef* n = (AstTypeDef*)node;
                 SymbolType* type = (SymbolType*)n->name->binding;
@@ -576,7 +548,9 @@ static void checkTypeDefinitions(CompilerContext* context, AstNode* node) {
                 break;
             }
             default:
-                // Type definitions must be global
+                AST_FOR_EACH_CHILD(node, false, false, true, {
+                    checkTypeDefinitions(context, child);
+                });
                 break;
         }
     }

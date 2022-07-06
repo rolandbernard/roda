@@ -114,17 +114,19 @@ static void buildLocalSymbolTables(CompilerContext* context, AstNode* node, Symb
 static void buildRootSymbolTables(CompilerContext* context, AstNode* node, SymbolTable* scope) {
     if (node != NULL) {
         switch (node->kind) {
-            case AST_LIST: {
-                AstList* n = (AstList*)node;
-                for (size_t i = 0; i < n->count; i++) {
-                    buildRootSymbolTables(context, n->nodes[i], scope);
-                }
-                break;
-            }
             case AST_ROOT: {
                 AstRoot* n = (AstRoot*)node;
                 n->vars.parent = scope;
-                buildRootSymbolTables(context, (AstNode*)n->nodes, &n->vars);
+                scope = &n->vars;
+                buildRootSymbolTables(context, (AstNode*)n->nodes, scope);
+                break;
+            }
+            case AST_BLOCK_EXPR:
+            case AST_BLOCK: {
+                AstBlock* n = (AstBlock*)node;
+                n->vars.parent = scope;
+                scope = &n->vars;
+                buildRootSymbolTables(context, (AstNode*)n->nodes, scope);
                 break;
             }
             case AST_FN: {
@@ -133,6 +135,9 @@ static void buildRootSymbolTables(CompilerContext* context, AstNode* node, Symbo
                     n->name->binding = (SymbolEntry*)createVariableSymbol(n->name->name, n->name, false);
                     addSymbolToTable(scope, n->name->binding);
                 }
+                scope = &n->vars;
+                buildRootSymbolTables(context, (AstNode*)n->arguments, scope);
+                buildRootSymbolTables(context, n->body, scope);
                 break;
             }
             case AST_TYPEDEF: {
@@ -150,10 +155,13 @@ static void buildRootSymbolTables(CompilerContext* context, AstNode* node, Symbo
                     n->name->binding = (SymbolEntry*)createVariableSymbol(n->name->name, n->name, node->kind == AST_CONSTDEF);
                     addSymbolToTable(scope, n->name->binding);
                 }
+                buildRootSymbolTables(context, n->val, scope);
                 break;
             }
             default:
-                // We only want to consider the global scope
+                AST_FOR_EACH_CHILD(node, false, false, true, {
+                    buildRootSymbolTables(context, child, scope);
+                });
                 break;
         }
     }

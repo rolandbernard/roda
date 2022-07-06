@@ -133,10 +133,10 @@ root_stmt : error                                               { $$ = createAst
           | "extern" "fn" var '(' arg_defs ')' opt_type ';'     { $$ = (AstNode*)createAstFn(@$, $3, $5.list, $7, NULL, AST_FN_FLAG_EXTERN | $5.flags); }
           | "fn" var '(' arg_defs ')' opt_type block            { $$ = (AstNode*)createAstFn(@$, $2, $4.list, $6, $7, $4.flags); }
           | "type" var '=' type ';'                             { $$ = (AstNode*)createAstTypeDef(@$, $2, $4); }
-          | "static" var ':' type opt_value                     { $$ = (AstNode*)createAstVarDef(@$, AST_STATICDEF, $2, $4, $5, AST_VAR_FLAG_NONE); }
-          | "pub" "static" var ':' type opt_value               { $$ = (AstNode*)createAstVarDef(@$, AST_STATICDEF, $3, $5, $6, AST_VAR_FLAG_PUBLIC); }
-          | "extern" "static" var ':' type                      { $$ = (AstNode*)createAstVarDef(@$, AST_STATICDEF, $3, $5, NULL, AST_VAR_FLAG_EXTERN); }
-          | "const" var ':' type '=' expr                       { $$ = (AstNode*)createAstVarDef(@$, AST_CONSTDEF, $2, $4, $6, AST_VAR_FLAG_NONE); }
+          | "static" var ':' type opt_value ';'                 { $$ = (AstNode*)createAstVarDef(@$, AST_STATICDEF, $2, $4, $5, AST_VAR_FLAG_NONE); }
+          | "pub" "static" var ':' type opt_value ';'           { $$ = (AstNode*)createAstVarDef(@$, AST_STATICDEF, $3, $5, $6, AST_VAR_FLAG_PUBLIC); }
+          | "extern" "static" var ':' type ';'                  { $$ = (AstNode*)createAstVarDef(@$, AST_STATICDEF, $3, $5, NULL, AST_VAR_FLAG_EXTERN); }
+          | "const" var ':' type '=' expr ';'                   { $$ = (AstNode*)createAstVarDef(@$, AST_CONSTDEF, $2, $4, $6, AST_VAR_FLAG_NONE); }
           ;
 
 opt_type : %empty   { $$ = NULL; }
@@ -174,6 +174,7 @@ block_stmt  : error                             { $$ = createAstSimple(@$, AST_E
             | "while" expr block                { $$ = (AstNode*)createAstWhile(@$, $2, $3); }
             | block                             { $$ = $1; }
             | if                                { $$ = $1; }
+            | "fn" var '(' arg_defs ')' opt_type block            { $$ = (AstNode*)createAstFn(@$, $2, $4.list, $6, $7, $4.flags); }
             ;
 
 if  : "if" expr block                  { $$ = (AstNode*)createAstIfElse(@$, AST_IF_ELSE, $2, $3, NULL); }
@@ -181,13 +182,18 @@ if  : "if" expr block                  { $$ = (AstNode*)createAstIfElse(@$, AST_
     | "if" expr block "else" if        { $$ = (AstNode*)createAstIfElse(@$, AST_IF_ELSE, $2, $3, $5); }
     ;
 
-stmt    : expr                              { $$ = $1; }
-        | assign                            { $$ = $1; }
-        | "break"                           { $$ = (AstNode*)createAstBreak(@$, AST_BREAK); }
-        | "continue"                        { $$ = (AstNode*)createAstBreak(@$, AST_CONTINUE); }
-        | "return"                          { $$ = (AstNode*)createAstReturn(@$, NULL); }
-        | "return" expr                     { $$ = (AstNode*)createAstReturn(@$, $2); }
-        | "let" var opt_type opt_value      { $$ = (AstNode*)createAstVarDef(@$, AST_VARDEF, $2, $3, $4, AST_VAR_FLAG_NONE); }
+stmt    : expr                                          { $$ = $1; }
+        | assign                                        { $$ = $1; }
+        | "break"                                       { $$ = (AstNode*)createAstBreak(@$, AST_BREAK); }
+        | "continue"                                    { $$ = (AstNode*)createAstBreak(@$, AST_CONTINUE); }
+        | "return"                                      { $$ = (AstNode*)createAstReturn(@$, NULL); }
+        | "return" expr                                 { $$ = (AstNode*)createAstReturn(@$, $2); }
+        | "let" var opt_type opt_value                  { $$ = (AstNode*)createAstVarDef(@$, AST_VARDEF, $2, $3, $4, AST_VAR_FLAG_NONE); }
+        | "extern" "fn" var '(' arg_defs ')' opt_type   { $$ = (AstNode*)createAstFn(@$, $3, $5.list, $7, NULL, AST_FN_FLAG_EXTERN | $5.flags); }
+        | "type" var '=' type                           { $$ = (AstNode*)createAstTypeDef(@$, $2, $4); }
+        | "static" var ':' type opt_value               { $$ = (AstNode*)createAstVarDef(@$, AST_STATICDEF, $2, $4, $5, AST_VAR_FLAG_NONE); }
+        | "extern" "static" var ':' type                { $$ = (AstNode*)createAstVarDef(@$, AST_STATICDEF, $3, $5, NULL, AST_VAR_FLAG_EXTERN); }
+        | "const" var ':' type '=' expr                 { $$ = (AstNode*)createAstVarDef(@$, AST_CONSTDEF, $2, $4, $6, AST_VAR_FLAG_NONE); }
         ;
 
 assign : expr '=' expr      { $$ = (AstNode*)createAstBinary(@$, AST_ASSIGN, $1, $3); }

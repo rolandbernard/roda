@@ -3,6 +3,8 @@
 
 #include "compiler/context.h"
 
+void runGlobalInitEvaluation(CompilerContext* context);
+
 void runConstantValueEvaluation(CompilerContext* context);
 
 #endif
