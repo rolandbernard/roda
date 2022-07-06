@@ -873,7 +873,11 @@ static void buildGlobalsAndFunctionStubs(LlvmCodegenContext* context, LlvmCodege
                 LLVMSetExternallyInitialized(value, (n->flags & AST_VAR_FLAG_EXTERN) != 0);
                 bool local = false;
                 if ((n->flags & AST_VAR_FLAG_EXTERN) == 0) {
-                    LLVMSetInitializer(value, LLVMConstNull(type));
+                    if (n->val != NULL) {
+                        LLVMSetInitializer(value, generateLlvmConstValue(context, var->value));
+                    } else {
+                        LLVMSetInitializer(value, LLVMConstNull(type));
+                    }
                     if ((n->flags & AST_VAR_FLAG_PUBLIC) != 0) {
                         LLVMSetLinkage(value, LLVMExternalLinkage);
                     } else {

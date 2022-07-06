@@ -21,9 +21,12 @@ static void evaluateConstantValueDefinitions(CompilerContext* context, AstNode* 
                 evaluateConstantValueDefinitions(context, (AstNode*)n->nodes);
                 break;
             }
+            case AST_STATICDEF:
             case AST_CONSTDEF: {
                 AstVarDef* n = (AstVarDef*)node;
-                evaluateConstantDefinition(context, n);
+                if (n->val != NULL) {
+                    evaluateConstantDefinition(context, n);
+                }
                 break;
             }
             default:
