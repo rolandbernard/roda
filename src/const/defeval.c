@@ -1,11 +1,11 @@
 
 #include "ast/ast.h"
 #include "ast/astwalk.h"
-#include "consteval/eval.h"
+#include "const/eval.h"
 #include "types/check.h"
 #include "types/infer.h"
 
-#include "consteval/defeval.h"
+#include "const/defeval.h"
 
 static void evaluateGlobalInitializers(CompilerContext* context, AstNode* node) {
     if (node != NULL) {

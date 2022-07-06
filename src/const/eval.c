@@ -6,7 +6,7 @@
 #include "types/check.h"
 #include "types/infer.h"
 
-#include "consteval/eval.h"
+#include "const/eval.h"
 
 ConstValue createConstError(CompilerContext* context) {
     ConstValue ret = { .type = getErrorType(&context->types) };

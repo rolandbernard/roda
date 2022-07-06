@@ -1,9 +1,9 @@
-#ifndef _RODA_CONSTEVAL_EVAL_H_
-#define _RODA_CONSTEVAL_EVAL_H_
+#ifndef _RODA_CONST_EVAL_H_
+#define _RODA_CONST_EVAL_H_
 
 #include "ast/ast.h"
 #include "compiler/context.h"
-#include "consteval/value.h"
+#include "const/value.h"
 
 ConstValue createConstError(CompilerContext* context);
 

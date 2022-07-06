@@ -1,7 +1,7 @@
 
 #include <string.h>
 
-#include "consteval/eval.h"
+#include "const/eval.h"
 #include "errors/fatalerror.h"
 #include "errors/msgkind.h"
 #include "text/format.h"

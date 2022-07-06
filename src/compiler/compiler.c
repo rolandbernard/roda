@@ -3,7 +3,7 @@
 #include "codegen/codegen.h"
 #include "compiler/controlflow.h"
 #include "compiler/varbuild.h"
-#include "consteval/defeval.h"
+#include "const/defeval.h"
 #include "errors/msgprint.h"
 #include "parser/wrapper.h"
 #include "types/check.h"

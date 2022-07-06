@@ -2,7 +2,7 @@
 #include "ast/ast.h"
 #include "ast/astprinter.h"
 #include "ast/astwalk.h"
-#include "consteval/eval.h"
+#include "const/eval.h"
 #include "errors/fatalerror.h"
 #include "text/format.h"
 #include "text/string.h"
