@@ -13,6 +13,7 @@
 
 #ifdef TESTS
 #include "tests/test.h"
+#include "tests/testrun.h"
 #endif
 
 int main(int argc, const char* const* argv) {

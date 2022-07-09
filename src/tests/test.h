@@ -20,11 +20,13 @@ extern GlobalTestRegistry global_test_registry;
 void globallyRegisterTest(GlobalTestRegistry* reg, TestAddTestFunction add_function);
 
 typedef enum {
-    TEST_RESULT_UNDONE,
+    TEST_RESULT_UNDONE = 0,
     TEST_RESULT_SUCCESS,
     TEST_RESULT_FAILED,
     TEST_RESULT_ERROR,
 } TestResultStatus;
+
+#define TEST_RESULT_STATUS_COUNT (TEST_RESULT_ERROR + 1)
 
 typedef enum {
     TEST_ASSERT_TRUE,
@@ -56,8 +58,25 @@ typedef struct TestCase {
     TestResult result;
 } TestCase;
 
+typedef enum {
+    TEST_RUNNING_IDLE,
+    TEST_RUNNING_RUNNING,
+    TEST_RUNNING_EXITED,
+} RunningTestCaseStatus;
+
+typedef struct {
+    RunningTestCaseStatus status;
+    TestCase* test_case;
+    int pid;
+    int exit;
+    int pipes[4][2];
+} RunningTestCase;
+
 typedef struct TestManager {
     TestCase* tests;
+    size_t jobs;
+    RunningTestCase* running_tests;
+    size_t counts[TEST_RESULT_STATUS_COUNT];
 } TestManager;
 
 void initTestManager(TestManager* manager);
@@ -68,8 +87,6 @@ void addTestToManager(
     TestManager* manager, const char* name, const char* desc, TestCaseFunction function,
     void* udata, TestCaseDeinitFunction deinit
 );
-
-void runTestManager(TestManager* manager);
 
 void printTestManagerReport(TestManager* manager, FILE* file);
 

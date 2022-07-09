@@ -3,8 +3,8 @@
 
 #include "tests/test.h"
 
-void runTestCase(TestCase* test_case);
+void runTestManager(TestManager* manager);
 
-void raiseTestFailure(TestResultStatus status, TestAssertKind kind, const char* msg, const char* file, size_t line);
+void raiseTestFailure(TestAssertKind kind, const char* msg, const char* file, size_t line);
 
 #endif

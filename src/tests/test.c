@@ -21,6 +21,11 @@ void globallyRegisterTest(GlobalTestRegistry* reg, TestAddTestFunction add_funct
 
 void initTestManager(TestManager* manager) {
     manager->tests = NULL;
+    manager->jobs = 12;
+    manager->running_tests = NULL;
+    for (size_t i = 0; i < TEST_RESULT_STATUS_COUNT; i++) {
+        manager->counts[i] = 0;
+    }
     for (size_t i = 0; i < global_test_registry.count; i++) {
         global_test_registry.functions[i](manager);
     }
@@ -51,14 +56,7 @@ void addTestToManager(
     test_case->deinit = deinit;
     memset(&test_case->result, 0, sizeof(TestResult));
     manager->tests = test_case;
-}
-
-void runTestManager(TestManager* manager) {
-    TestCase* test = manager->tests;
-    while (test != NULL) {
-        runTestCase(test);
-        test = test->next;
-    }
+    manager->counts[test_case->result.status]++;
 }
 
 static const char* getStatusName(TestResultStatus status) {

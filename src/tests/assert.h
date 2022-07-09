@@ -6,10 +6,10 @@
 #include "tests/test.h"
 #include "tests/testrun.h"
 
-#define ASSERT_FAIL(KIND, MSG)    \
-    raiseTestFailure(TEST_RESULT_FAILED, KIND, MSG, __FILE__, __LINE__)
+#define ASSERT_FAIL(KIND, MSG)  \
+    raiseTestFailure(KIND, MSG, __FILE__, __LINE__)
 
 #define ASSERT_TRUE(COND)   \
-    if (!(COND)) { ASSERT_FAIL(TEST_ASSERT_TRUE, "Failed assertion" #COND); }
+    if (!(COND)) { ASSERT_FAIL(TEST_ASSERT_TRUE, "failed assertion: " #COND); }
 
 #endif
