@@ -11,28 +11,28 @@
 #include "util/debug.h"
 #include "version.h"
 
-static void raiseIgnoredParams(CompilerContext* context) {
-    addMessageToContext(&context->msgs,
-        createMessage(WARNING_CMD_ARGS, copyFromCString("some command line arguments were ignored"), 0)
-    );
-}
+#ifdef TESTS
+#include "tests/test.h"
+#endif
 
 int main(int argc, const char* const* argv) {
     srand(clock() + time(NULL));
     CompilerContext* context = createCompilerContext();
-    int arg_count = parseProgramParams(argc, argv, context);
+    parseProgramParams(argc, argv, context);
     printAndClearMessages(context, stderr);
     DEBUG_LOG(context, "finished parsing command line arguments");
-    if (context->settings.version || context->settings.help) {
-        if (arg_count > 1) {
-            raiseIgnoredParams(context);
-            printAndClearMessages(context, stderr);
-        }
-        if (context->settings.version) {
-            printVersionInfo(stderr);
-        } else {
-            printHelpText();
-        }
+    if (context->settings.run_kind == COMPILER_RUN_VERSION) {
+        printVersionInfo(stderr);
+    } else if (context->settings.run_kind == COMPILER_RUN_HELP) {
+        printHelpText();
+#ifdef TESTS
+    } else if (context->settings.run_kind == COMPILER_RUN_TEST) {
+        TestManager test_manager;
+        initTestManager(&test_manager);
+        runTestManager(&test_manager);
+        printTestManagerReport(&test_manager, stderr);
+        deinitTestManager(&test_manager);
+#endif
     } else {
         if (context->files.file_count == 0) {
             addMessageToContext(&context->msgs,

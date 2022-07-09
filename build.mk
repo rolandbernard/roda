@@ -9,7 +9,7 @@ ECHO     = $(COUNTINC)printf "[%*i/%i](%3i%%) %s\n" $(TLENGTH) $(COUNTER) $(TOTA
 
 TOTAL   := \
 	$(shell $(MAKE) $(MAKECMDGOALS) --no-print-directory -nrRf $(firstword $(MAKEFILE_LIST)) \
-		ECHO="__HIT_MARKER__" BUILD=$(BUILD) | grep -c "__HIT_MARKER__")
+		ECHO="__HIT_MARKER__" BUILD=$(BUILD) SWITCHES="$(SWITCHES)" | grep -c "__HIT_MARKER__")
 TLENGTH := $(shell expr length $(TOTAL))
 else
 ECHO    := echo
@@ -18,7 +18,7 @@ endif
 # ==
 
 # == Directories
-BUILD_NAME ?= build_$(BUILD)_$(subst $(SPACE),-,$(SWITCHES))
+BUILD_NAME ?= build-$(BUILD)_$(subst $(SPACE),_,$(SWITCHES))
 OBJECT_DIR := $(BUILD_DIR)/$(BUILD_NAME)/obj
 BINARY_DIR := $(BUILD_DIR)/$(BUILD_NAME)/bin
 # ==
