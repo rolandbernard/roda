@@ -90,6 +90,8 @@ void addTestToManager(
 
 void printTestManagerReport(TestManager* manager, FILE* file);
 
+void printTestManagerProgress(TestManager* manager, FILE* file);
+
 #define DEFINE_TEST(NAME, DESC, CODE)                                       \
     static void NAME ## _run (TestCase* test_case) {                        \
         test_case->result.file = __FILE__;                                  \

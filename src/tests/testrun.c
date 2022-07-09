@@ -7,6 +7,7 @@
 #include <wait.h>
 
 #include "util/alloc.h"
+#include "util/console.h"
 
 #include "tests/testrun.h"
 
@@ -103,6 +104,7 @@ static void stopRunningTestCase(RunningTestCase* job) {
 typedef void (*SignalHandler)(int);
 
 void runTestManager(TestManager* manager) {
+    bool progress = isatty(fileno(stderr));
     global_test_manager = manager;
     SignalHandler oldSigChldHandler = signal(SIGCHLD, signalHandler);
     SignalHandler oldSigIntHandler = signal(SIGINT, signalHandler);
@@ -120,6 +122,7 @@ void runTestManager(TestManager* manager) {
             switch (manager->running_tests[i].status) {
                 case TEST_RUNNING_IDLE:
                     if (test_case != NULL) {
+                        manager->counts[test_case->result.status]--;
                         startRunningTestCase(&manager->running_tests[i], test_case);
                         running_tests++;
                         test_case = test_case->next;
@@ -130,6 +133,7 @@ void runTestManager(TestManager* manager) {
                     break;
                 case TEST_RUNNING_EXITED:
                     stopRunningTestCase(&manager->running_tests[i]);
+                    manager->counts[manager->running_tests[i].test_case->result.status]++;
                     running_tests--;
                     manager->running_tests[i].status = TEST_RUNNING_IDLE;
                     changed = true;
@@ -137,6 +141,10 @@ void runTestManager(TestManager* manager) {
             }
         }
         if (!changed) {
+            if (progress) {
+                printTestManagerProgress(manager, stderr);
+                fprintf(stderr, CONSOLE_CUU(%i) CONSOLE_ED(), TEST_RESULT_STATUS_COUNT);
+            }
             struct timespec sleep = { .tv_sec = 10, .tv_nsec = 0 };
             nanosleep(&sleep, NULL);
         }

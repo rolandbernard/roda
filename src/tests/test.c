@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "util/alloc.h"
+#include "util/console.h"
 #include "tests/testrun.h"
 
 #include "tests/test.h"
@@ -62,22 +63,59 @@ void addTestToManager(
 static const char* getStatusName(TestResultStatus status) {
     switch (status) {
         case TEST_RESULT_UNDONE:
-            return "undone";
+            return " undone";
         case TEST_RESULT_SUCCESS:
             return "success";
         case TEST_RESULT_FAILED:
             return "failure";
         case TEST_RESULT_ERROR:
-            return "error";
+            return "  error";
     }
     return "unknown";
 }
 
+static const char* getStatusStyle(TestResultStatus status) {
+    switch (status) {
+        case TEST_RESULT_UNDONE:
+            return CONSOLE_SGR();
+        case TEST_RESULT_SUCCESS:
+            return CONSOLE_SGR(CONSOLE_SGR_BOLD;CONSOLE_SGR_FG_GREEN);
+        case TEST_RESULT_FAILED:
+            return CONSOLE_SGR(CONSOLE_SGR_BOLD;CONSOLE_SGR_FG_RED);
+        case TEST_RESULT_ERROR:
+            return CONSOLE_SGR(CONSOLE_SGR_BOLD;CONSOLE_SGR_FG_RED);
+    }
+    return CONSOLE_SGR();
+}
+
 void printTestManagerReport(TestManager* manager, FILE* file) {
+    size_t printed = 0;
     TestCase* test = manager->tests;
     while (test != NULL) {
-        fprintf(file, "%s: %s\n", getStatusName(test->result.status), test->name);
+        if (test->result.status != TEST_RESULT_SUCCESS) {
+            fprintf(
+                file, "%s%s:" CONSOLE_SGR() CONSOLE_SGR(CONSOLE_SGR_BOLD) " %s" CONSOLE_SGR() "\n",
+                getStatusStyle(test->result.status), getStatusName(test->result.status), test->name
+            );
+            if (test->result.desc != NULL) {
+                fprintf(file, " --> %s:%zi: %s\n", test->result.file, test->result.line, test->result.desc);
+            }
+            printed++;
+        }
         test = test->next;
+    }
+    if (printed != 0) {
+        fprintf(file, "\n");
+    }
+    printTestManagerProgress(manager, file);
+}
+
+void printTestManagerProgress(TestManager* manager, FILE* file) {
+    for (size_t i = 0; i < TEST_RESULT_STATUS_COUNT; i++) {
+        fprintf(
+            file, "%s%s: %zi" CONSOLE_SGR() "\n", getStatusStyle(i), getStatusName(i),
+            manager->counts[i]
+        );
     }
 }
 
