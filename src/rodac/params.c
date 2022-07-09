@@ -2,9 +2,9 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "rodac/version.h"
 #include "text/format.h"
 #include "util/params.h"
+#include "version.h"
 
 #include "rodac/params.h"
 

@@ -1,7 +1,9 @@
 #ifndef _RODAC_VERSION_H_
 #define _RODAC_VERSION_H_
 
-#include "util/console.h"
+#include <stdio.h>
+
+#include "util/macro.h"
 
 #define PROGRAM_NAME "rodac"
 #define PROGRAM_LONG "roda compiler"
@@ -17,5 +19,7 @@
 #else
 #define VERSION_STRING_BUILD VERSION_STRING
 #endif
+
+void printVersionInfo(FILE* out);
 
 #endif

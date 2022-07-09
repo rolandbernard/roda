@@ -3,7 +3,7 @@ include config.mk
 
 # == General
 TARGETS := rodac
-ALL_SWITCHES := llvm
+ALL_SWITCHES := llvm tests
 # ==
 
 # == Feature detection
@@ -85,7 +85,7 @@ test: build
 
 coverage:
 	$(RM) -r $(BASE_DIR)/profile/
-	$(MAKE) BUILD=coverage test
+	LLVM_PROFILE_FILE="profile/tests/%p.profraw" $(MAKE) BUILD=coverage test
 	llvm-profdata merge $(BASE_DIR)/profile/tests/*.profraw -o $(BASE_DIR)/profile/combined.profdata
 	llvm-cov show $(BUILD_DIR)/coverage/bin/rodac -instr-profile=$(BASE_DIR)/profile/combined.profdata -o $(BASE_DIR)/profile/report
 	llvm-cov report $(BUILD_DIR)/coverage/bin/rodac -instr-profile=$(BASE_DIR)/profile/combined.profdata

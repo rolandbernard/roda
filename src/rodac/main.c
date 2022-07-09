@@ -1,4 +1,5 @@
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 
@@ -6,26 +7,9 @@
 #include "errors/msgprint.h"
 #include "parser/wrapper.h"
 #include "rodac/params.h"
-#include "rodac/version.h"
 #include "text/string.h"
 #include "util/debug.h"
-
-static void printVersionInfo() {
-    fprintf(stderr, PROGRAM_LONG " v" VERSION_STRING "\n");
-    fprintf(stderr, "  version: " VERSION_STRING_BUILD "\n");
-#ifdef GIT_URL
-    fprintf(stderr, "  git: " GIT_URL "\n");
-#endif
-#ifdef LLVM
-#ifdef LLVM_VERSION
-    fprintf(stderr, "  LLVM backend: " LLVM_VERSION "\n");
-#else
-    fprintf(stderr, "  LLVM backend: yes\n");
-#endif
-#else
-    fprintf(stderr, "  LLVM backend: no \n");
-#endif
-}
+#include "version.h"
 
 static void raiseIgnoredParams(CompilerContext* context) {
     addMessageToContext(&context->msgs,
@@ -45,7 +29,7 @@ int main(int argc, const char* const* argv) {
             printAndClearMessages(context, stderr);
         }
         if (context->settings.version) {
-            printVersionInfo();
+            printVersionInfo(stderr);
         } else {
             printHelpText();
         }
