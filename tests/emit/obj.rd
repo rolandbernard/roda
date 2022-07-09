@@ -1,5 +1,5 @@
 // test: Test emiting llvm ir
-// build: ./build/$BUILD/bin/rodac % -o=%.o $TEST_ARGS
+// build: $BINARY % -o=%.o $TEST_ARGS
 // run: test -f %.o
 // cleanup: rm -f %.o
 

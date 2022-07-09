@@ -2,14 +2,15 @@
 # == Progress
 ifndef ECHO
 ifneq ($(PROGRESS),no)
-TOTAL   := \
-	$(shell $(MAKE) $(MAKECMDGOALS) --no-print-directory -nrRf $(firstword $(MAKEFILE_LIST)) \
-		ECHO="__HIT_MARKER__" BUILD=$(BUILD) | grep -c "__HIT_MARKER__")
-TLENGTH := $(shell expr length $(TOTAL))
 COUNTER  = $(words $(HIDDEN_COUNT))
 COUNTINC = $(eval HIDDEN_COUNT := x $(HIDDEN_COUNT))
 PERCENT  = $(shell expr $(COUNTER) '*' 100 / $(TOTAL))
 ECHO     = $(COUNTINC)printf "[%*i/%i](%3i%%) %s\n" $(TLENGTH) $(COUNTER) $(TOTAL) $(PERCENT)
+
+TOTAL   := \
+	$(shell $(MAKE) $(MAKECMDGOALS) --no-print-directory -nrRf $(firstword $(MAKEFILE_LIST)) \
+		ECHO="__HIT_MARKER__" BUILD=$(BUILD) | grep -c "__HIT_MARKER__")
+TLENGTH := $(shell expr length $(TOTAL))
 else
 ECHO    := echo
 endif
@@ -17,8 +18,9 @@ endif
 # ==
 
 # == Directories
-OBJECT_DIR := $(BUILD_DIR)/$(BUILD)/obj
-BINARY_DIR := $(BUILD_DIR)/$(BUILD)/bin
+BUILD_NAME ?= build_$(BUILD)_$(subst $(SPACE),-,$(SWITCHES))
+OBJECT_DIR := $(BUILD_DIR)/$(BUILD_NAME)/obj
+BINARY_DIR := $(BUILD_DIR)/$(BUILD_NAME)/bin
 # ==
 
 # == Common Flags
@@ -88,6 +90,9 @@ TO_CLEAN += $(BUILD_DIR)
 
 build: $(TARGETS)
 	@$(FINISHED)
+	$(RM) -r $(BUILD_DIR)/$(BUILD) $(BUILD_DIR)/last
+	ln -s $(BUILD_DIR)/$(BUILD_NAME) $(BUILD_DIR)/$(BUILD)
+	ln -s $(BUILD_DIR)/$(BUILD_NAME) $(BUILD_DIR)/last
 	@$(ECHO) "Build successful."
 
 $(TARGETS): $(BINARY_DIR)/$$@

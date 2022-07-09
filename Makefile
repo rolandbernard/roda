@@ -14,8 +14,13 @@ LLVM         ?= $(shell if [ $(LLVM_MAJOR) -ge 10 ] ; then echo yes ; else echo 
 # ==
 
 # == Enable features
+ifndef SWITCHES
 ifeq ($(LLVM),yes)
 SWITCHES += llvm
+endif
+ifeq ($(TESTS),yes)
+SWITCHES += tests
+endif
 endif
 # ==
 
@@ -74,13 +79,15 @@ $(YACC_C): $(YACC_SRC)
 # ==
 
 # == Tetsing
+.PHONY: test coverage
+
 test: build
 	@$(ECHO) "Starting tests with --debug"
-	TEST_ARGS=--debug tested -j12 $(BASE_DIR)/tests
+	TEST_ARGS=--debug BINARY=$(BINARY_DIR)/rodac tested -j12 $(BASE_DIR)/tests
 	@$(ECHO) "Starting tests with -O0"
-	TEST_ARGS=-O0 tested -j12 $(BASE_DIR)/tests
+	TEST_ARGS=-O0 BINARY=$(BINARY_DIR)/rodac tested -j12 $(BASE_DIR)/tests
 	@$(ECHO) "Starting tests with -O2"
-	TEST_ARGS=-O2 tested -j12 $(BASE_DIR)/tests
+	TEST_ARGS=-O2 BINARY=$(BINARY_DIR)/rodac tested -j12 $(BASE_DIR)/tests
 	@$(ECHO) "Finished tests"
 
 coverage:

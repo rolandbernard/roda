@@ -1,4 +1,4 @@
-build: ./build/$BUILD/bin/rodac % -o=%.out $TEST_ARGS
+build: $BINARY % -o=%.out $TEST_ARGS
 run: %.out
 cleanup: rm -f %.out
 

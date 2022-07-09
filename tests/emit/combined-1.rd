@@ -1,5 +1,5 @@
 // test: Test compiling multiple files
-// build: ./build/$BUILD/bin/rodac % ./tests/emit/combined-second.rd -o=%.out $TEST_ARGS
+// build: $BINARY % ./tests/emit/combined-second.rd -o=%.out $TEST_ARGS
 
 extern fn foo(a: int, b: int): int;
 

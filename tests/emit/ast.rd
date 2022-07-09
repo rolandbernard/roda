@@ -1,5 +1,5 @@
 // test: Test emiting ast
-// build: ./build/$BUILD/bin/rodac $(realpath --relative-to=. %) -o=%.ast $TEST_ARGS
+// build: $BINARY $(realpath --relative-to=. %) -o=%.ast $TEST_ARGS
 // run: cmp %.ast %.expected
 // cleanup: rm -f %.ast
 

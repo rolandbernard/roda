@@ -1,3 +1,3 @@
 // test: Test printing help text
-// run: ./build/$BUILD/bin/rodac --version
+// run: $BINARY --version
 // stderr: != 

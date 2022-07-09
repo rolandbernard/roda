@@ -1,5 +1,5 @@
 // test: Test printing help text
-// run: ./build/$BUILD/bin/rodac --help
+// run: $BINARY --help
 // stderr: != 
 
 

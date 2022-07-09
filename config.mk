@@ -2,7 +2,7 @@
 # == Build type
 BUILD ?= debug
 
-export BUILD
+export BUILD SWITCHES
 # ==
 
 # == Directories
@@ -23,6 +23,9 @@ ifneq ($(VERBOSE),yes)
 endif
 .SECONDARY:
 .SECONDEXPANSION:
+
+EMPTY :=
+SPACE := $(EMPTY) $(EMPTY)
 # ==
 
 # == Common rules
