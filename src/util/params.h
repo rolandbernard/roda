@@ -25,7 +25,7 @@
     _raiseWarning(option, ABOUT, argc, argv, context);
 
 #define PARAM_SPEC_FUNCTION(NAME, PARAM, BODY)                                                          \
-    void _warning_ ## NAME(                                                                             \
+    static void _warning_ ## NAME(                                                                      \
         const char* option, const char* warning, int argc, const char* const* argv, PARAM context       \
     ) {                                                                                                 \
         void (*_raiseWarning)(                                                                          \
@@ -42,7 +42,7 @@
             BODY                                                                                        \
         } while (false);                                                                                \
     }                                                                                                   \
-    int NAME(bool _help, int argc, const char* const* argv, PARAM context) {                            \
+    static int NAME(bool _help, int argc, const char* const* argv, PARAM context) {                     \
         void (*_raiseWarning)(                                                                          \
             const char*, const char*, int, const char* const*, PARAM                                    \
         ) = _warning_ ## NAME;                                                                          \

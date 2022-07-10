@@ -95,8 +95,8 @@ void printTestManagerReport(TestManager* manager, FILE* file) {
     while (test != NULL) {
         if (test->result.status != TEST_RESULT_SUCCESS) {
             fprintf(
-                file, "%s%s:" CONSOLE_SGR() CONSOLE_SGR(CONSOLE_SGR_BOLD) " %s" CONSOLE_SGR() "\n",
-                getStatusStyle(test->result.status), getStatusName(test->result.status), test->name
+                file, "%s%s:" CONSOLE_SGR() CONSOLE_SGR(CONSOLE_SGR_BOLD) " %s: %s" CONSOLE_SGR() "\n",
+                getStatusStyle(test->result.status), getStatusName(test->result.status), test->name, test->desc
             );
             if (test->result.desc != NULL) {
                 fprintf(file, " --> %s:%zi: %s\n", test->result.file, test->result.line, test->result.desc);

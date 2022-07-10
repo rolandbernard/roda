@@ -20,7 +20,7 @@
 #define TESTS_ONLY_PARAMS(PARAMS)
 #endif
 
-static PARAM_SPEC_FUNCTION(parameterSpecFunction, CompilerContext*, {
+PARAM_SPEC_FUNCTION(parameterSpecFunction, CompilerContext*, {
     PARAM_USAGE(PROGRAM_NAME " [options] files...");
     PARAM_FLAG('h', "help", {
         if (context->settings.run_kind != COMPILER_RUN_DEFAULT) {

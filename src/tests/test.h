@@ -30,10 +30,13 @@ typedef enum {
 
 typedef enum {
     TEST_ASSERT_TRUE,
+    TEST_ASSERT_FALSE,
     TEST_ASSERT_NULL,
     TEST_ASSERT_NOT_NULL,
     TEST_ASSERT_EQUAL,
     TEST_ASSERT_UNEQUAL,
+    TEST_ASSERT_STR_EQUAL,
+    TEST_ASSERT_STR_UNEQUAL,
 } TestAssertKind;
 
 typedef struct {
@@ -92,11 +95,11 @@ void printTestManagerReport(TestManager* manager, FILE* file);
 
 void printTestManagerProgress(TestManager* manager, FILE* file);
 
-#define DEFINE_TEST(NAME, DESC, CODE)                                                           \
+#define DEFINE_TEST(NAME, DESC, ...)                                                            \
     static void NAME ## _run (TestCase* test_case) {                                            \
         test_case->result.file = __FILE__;                                                      \
         test_case->result.line = __LINE__;                                                      \
-        { CODE }                                                                                \
+        { __VA_ARGS__ }                                                                         \
     }                                                                                           \
     static void NAME ## _add (TestManager* manager) {                                           \
         TestCase* test_case = addTestToManager(manager, DESC, #NAME, NAME ## _run, NULL, NULL); \
