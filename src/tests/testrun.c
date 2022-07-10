@@ -65,7 +65,6 @@ static void signalHandler(int signal) {
 }
 
 static void startRunningTestCase(RunningTestCase* job, TestCase* test_case) {
-    test_case->result.status = TEST_RESULT_UNDONE;
     test_case->result.desc = "test case not finished";
     job->test_case = test_case;
     job->status = TEST_RUNNING_RUNNING;
@@ -103,7 +102,12 @@ static void stopRunningTestCase(RunningTestCase* job) {
 
 typedef void (*SignalHandler)(int);
 
+const char* progress_indicators[] = { "|", "/", "-", "\\" };
+
+#define ARRAY_LEN(A) (sizeof(A) / sizeof((A)[0]))
+
 void runTestManager(TestManager* manager) {
+    size_t step = 0;
     bool progress = isatty(fileno(stderr));
     global_test_manager = manager;
     SignalHandler oldSigChldHandler = signal(SIGCHLD, signalHandler);
@@ -119,11 +123,11 @@ void runTestManager(TestManager* manager) {
     while (test_case != NULL || running_tests != 0) {
         bool changed = false;
         for (size_t i = 0; i < manager->jobs; i++) {
-            switch (manager->running_tests[i].status) {
+            RunningTestCase* run = &manager->running_tests[i];
+            switch (run->status) {
                 case TEST_RUNNING_IDLE:
                     if (test_case != NULL) {
-                        manager->counts[test_case->result.status]--;
-                        startRunningTestCase(&manager->running_tests[i], test_case);
+                        startRunningTestCase(run, test_case);
                         running_tests++;
                         test_case = test_case->next;
                         changed = true;
@@ -132,22 +136,30 @@ void runTestManager(TestManager* manager) {
                 case TEST_RUNNING_RUNNING:
                     break;
                 case TEST_RUNNING_EXITED:
-                    stopRunningTestCase(&manager->running_tests[i]);
-                    manager->counts[manager->running_tests[i].test_case->result.status]++;
+                    manager->counts[run->test_case->result.status]--;
+                    stopRunningTestCase(run);
+                    manager->counts[run->test_case->result.status]++;
                     running_tests--;
-                    manager->running_tests[i].status = TEST_RUNNING_IDLE;
+                    run->status = TEST_RUNNING_IDLE;
                     changed = true;
                     break;
             }
         }
         if (!changed) {
             if (progress) {
+                if (step != 0) {
+                    fprintf(stderr, CONSOLE_CUU(%i) CONSOLE_ED(), TEST_RESULT_STATUS_COUNT);
+                }
                 printTestManagerProgress(manager, stderr);
-                fprintf(stderr, CONSOLE_CUU(%i) CONSOLE_ED(), TEST_RESULT_STATUS_COUNT);
+                fprintf(stderr, "     [%s] %zi running\r", progress_indicators[step % ARRAY_LEN(progress_indicators)], running_tests);
+                step++;
             }
-            struct timespec sleep = { .tv_sec = 10, .tv_nsec = 0 };
+            struct timespec sleep = { .tv_sec = 0, .tv_nsec = 100000000 };
             nanosleep(&sleep, NULL);
         }
+    }
+    if (progress && step != 0) {
+        fprintf(stderr, CONSOLE_CUU(%i) CONSOLE_ED(), TEST_RESULT_STATUS_COUNT);
     }
     FREE(manager->running_tests);
     manager->running_tests = NULL;

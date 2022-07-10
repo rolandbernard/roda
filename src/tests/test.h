@@ -83,7 +83,7 @@ void initTestManager(TestManager* manager);
 
 void deinitTestManager(TestManager* manager);
 
-void addTestToManager(
+TestCase* addTestToManager(
     TestManager* manager, const char* name, const char* desc, TestCaseFunction function,
     void* udata, TestCaseDeinitFunction deinit
 );
@@ -92,18 +92,20 @@ void printTestManagerReport(TestManager* manager, FILE* file);
 
 void printTestManagerProgress(TestManager* manager, FILE* file);
 
-#define DEFINE_TEST(NAME, DESC, CODE)                                       \
-    static void NAME ## _run (TestCase* test_case) {                        \
-        test_case->result.file = __FILE__;                                  \
-        test_case->result.line = __LINE__;                                  \
-        { CODE }                                                            \
-    }                                                                       \
-    static void NAME ## _add (TestManager* manager) {                       \
-        addTestToManager(manager, DESC, #NAME, NAME ## _run, NULL, NULL);   \
-    }                                                                       \
-    static void NAME ## _init () __attribute__((constructor));              \
-    static void NAME ## _init () {                                          \
-        globallyRegisterTest(&global_test_registry, NAME ## _add);          \
+#define DEFINE_TEST(NAME, DESC, CODE)                                                           \
+    static void NAME ## _run (TestCase* test_case) {                                            \
+        test_case->result.file = __FILE__;                                                      \
+        test_case->result.line = __LINE__;                                                      \
+        { CODE }                                                                                \
+    }                                                                                           \
+    static void NAME ## _add (TestManager* manager) {                                           \
+        TestCase* test_case = addTestToManager(manager, DESC, #NAME, NAME ## _run, NULL, NULL); \
+        test_case->result.file = __FILE__;                                                      \
+        test_case->result.line = __LINE__;                                                      \
+    }                                                                                           \
+    static void NAME ## _init () __attribute__((constructor));                                  \
+    static void NAME ## _init () {                                                              \
+        globallyRegisterTest(&global_test_registry, NAME ## _add);                              \
     }
 
 #endif

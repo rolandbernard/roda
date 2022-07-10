@@ -43,7 +43,7 @@ void deinitTestManager(TestManager* manager) {
     }
 }
 
-void addTestToManager(
+TestCase* addTestToManager(
     TestManager* manager, const char* name, const char* desc, TestCaseFunction function,
     void* udata, TestCaseDeinitFunction deinit
 ) {
@@ -58,6 +58,7 @@ void addTestToManager(
     memset(&test_case->result, 0, sizeof(TestResult));
     manager->tests = test_case;
     manager->counts[test_case->result.status]++;
+    return test_case;
 }
 
 static const char* getStatusName(TestResultStatus status) {
