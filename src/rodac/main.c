@@ -33,6 +33,10 @@ int main(int argc, const char* const* argv) {
         runTestManager(&test_manager);
         printTestManagerReport(&test_manager, stderr);
         deinitTestManager(&test_manager);
+        freeCompilerContext(context);
+        return test_manager.counts[TEST_RESULT_FAILED] + test_manager.counts[TEST_RESULT_ERROR] == 0
+            ? EXIT_SUCCESS
+            : EXIT_FAILURE;
 #endif
     } else {
         if (context->files.file_count == 0) {

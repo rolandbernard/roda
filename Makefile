@@ -80,9 +80,14 @@ $(YACC_C): $(YACC_SRC)
 # ==
 
 # == Tetsing
-.PHONY: test coverage
+.PHONY: run-test test coverage
 
-test: build
+test:
+	$(MAKE) SWITCHES="$(SWITCHES) tests" run-test
+
+run-test: build
+	@$(ECHO) "Starting build-in tests"
+	$(BINARY_DIR)/rodac --run-compiler-tests
 	@$(ECHO) "Starting tests with --debug"
 	TEST_ARGS=--debug BINARY=$(BINARY_DIR)/rodac tested -j12 $(BASE_DIR)/tests
 	@$(ECHO) "Starting tests with -O0"
