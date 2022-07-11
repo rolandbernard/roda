@@ -65,6 +65,13 @@ static void signalHandler(int signal) {
     }
 }
 
+#ifdef COVERAGE
+int __llvm_profile_runtime;
+
+extern void __llvm_profile_initialize_file();
+extern int __llvm_profile_write_file();
+#endif
+
 static void startRunningTestCase(RunningTestCase* job, TestCase* test_case) {
     test_case->result.desc = "test case not finished";
     job->test_case = test_case;
@@ -74,6 +81,9 @@ static void startRunningTestCase(RunningTestCase* job, TestCase* test_case) {
     }
     job->pid = fork();
     if (job->pid == 0) {
+#ifdef COVERAGE
+        __llvm_profile_initialize_file();
+#endif
         global_test_case = test_case;
         test_result_pipe = job->pipes[3][1];
         atexit(writeOutTestCaseResult);
@@ -83,6 +93,9 @@ static void startRunningTestCase(RunningTestCase* job, TestCase* test_case) {
         test_case->function(test_case);
         test_case->result.status = TEST_RESULT_SUCCESS;
         test_case->result.desc = "test case finished successfully";
+#ifdef COVERAGE
+        __llvm_profile_write_file();
+#endif
         exit(0);
     }
 }

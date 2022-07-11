@@ -2,7 +2,7 @@
 # == Build type
 BUILD ?= debug
 
-export BUILD SWITCHES
+export BUILD
 # ==
 
 # == Directories

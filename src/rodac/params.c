@@ -14,12 +14,6 @@
 #define DEBUG_ONLY_PARAMS(PARAMS)
 #endif
 
-#ifdef TESTS
-#define TESTS_ONLY_PARAMS(PARAMS) PARAMS
-#else
-#define TESTS_ONLY_PARAMS(PARAMS)
-#endif
-
 PARAM_SPEC_FUNCTION(parameterSpecFunction, CompilerContext*, {
     PARAM_USAGE(PROGRAM_NAME " [options] files...");
     PARAM_FLAG('h', "help", {
@@ -197,9 +191,6 @@ PARAM_SPEC_FUNCTION(parameterSpecFunction, CompilerContext*, {
                 PARAM_WARN_UNKNOWN_VALUE()
             }
         }, "={all|log|parse-ast|typed-ast}[,...]", "print debug information while compiling");
-        PARAM_FLAG(0, "run-compiler-tests", {
-             context->settings.run_kind = COMPILER_RUN_TEST; 
-        }, "run compiler tests");
     });
     PARAM_DEFAULT({
         Path path = createPathFromCString(value);

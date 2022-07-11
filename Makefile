@@ -3,7 +3,9 @@ include config.mk
 
 # == General
 TARGETS := rodac
-ALL_SWITCHES := llvm tests
+
+ALL_TARGETS  := rodac tests
+ALL_SWITCHES := llvm
 # ==
 
 # == Feature detection
@@ -14,14 +16,16 @@ LLVM         ?= $(shell if [ $(LLVM_MAJOR) -ge 10 ] ; then echo yes ; else echo 
 # ==
 
 # == Enable features
-ifndef SWITCHES
 ifeq ($(LLVM),yes)
 SWITCHES += llvm
 endif
 ifeq ($(TESTS),yes)
-SWITCHES += tests
+TARGETS += tests
 endif
-endif
+TARGETS := $(sort $(TARGETS))
+SWITCHES := $(sort $(SWITCHES))
+
+export SWITCHES TARGETS
 # ==
 
 # == Tools
@@ -80,14 +84,11 @@ $(YACC_C): $(YACC_SRC)
 # ==
 
 # == Tetsing
-.PHONY: run-test test coverage
+.PHONY: test coverage
 
-test:
-	$(MAKE) SWITCHES="$(SWITCHES) tests" run-test
-
-run-test: build
+test: build
 	@$(ECHO) "Starting build-in tests"
-	$(BINARY_DIR)/rodac --run-compiler-tests
+	$(BINARY_DIR)/tests
 	@$(ECHO) "Starting tests with --debug"
 	TEST_ARGS=--debug BINARY=$(BINARY_DIR)/rodac tested -j12 $(BASE_DIR)/tests
 	@$(ECHO) "Starting tests with -O0"
@@ -98,7 +99,7 @@ run-test: build
 
 coverage:
 	$(RM) -r $(BASE_DIR)/profile/
-	LLVM_PROFILE_FILE="profile/tests/%p.profraw" $(MAKE) BUILD=coverage test
+	LLVM_PROFILE_FILE="profile/tests/%p.profraw" $(MAKE) BUILD=coverage TARGETS="rodac tests" test
 	llvm-profdata merge $(BASE_DIR)/profile/tests/*.profraw -o $(BASE_DIR)/profile/combined.profdata
 	llvm-cov show $(BUILD_DIR)/coverage/bin/rodac -instr-profile=$(BASE_DIR)/profile/combined.profdata -o $(BASE_DIR)/profile/report
 	llvm-cov report $(BUILD_DIR)/coverage/bin/rodac -instr-profile=$(BASE_DIR)/profile/combined.profdata
