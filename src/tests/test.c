@@ -32,13 +32,18 @@ void initTestManager(TestManager* manager) {
     }
 }
 
+void freeTestCase(TestCase* test) {
+    if (test->deinit != NULL) {
+        test->deinit(test);
+    }
+    FREE(test->result.out_stderr);
+    FREE(test);
+}
+
 void deinitTestManager(TestManager* manager) {
     while (manager->tests != NULL) {
         TestCase* next = manager->tests->next;
-        if (manager->tests->deinit != NULL) {
-            manager->tests->deinit(manager->tests);
-        }
-        FREE(manager->tests);
+        freeTestCase(manager->tests);
         manager->tests = next;
     }
 }
@@ -98,8 +103,14 @@ void printTestManagerReport(TestManager* manager, FILE* file) {
                 file, "%s%s:" CONSOLE_SGR() CONSOLE_SGR(CONSOLE_SGR_BOLD) " %s: %s" CONSOLE_SGR() "\n",
                 getStatusStyle(test->result.status), getStatusName(test->result.status), test->name, test->desc
             );
+            fprintf(file, " --> %s:%zi", test->result.file, test->result.line);
             if (test->result.desc != NULL) {
-                fprintf(file, " --> %s:%zi: %s\n", test->result.file, test->result.line, test->result.desc);
+                fprintf(file, " %s\n", test->result.desc);
+            } else {
+                fprintf(file, "\n");
+            }
+            if (test->result.out_stderr != NULL && test->result.out_stderr[0] != 0) {
+                fprintf(file, " --> stderr: '%s'\n", test->result.out_stderr);
             }
             printed++;
         }

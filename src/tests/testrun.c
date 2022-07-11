@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/ioctl.h>
 #include <time.h>
 #include <unistd.h>
 #include <wait.h>
@@ -86,17 +87,29 @@ static void startRunningTestCase(RunningTestCase* job, TestCase* test_case) {
     }
 }
 
+static char* readStringFromFd(int fd) {
+    int length = 0;
+    ioctl(fd, FIONREAD, &length); 
+    char* buffer = (char*)malloc(length + 1);
+    if (length > 0) {
+        read(fd, buffer, length);
+    }
+    buffer[length] = 0;
+    return buffer;
+}
+
 static void stopRunningTestCase(RunningTestCase* job) {
     for (size_t i = 0; i < 4; i++) {
         close(job->pipes[i][1]);
     }
     size_t result_read = read(job->pipes[3][0], &job->test_case->result, sizeof(TestResult));
-    for (size_t i = 0; i < 4; i++) {
-        close(job->pipes[i][0]);
-    }
     if (result_read != sizeof(TestResult) || job->exit != 0) {
         job->test_case->result.status = TEST_RESULT_ERROR;
         job->test_case->result.desc = "test exited with error";
+        job->test_case->result.out_stderr = readStringFromFd(job->pipes[2][0]);
+    }
+    for (size_t i = 0; i < 4; i++) {
+        close(job->pipes[i][0]);
     }
 }
 
@@ -154,7 +167,7 @@ void runTestManager(TestManager* manager) {
                 fprintf(stderr, "     [%s] %zi running\r", progress_indicators[step % ARRAY_LEN(progress_indicators)], running_tests);
                 step++;
             }
-            struct timespec sleep = { .tv_sec = 0, .tv_nsec = 100000000 };
+            struct timespec sleep = { .tv_sec = 0, .tv_nsec = 250000000 };
             nanosleep(&sleep, NULL);
         }
     }

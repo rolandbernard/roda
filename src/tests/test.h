@@ -45,6 +45,7 @@ typedef struct {
     const char* desc;
     const char* file;
     size_t line;
+    char* out_stderr;
 } TestResult;
 
 typedef void (*TestCaseFunction)(struct TestCase* test);
@@ -102,7 +103,7 @@ void printTestManagerProgress(TestManager* manager, FILE* file);
         { __VA_ARGS__ }                                                                         \
     }                                                                                           \
     static void NAME ## _add (TestManager* manager) {                                           \
-        TestCase* test_case = addTestToManager(manager, DESC, #NAME, NAME ## _run, NULL, NULL); \
+        TestCase* test_case = addTestToManager(manager, #NAME, DESC, NAME ## _run, NULL, NULL); \
         test_case->result.file = __FILE__;                                                      \
         test_case->result.line = __LINE__;                                                      \
     }                                                                                           \
