@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/ioctl.h>
+#include <sys/time.h>
 #include <time.h>
 #include <unistd.h>
 #include <wait.h>
@@ -146,6 +147,9 @@ void runTestManager(TestManager* manager) {
     for (size_t i = 0; i < manager->jobs; i++) {
         manager->running_tests[i].status = TEST_RUNNING_IDLE;
     }
+    struct timespec sleep = { .tv_sec = 0, .tv_nsec = 100000000 };
+    struct timeval last;
+    gettimeofday(&last, NULL);
     while (test_case != NULL || running_tests != 0) {
         bool changed = false;
         for (size_t i = 0; i < manager->jobs; i++) {
@@ -173,14 +177,25 @@ void runTestManager(TestManager* manager) {
         }
         if (!changed) {
             if (progress) {
-                if (step != 0) {
-                    fprintf(stderr, CONSOLE_CUU(%i) CONSOLE_ED(), TEST_RESULT_STATUS_COUNT);
+                struct timeval time;
+                gettimeofday(&time, NULL);
+                if (time.tv_usec / 125000 != last.tv_usec / 125000) {
+                    if (step != 0) {
+                        fprintf(stderr, CONSOLE_CUU(%i) CONSOLE_ED(), TEST_RESULT_STATUS_COUNT);
+                    }
+                    printTestManagerProgress(manager, stderr);
+                    fprintf(
+                        stderr, "     [%s] %zi running\r",
+                        progress_indicators[
+                            (8 * time.tv_sec + time.tv_usec / 125000)
+                            % ARRAY_LEN(progress_indicators)
+                        ],
+                        running_tests
+                    );
+                    last = time;
+                    step++;
                 }
-                printTestManagerProgress(manager, stderr);
-                fprintf(stderr, "     [%s] %zi running\r", progress_indicators[step % ARRAY_LEN(progress_indicators)], running_tests);
-                step++;
             }
-            struct timespec sleep = { .tv_sec = 0, .tv_nsec = 250000000 };
             nanosleep(&sleep, NULL);
         }
     }
