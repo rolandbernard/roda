@@ -4,15 +4,10 @@
 
 #include "text/format.h"
 #include "util/params.h"
+#include "util/debug.h"
 #include "version.h"
 
 #include "rodac/params.h"
-
-#ifdef DEBUG
-#define DEBUG_ONLY_PARAMS(PARAMS) PARAMS
-#else
-#define DEBUG_ONLY_PARAMS(PARAMS)
-#endif
 
 PARAM_SPEC_FUNCTION(parameterSpecFunction, CompilerContext*, {
     PARAM_USAGE(PROGRAM_NAME " [options] files...");
@@ -177,7 +172,7 @@ PARAM_SPEC_FUNCTION(parameterSpecFunction, CompilerContext*, {
             }
         }
     }, false, "={minimal|less-nosource|less|nosource|all}", "select how error messages should be printed");
-    DEBUG_ONLY_PARAMS({
+    DEBUG_ONLY({
         PARAM_STRING_LIST(0, "compiler-debug", {
             if (strcmp("all", value) == 0) {
                 context->settings.compiler_debug = ~0;

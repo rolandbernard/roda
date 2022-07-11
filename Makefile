@@ -41,7 +41,7 @@ YACC := bison
 # ==
 
 # == Flags
-# CFLAGS += -std=c11 -pedantic
+CFLAGS += -std=c11 -pedantic -Wno-strict-prototypes
 ifneq ($(GIT_HEAD),)
 CFLAGS += -DGIT_HEAD="\"$(GIT_HEAD)\""
 endif
@@ -84,9 +84,12 @@ $(YACC_C): $(YACC_SRC)
 # ==
 
 # == Tetsing
-.PHONY: test coverage
+.PHONY: run-test test coverage
 
-test: build
+test:
+	$(MAKE) TESTS=yes run-test
+
+run-test: build
 	@$(ECHO) "Starting build-in tests"
 	$(BINARY_DIR)/tests
 	@$(ECHO) "Starting tests with --debug"
@@ -99,7 +102,7 @@ test: build
 
 coverage:
 	$(RM) -r $(BASE_DIR)/profile/
-	LLVM_PROFILE_FILE="profile/tests/%p.profraw" $(MAKE) BUILD=coverage TARGETS="rodac tests" test
+	LLVM_PROFILE_FILE="profile/tests/%p.profraw" $(MAKE) BUILD=coverage test
 	llvm-profdata merge $(BASE_DIR)/profile/tests/*.profraw -o $(BASE_DIR)/profile/combined.profdata
 	llvm-cov show $(BUILD_DIR)/coverage/bin/rodac -instr-profile=$(BASE_DIR)/profile/combined.profdata -o $(BASE_DIR)/profile/report
 	llvm-cov report $(BUILD_DIR)/coverage/bin/rodac -instr-profile=$(BASE_DIR)/profile/combined.profdata
