@@ -87,7 +87,7 @@ static void startRunningTestCase(RunningTestCase* job, TestCase* test_case) {
         job->pid = fork();
         if (job->pid == 0) {
 #ifdef COVERAGE
-            atexit(__llvm_profile_write_file);
+            atexit((void (*)(void))__llvm_profile_write_file);
             __llvm_profile_initialize_file();
 #endif
             test_result_pipe = job->pipes[3][1];
@@ -108,7 +108,7 @@ static void startRunningTestCase(RunningTestCase* job, TestCase* test_case) {
             job->pid = fork();
             if (job->pid == 0) {
 #ifdef COVERAGE
-                atexit(__llvm_profile_write_file);
+                atexit((void (*)(void))__llvm_profile_write_file);
                 __llvm_profile_initialize_file();
 #endif
                 test_result_pipe = job->pipes[3][1];
@@ -117,6 +117,9 @@ static void startRunningTestCase(RunningTestCase* job, TestCase* test_case) {
                 dup2(job->pipes[1][1], fileno(stdout));
                 dup2(job->pipes[2][1], fileno(stderr));
                 while (read(job->pipes[4][0], &global_test_case, sizeof(TestCase*)) == sizeof(TestCase*)) {
+                    if (global_test_case == NULL) {
+                        exit(0);
+                    }
                     if (setjmp(test_jmp) == 0) {
                         global_test_case->function(test_case);
                         global_test_case->result.status = TEST_RESULT_SUCCESS;
@@ -219,6 +222,9 @@ void runTestManager(TestManager* manager) {
                         test_case = test_case->next;
                         changed = true;
                     }
+                    if (test_case == NULL && !manager->isolated && run->pid != 0) {
+                        write(run->pipes[4][1], &test_case, sizeof(TestCase*));
+                    }
                     break;
                 case TEST_RUNNING_RUNNING:
                     if (!manager->isolated) {
@@ -277,6 +283,7 @@ void runTestManager(TestManager* manager) {
         fprintf(stderr, CONSOLE_CUU(%i) CONSOLE_ED(), TEST_RESULT_STATUS_COUNT);
     }
     if (!manager->isolated) {
+        nanosleep(&sleep, NULL);
         killChilds();
         collectChilds();
     }
