@@ -23,6 +23,7 @@ void globallyRegisterTest(GlobalTestRegistry* reg, TestAddTestFunction add_funct
 void initTestManager(TestManager* manager) {
     manager->tests = NULL;
     manager->jobs = 12;
+    manager->isolated = true;
     manager->running_tests = NULL;
     for (size_t i = 0; i < TEST_RESULT_STATUS_COUNT; i++) {
         manager->counts[i] = 0;
@@ -33,10 +34,10 @@ void initTestManager(TestManager* manager) {
 }
 
 void freeTestCase(TestCase* test) {
+    FREE(test->result.out_stderr);
     if (test->deinit != NULL) {
         test->deinit(test);
     }
-    FREE(test->result.out_stderr);
     FREE(test);
 }
 

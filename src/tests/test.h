@@ -1,6 +1,7 @@
 #ifndef _TEST_FRAMEWORK_TEST_H_
 #define _TEST_FRAMEWORK_TEST_H_
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 
@@ -73,12 +74,13 @@ typedef struct {
     TestCase* test_case;
     int pid;
     int exit;
-    int pipes[4][2];
+    int pipes[5][2];
 } RunningTestCase;
 
 typedef struct TestManager {
     TestCase* tests;
     size_t jobs;
+    bool isolated;
     RunningTestCase* running_tests;
     size_t counts[TEST_RESULT_STATUS_COUNT];
 } TestManager;
