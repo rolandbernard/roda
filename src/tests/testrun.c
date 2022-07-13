@@ -147,12 +147,16 @@ static void startRunningTestCase(RunningTestCase* job, TestCase* test_case) {
 static char* readStringFromFd(int fd) {
     int length = 0;
     ioctl(fd, FIONREAD, &length); 
-    char* buffer = (char*)malloc(length + 1);
-    if (length > 0) {
-        read(fd, buffer, length);
+    if (length == 0) {
+        return NULL;
+    } else {
+        char* buffer = (char*)malloc(length + 1);
+        if (length > 0) {
+            read(fd, buffer, length);
+        }
+        buffer[length] = 0;
+        return buffer;
     }
-    buffer[length] = 0;
-    return buffer;
 }
 
 static void stopRunningTestCase(TestManager* manager, RunningTestCase* job) {
@@ -163,14 +167,16 @@ static void stopRunningTestCase(TestManager* manager, RunningTestCase* job) {
     if (poll(&pfd, 1, 0) == 1) {
         result_read = read(job->pipes[3][0], &job->test_case->result, sizeof(TestResult));
     }
-    if (result_read != sizeof(TestResult) || job->exit != 0) {
-        job->test_case->result.status = TEST_RESULT_ERROR;
-        job->test_case->result.desc = WIFEXITED(job->exit)
-            ? "test exited with error code"
-            : WIFSIGNALED(job->exit)
-                ? "test exited by signal"
-                : "unable to read result from worker process";
-        job->test_case->result.out_stderr = readStringFromFd(job->pipes[2][0]);
+    job->test_case->result.out_stderr = readStringFromFd(job->pipes[2][0]);
+    if (result_read != sizeof(TestResult) || job->exit != 0 || job->test_case->result.out_stderr != NULL) {
+        if (job->test_case->result.status == TEST_RESULT_UNDONE) {
+            job->test_case->result.status = TEST_RESULT_ERROR;
+            job->test_case->result.desc = WIFEXITED(job->exit)
+                ? "test exited with error code"
+                : WIFSIGNALED(job->exit)
+                    ? "test exited by signal"
+                    : "unable to read result from worker process";
+        }
         if (!manager->isolated && job->pid != 0) {
             int pid = job->pid;
             job->pid = 0;

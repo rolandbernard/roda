@@ -19,7 +19,7 @@ size_t findFirstIndexOfChar(ConstString str, char c) {
 }
 
 size_t findFirstIndexOfString(ConstString str, ConstString pat) {
-    for (size_t i = 0; i < str.length - pat.length; i++) {
+    for (size_t i = 0; i < str.length - pat.length + 1; i++) {
         bool equal = true;
         for (size_t j = 0; j < pat.length; j++) {
             if (str.data[i + j] != pat.data[j]) {
@@ -61,7 +61,7 @@ size_t findLastIndexOfString(ConstString str, ConstString pat) {
 
 ConstString getStringBeforeChar(ConstString string, char c) {
     ConstString ret = {
-        .length = findFirstIndexOfChar(string, c) + 1,
+        .length = findFirstIndexOfChar(string, c),
         .data = string.data,
     };
     return ret;
