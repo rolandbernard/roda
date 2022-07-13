@@ -303,3 +303,30 @@ DEFINE_TEST(testGetStringAfterChar, "-", {
     ASSERT_STR_EQUAL(toCString(getStringAfterChar(str, '-')), "Hello world");
 })
 
+DEFINE_TEST(testStringBuilderSimple, "-", {
+    StringBuilder builder;
+    initStringBuilder(&builder);
+    deinitStringBuilder(&builder);
+})
+
+DEFINE_TEST(testStringBuilderEmpty, "-", {
+    StringBuilder builder;
+    initStringBuilder(&builder);
+    String str = builderToString(&builder);
+    ASSERT_STR_EQUAL(cstr(str), "");
+    ASSERT_EQUAL(str.length, 0);
+    freeString(str);
+})
+
+DEFINE_TEST(testStringBuilderPushString, "-", {
+    StringBuilder builder;
+    initStringBuilder(&builder);
+    pushToStringBuilder(&builder, str("Hello"));
+    pushToStringBuilder(&builder, str(" "));
+    pushToStringBuilder(&builder, str("world"));
+    String str = builderToString(&builder);
+    ASSERT_STR_EQUAL(cstr(str), "Hello world");
+    ASSERT_EQUAL(str.length, 11);
+    freeString(str);
+})
+

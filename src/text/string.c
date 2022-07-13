@@ -232,6 +232,10 @@ void pushToStringBuilder(StringBuilder* builder, ConstString src) {
 }
 
 String builderToString(StringBuilder* builder) {
-    return createString(builder->data, builder->length);
+    if (builder->data == NULL) {
+        return createEmptyString();
+    } else {
+        return createString(builder->data, builder->length);
+    }
 }
 
