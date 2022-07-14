@@ -195,12 +195,21 @@ DEFINE_TEST(testParentDirectory, "-", {
     freePath(path);
 })
 
-DEFINE_TEST(testGetPathFromTo, "-", {
+DEFINE_TEST(testGetPathFromTo1, "-", {
     ConstPath path0 = str("/test/1/2/3");
     ConstPath path1 = str("/test/1/a/b");
     Path path = getPathFromTo(path0, path1);
     ASSERT_STR_EQUAL(path.data, "../../a/b");
     ASSERT_EQUAL(path.length, 9);
+    freePath(path);
+})
+
+DEFINE_TEST(testGetPathFromTo2, "-", {
+    ConstPath path0 = str("/test/1/2/3");
+    ConstPath path1 = str("/test/1/2/3/4/5");
+    Path path = getPathFromTo(path0, path1);
+    ASSERT_STR_EQUAL(path.data, "4/5");
+    ASSERT_EQUAL(path.length, 3);
     freePath(path);
 })
 
