@@ -27,7 +27,7 @@ size_t decodeUTF8(CodePoint* code, const char* data, size_t max_length) {
                 for (size_t i = 1; i < length; i++) {
                     if ((data[i] & 0xc0) != 0x80) {
                         *code = INVALID_CODEPOINT;
-                        return i - 1;
+                        return i;
                     }
                     ret |= (CodePoint)(data[i] & 0x3f) << ((length - 1 - i) * 6);
                 }
