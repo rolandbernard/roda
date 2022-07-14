@@ -31,6 +31,6 @@ size_t readUtf8FromFileStream(FILE* file, CodePoint* out);
 
 size_t getStringWidth(ConstString string);
 
-size_t getCodePointWidth(CodePoint point);
+int getCodePointWidth(CodePoint point);
 
 #endif
