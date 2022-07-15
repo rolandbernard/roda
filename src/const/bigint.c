@@ -37,11 +37,14 @@ static void absWordMulBigInt(BigInt** dst, uint32_t b) {
 static void absAddBigInt(BigInt** dst, BigInt* b) {
     if ((*dst)->size < b->size) {
         *dst = checkedRealloc(*dst, SIZE_FOR(b->size));
+        for (size_t i = (*dst)->size; i < b->size; i++) {
+            (*dst)->words[i] = 0;
+        }
         (*dst)->size = b->size;
     }
     uint32_t carry = 0;
     size_t i = 0;
-    for (; i < (*dst)->size && i < b->size; i++) {
+    for (; i < b->size; i++) {
         uint64_t tmp = (uint64_t)(*dst)->words[i] + (uint64_t)b->words[i] + carry;
         (*dst)->words[i] = tmp;
         carry = tmp >> WORD_SIZE;
