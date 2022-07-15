@@ -8,8 +8,8 @@
 #include "codegen/llvm/gentype.h"
 #include "codegen/llvm/typedebug.h"
 #include "errors/fatalerror.h"
-#include "rodac/version.h"
 #include "util/alloc.h"
+#include "version.h"
 
 #include "codegen/llvm/genmodule.h"
 #include "llvm-c/Core.h"

@@ -1,5 +1,5 @@
 // test: Test emiting llvm ir
-// build: LLVM_PROFILE_FILE="profile/tests/%%p.profraw" ./build/$BUILD/bin/rodac % -o=%.S $TEST_ARGS
+// build: $BINARY % -o=%.S $TEST_ARGS
 // run: test -f %.S
 // cleanup: rm -f %.S
 

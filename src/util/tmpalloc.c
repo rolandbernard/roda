@@ -23,7 +23,7 @@ void deinitTempAlloc(TempAlloc* alloc) {
 static size_t findBufferCapacityBucket(size_t size) {
     size_t i = 0;
     size_t cap = MINIMUM_BUFFER_CAPACITY;
-    while (size > cap && i < TEMP_BUFFER_SIZES) {
+    while (size > cap && i + 1 < TEMP_BUFFER_SIZES) {
         cap *= 2;
         i++;
     }

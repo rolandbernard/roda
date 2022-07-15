@@ -49,6 +49,8 @@ void freeFile(File* file);
 
 Location invalidLocation();
 
+bool isLocationValid(Location loc);
+
 Span invalidSpan();
 
 bool isSpanValid(Span span);

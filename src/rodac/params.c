@@ -2,22 +2,29 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "rodac/version.h"
 #include "text/format.h"
 #include "util/params.h"
+#include "util/debug.h"
+#include "version.h"
 
 #include "rodac/params.h"
 
-#ifdef DEBUG
-#define DEBUG_ONLY_PARAMS(PARAMS) PARAMS
-#else
-#define DEBUG_ONLY_PARAMS(PARAMS)
-#endif
-
-static PARAM_SPEC_FUNCTION(parameterSpecFunction, CompilerContext*, {
+PARAM_SPEC_FUNCTION(parameterSpecFunction, CompilerContext*, {
     PARAM_USAGE(PROGRAM_NAME " [options] files...");
-    PARAM_FLAG('h', "help", { context->settings.help = true; }, "print this help information and quit");
-    PARAM_FLAG(0, "version", { context->settings.version = true; }, "print version information and quit");
+    PARAM_FLAG('h', "help", {
+        if (context->settings.run_kind != COMPILER_RUN_DEFAULT) {
+            PARAM_WARN_CONFLICT("--version");
+        } else {
+            context->settings.run_kind = COMPILER_RUN_HELP;
+        }
+    }, "print this help information and quit");
+    PARAM_FLAG(0, "version", { 
+        if (context->settings.run_kind != COMPILER_RUN_DEFAULT) {
+            PARAM_WARN_CONFLICT("--help");
+        } else {
+            context->settings.run_kind = COMPILER_RUN_VERSION;
+        }
+    }, "print version information and quit");
     PARAM_VALUED('o', "output", {
         if (context->settings.output_file.data != NULL) {
             PARAM_WARN_MULTIPLE();
@@ -165,7 +172,7 @@ static PARAM_SPEC_FUNCTION(parameterSpecFunction, CompilerContext*, {
             }
         }
     }, false, "={minimal|less-nosource|less|nosource|all}", "select how error messages should be printed");
-    DEBUG_ONLY_PARAMS({
+    DEBUG_ONLY({
         PARAM_STRING_LIST(0, "compiler-debug", {
             if (strcmp("all", value) == 0) {
                 context->settings.compiler_debug = ~0;

@@ -111,19 +111,19 @@ static LLVMModuleRef generateLinkedModule(LlvmCodegenContext* context) {
         LLVMModuleRef module = NULL;
         if (file->type == FILE_RODA) {
             module = generateSingleModule(context, file);
-#ifdef DEBUG
-            if (LLVMVerifyModule(module, LLVMReturnStatusAction, &context->error_msg)) {
-                trimErrorMessage(context->error_msg);
-                addMessageToContext(
-                    &context->cxt->msgs,
-                    createMessage(
-                        ERROR_LLVM_BACKEND_ERROR,
-                        createFormattedString("generated an invalid LLVM module: %s", context->error_msg), 0
-                    )
-                );
-            }
-            LLVMDisposeMessage(context->error_msg);
-#endif
+            DEBUG_ONLY({
+                if (LLVMVerifyModule(module, LLVMReturnStatusAction, &context->error_msg)) {
+                    trimErrorMessage(context->error_msg);
+                    addMessageToContext(
+                        &context->cxt->msgs,
+                        createMessage(
+                            ERROR_LLVM_BACKEND_ERROR,
+                            createFormattedString("generated an invalid LLVM module: %s", context->error_msg), 0
+                        )
+                    );
+                }
+                LLVMDisposeMessage(context->error_msg);
+            })
             printAndClearMessages(context->cxt, stderr);
         } else if (file->type == FILE_LLVM_IR || file->type == FILE_LLVM_BC) {
             LLVMMemoryBufferRef memory = NULL;
@@ -174,19 +174,19 @@ static LLVMModuleRef generateLinkedModule(LlvmCodegenContext* context) {
             }
         }
     })
-#ifdef DEBUG
-    if (LLVMVerifyModule(linked_module, LLVMReturnStatusAction, &context->error_msg)) {
-        trimErrorMessage(context->error_msg);
-        addMessageToContext(
-            &context->cxt->msgs,
-            createMessage(
-                ERROR_LLVM_BACKEND_ERROR,
-                createFormattedString("generated an invalid LLVM module: %s", context->error_msg), 0
-            )
-        );
-    }
-    LLVMDisposeMessage(context->error_msg);
-#endif
+    DEBUG_ONLY({
+        if (LLVMVerifyModule(linked_module, LLVMReturnStatusAction, &context->error_msg)) {
+            trimErrorMessage(context->error_msg);
+            addMessageToContext(
+                &context->cxt->msgs,
+                createMessage(
+                    ERROR_LLVM_BACKEND_ERROR,
+                    createFormattedString("generated an invalid LLVM module: %s", context->error_msg), 0
+                )
+            );
+        }
+        LLVMDisposeMessage(context->error_msg);
+    })
     printAndClearMessages(context->cxt, stderr);
     return linked_module;
 }

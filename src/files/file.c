@@ -39,6 +39,8 @@ File* copyFile(const File* file) {
     ret->directory = getParentDirectory(toConstPath(ret->absolute_path));
     ret->extention = getExtention(toConstPath(ret->absolute_path));
     ret->name = getFilename(toConstPath(ret->absolute_path));
+    ret->ast = file->ast;
+    ret->type = file->type;
     return ret;
 }
 
@@ -64,21 +66,25 @@ Location invalidLocation() {
     return ret;
 }
 
+bool isLocationValid(Location loc) {
+    return loc.offset != NO_POS && loc.line != NO_POS && loc.column != NO_POS;
+}
+
 Span invalidSpan() {
     Span ret = { .file = NULL, .begin = invalidLocation(), .end = invalidLocation() };
     return ret;
 }
 
 bool isSpanValid(Span span) {
-    return span.file != NULL || span.begin.offset != NO_POS;
+    return span.file != NULL || (isLocationValid(span.begin) && isLocationValid(span.end));
 }
 
 bool isSpanFileOnly(Span span) {
-    return isSpanValid(span) && span.file != NULL;
+    return isSpanValid(span) && (!isLocationValid(span.begin) || !isLocationValid(span.end));
 }
 
 bool isSpanWithPosition(Span span) {
-    return isSpanValid(span) && span.begin.offset != NO_POS;
+    return isSpanValid(span) && isLocationValid(span.begin) && isLocationValid(span.end);
 }
 
 Span createFileOnlySpan(const File* file) {
@@ -133,9 +139,10 @@ bool loadFileData(const File* file, String* output) {
         output->length = ftell(stream);
         fseek(stream, 0, SEEK_SET);
         output->length -= ftell(stream);
-        output->data = ALLOC(char, output->length);
+        output->data = ALLOC(char, output->length + 1);
         output->length = fread(output->data, 1, output->length, stream);
         fclose(stream);
+        output->data[output->length] = 0;
         return true;
     }
 }

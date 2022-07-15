@@ -1,5 +1,5 @@
 // test: Test compiling linking in library
-// build: LLVM_PROFILE_FILE="profile/tests/%%p.profraw" ./build/$BUILD/bin/rodac % -lm -o=%.out $TEST_ARGS
+// build: $BINARY % -lm -o=%.out $TEST_ARGS
 
 extern fn sqrt(x: f64): f64;
 extern fn log2(x: f64): f64;

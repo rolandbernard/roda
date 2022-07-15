@@ -3,6 +3,8 @@ include config.mk
 
 # == General
 TARGETS := rodac
+
+ALL_TARGETS  := rodac tests
 ALL_SWITCHES := llvm
 # ==
 
@@ -17,6 +19,13 @@ LLVM         ?= $(shell if [ $(LLVM_MAJOR) -ge 10 ] ; then echo yes ; else echo 
 ifeq ($(LLVM),yes)
 SWITCHES += llvm
 endif
+ifeq ($(TESTS),yes)
+TARGETS += tests
+endif
+TARGETS := $(sort $(TARGETS))
+SWITCHES := $(sort $(SWITCHES))
+
+export SWITCHES TARGETS
 # ==
 
 # == Tools
@@ -32,7 +41,7 @@ YACC := bison
 # ==
 
 # == Flags
-# CFLAGS += -std=c11 -pedantic
+CFLAGS += -std=c11 -pedantic -Wno-strict-prototypes
 ifneq ($(GIT_HEAD),)
 CFLAGS += -DGIT_HEAD="\"$(GIT_HEAD)\""
 endif
@@ -47,6 +56,7 @@ YFLAGS += -Wall
 CFLAGS.llvm  += $(shell $(LLVM_CONFIG) --cflags || true)
 LDFLAGS.llvm += $(shell $(LLVM_CONFIG) --ldflags || true)
 LDLIBS.llvm  += $(shell $(LLVM_CONFIG) --libs --system-libs || true)
+LDLIBS.tests += -lpthread
 # ==
 
 # == Parser generator files
@@ -74,18 +84,25 @@ $(YACC_C): $(YACC_SRC)
 # ==
 
 # == Tetsing
-test: build
+.PHONY: run-test test coverage
+
+test:
+	$(MAKE) TESTS=yes run-test
+
+run-test: build
+	@$(ECHO) "Starting build-in tests"
+	$(BINARY_DIR)/tests
 	@$(ECHO) "Starting tests with --debug"
-	TEST_ARGS=--debug tested -j12 $(BASE_DIR)/tests
+	TEST_ARGS=--debug BINARY=$(BINARY_DIR)/rodac tested -j12 $(BASE_DIR)/tests
 	@$(ECHO) "Starting tests with -O0"
-	TEST_ARGS=-O0 tested -j12 $(BASE_DIR)/tests
+	TEST_ARGS=-O0 BINARY=$(BINARY_DIR)/rodac tested -j12 $(BASE_DIR)/tests
 	@$(ECHO) "Starting tests with -O2"
-	TEST_ARGS=-O2 tested -j12 $(BASE_DIR)/tests
+	TEST_ARGS=-O2 BINARY=$(BINARY_DIR)/rodac tested -j12 $(BASE_DIR)/tests
 	@$(ECHO) "Finished tests"
 
 coverage:
 	$(RM) -r $(BASE_DIR)/profile/
-	$(MAKE) BUILD=coverage test
+	LLVM_PROFILE_FILE="profile/tests/%p.profraw" $(MAKE) BUILD=coverage test
 	llvm-profdata merge $(BASE_DIR)/profile/tests/*.profraw -o $(BASE_DIR)/profile/combined.profdata
 	llvm-cov show $(BUILD_DIR)/coverage/bin/rodac -instr-profile=$(BASE_DIR)/profile/combined.profdata -o $(BASE_DIR)/profile/report
 	llvm-cov report $(BUILD_DIR)/coverage/bin/rodac -instr-profile=$(BASE_DIR)/profile/combined.profdata

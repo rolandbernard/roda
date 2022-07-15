@@ -1,5 +1,5 @@
 // test: Test style of error message
-// build: LLVM_PROFILE_FILE="profile/tests/%%p.profraw" ./build/$BUILD/bin/rodac $(realpath --relative-to=. %) --messages=minimal 2> %.out || true
+// build: $BINARY $(realpath --relative-to=. %) --messages=minimal 2> %.out || true
 
 extern fn test(a: f64): int;
 

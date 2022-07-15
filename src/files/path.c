@@ -181,10 +181,16 @@ Path getPathFromTo(ConstPath from, ConstPath to) {
             read_from_pos = next_slash;
         }
     }
+    if (insert_pos == 0) {
+        while (read_to_pos < reduced_to.length && reduced_to.data[read_to_pos] == '/') {
+            read_to_pos++;
+        }
+    }
     memcpy(data + insert_pos, reduced_to.data + read_to_pos, reduced_to.length - read_to_pos);
+    insert_pos += reduced_to.length - read_to_pos;
     freePath(reduced_from);
     freePath(reduced_to);
-    return inlineReducePath(createString(data, insert_pos + reduced_to.length - read_to_pos));
+    return inlineReducePath(createString(data, insert_pos));
 }
 
 Path createPath(ConstString path) {

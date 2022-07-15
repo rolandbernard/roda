@@ -23,6 +23,9 @@ ifneq ($(VERBOSE),yes)
 endif
 .SECONDARY:
 .SECONDEXPANSION:
+
+EMPTY :=
+SPACE := $(EMPTY) $(EMPTY)
 # ==
 
 # == Common rules

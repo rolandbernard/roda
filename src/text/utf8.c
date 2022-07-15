@@ -27,7 +27,7 @@ size_t decodeUTF8(CodePoint* code, const char* data, size_t max_length) {
                 for (size_t i = 1; i < length; i++) {
                     if ((data[i] & 0xc0) != 0x80) {
                         *code = INVALID_CODEPOINT;
-                        return i - 1;
+                        return i;
                     }
                     ret |= (CodePoint)(data[i] & 0x3f) << ((length - 1 - i) * 6);
                 }
@@ -72,10 +72,14 @@ void positionUtf8Stream(Utf8Stream* stream, size_t position) {
 }
 
 CodePoint nextUtf8CodePoint(Utf8Stream* stream) {
-    CodePoint next_rune;
-    size_t len = decodeUTF8(&next_rune, stream->data.data + stream->offset, stream->data.length - stream->offset);
-    stream->offset += len;
-    return next_rune;
+    if (stream->offset < stream->data.length) {
+        CodePoint next_rune;
+        size_t len = decodeUTF8(&next_rune, stream->data.data + stream->offset, stream->data.length - stream->offset);
+        stream->offset += len;
+        return next_rune;
+    } else {
+        return INVALID_CODEPOINT;
+    }
 }
 
 CodePoint peekUtf8CodePoint(const Utf8Stream* stream) {
@@ -87,6 +91,7 @@ CodePoint peekUtf8CodePoint(const Utf8Stream* stream) {
 size_t readUtf8FromFileStream(FILE* file, CodePoint* code) {
     int first_byte = fgetc(file);
     if (first_byte == EOF) {
+        *code = INVALID_CODEPOINT;
         return 0;
     } else if (first_byte <= 0x7f) {
         *code = (CodePoint)first_byte;
@@ -108,7 +113,7 @@ size_t readUtf8FromFileStream(FILE* file, CodePoint* code) {
                         ungetc(next_byte, file);
                     }
                     *code = INVALID_CODEPOINT;
-                    return i - 1;
+                    return i;
                 }
                 ret |= (CodePoint)(next_byte & 0x3f) << ((length - 1 - i) * 6);
             }
@@ -197,7 +202,7 @@ static const Interval zero_width[] = {
     { 0xE0020, 0xE007F }, { 0xE0100, 0xE01EF }
 };
 
-size_t getCodePointWidth(CodePoint point) {
+int getCodePointWidth(CodePoint point) {
     if (point == '\b') {
         return -1;  // Backspace has -1 width
     } else if (point == '\t') {

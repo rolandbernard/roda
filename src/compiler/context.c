@@ -80,8 +80,7 @@ static void addPrimitiveTypes(CompilerContext* context) {
 static void initCompilerSettings(CompilerSettings* settings) {
     settings->compiler_debug = COMPILER_DEBUG_NONE;
     settings->message_style = COMPILER_MSG_DEFAULT;
-    settings->help = false;
-    settings->version = false;
+    settings->run_kind = COMPILER_RUN_DEFAULT;
     settings->emit = COMPILER_EMIT_AUTO;
     settings->output_file.data = NULL;
     settings->target.data = NULL;

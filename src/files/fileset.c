@@ -1,10 +1,11 @@
 
 #include <stdlib.h>
 
-#include "files/fileset.h"
-
+#include "files/fs.h"
 #include "util/alloc.h"
 #include "util/hash.h"
+
+#include "files/fileset.h"
 
 #define INITIAL_CAPACITY 32
 
@@ -63,12 +64,23 @@ static void tryResizingHashTable(FileSet* table) {
     }
 }
 
-File* searchFileInSet(const FileSet* fileset, ConstPath absolute_path) {
+static File* searchFileInSetByAbsolutePath(const FileSet* fileset, ConstPath absolute_path) {
     size_t idx = findIndexHashTable(fileset, absolute_path);
     if (isIndexValid(fileset, idx)) {
         return fileset->hashed[idx];
     } else {
         return NULL;
+    }
+}
+
+File* searchFileInSet(const FileSet* fileset, ConstPath relative_or_absolute_path) {
+    if (isAbsolutePath(relative_or_absolute_path)) {
+        return searchFileInSetByAbsolutePath(fileset, relative_or_absolute_path);
+    } else {
+        Path absolute_path = getAbsolutePath(relative_or_absolute_path);
+        File* result = searchFileInSetByAbsolutePath(fileset, toConstPath(absolute_path));
+        freePath(absolute_path);
+        return result;
     }
 }
 

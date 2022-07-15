@@ -63,11 +63,17 @@ typedef enum {
     COMPILER_MSG_ALL,
 } CompilerMessageStyle;
 
+typedef enum {
+    COMPILER_RUN_DEFAULT,
+    COMPILER_RUN_VERSION,
+    COMPILER_RUN_HELP,
+    COMPILER_RUN_TEST,
+} CompilerRunKind;
+
 typedef struct {
     CompilerDebugFlags compiler_debug;
     CompilerMessageStyle message_style;
-    bool help;
-    bool version;
+    CompilerRunKind run_kind;
     CompilerEmit emit;
     Path output_file;
     String target;
