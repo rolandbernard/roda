@@ -2,11 +2,13 @@
 #define _RODA_CONST_BIGINT_H_
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "text/string.h"
 
 typedef struct {
-    int32_t size;
+    bool negative;
+    uint32_t size;
     uint32_t words[];
 } BigInt;
 

@@ -8,27 +8,54 @@
 
 #define WORD_SIZE 32
 
+#define SIZE_FOR(SIZE) (sizeof(BigInt) + (SIZE) * sizeof(uint32_t))
+
 #define TEMP_SMALLINT(NAME, VALUE)                          \
     char tmp_ ## NAME[sizeof(BigInt) + sizeof(uint32_t)];   \
     BigInt* NAME = (BigInt*)(tmp_ ## NAME);                 \
     NAME->size = 1;                                         \
     NAME->words[0] = VALUE;
 
-static int32_t sizeOf(BigInt* bi) {
-    return bi->size < 0 ? -bi->size : bi->size;
-}
-
-static void absMulBigInt(BigInt** dst, BigInt* b) {
-    // TODO
-}
-
 static void absWordMulBigInt(BigInt** dst, uint32_t b) {
-    TEMP_SMALLINT(a, b);
-    absMulBigInt(dst, a);
+    if (b == 0) {
+        (*dst)->size = 0;
+    } else if ((*dst)->size != 0) {
+        uint32_t carry = 0;
+        for (size_t i = 0; i < (*dst)->size; i++) {
+            uint64_t tmp = (uint64_t)b * (uint64_t)(*dst)->words[i] + (uint64_t)carry;
+            (*dst)->words[i] = tmp;
+            carry = tmp >> WORD_SIZE;
+        }
+        if (carry != 0) {
+            *dst = checkedRealloc(*dst, SIZE_FOR((*dst)->size + 1));
+            (*dst)->words[(*dst)->size] = carry; 
+            (*dst)->size += 1;
+        }
+    }
 }
 
 static void absAddBigInt(BigInt** dst, BigInt* b) {
-    // TODO
+    if ((*dst)->size < b->size) {
+        *dst = checkedRealloc(*dst, SIZE_FOR(b->size));
+        (*dst)->size = b->size;
+    }
+    uint32_t carry = 0;
+    size_t i = 0;
+    for (; i < (*dst)->size && i < b->size; i++) {
+        uint64_t tmp = (uint64_t)(*dst)->words[i] + (uint64_t)b->words[i] + carry;
+        (*dst)->words[i] = tmp;
+        carry = tmp >> WORD_SIZE;
+    }
+    for (; i < (*dst)->size && carry != 0; i++) {
+        uint64_t tmp = (uint64_t)(*dst)->words[i] + carry;
+        (*dst)->words[i] = tmp;
+        carry = tmp >> WORD_SIZE;
+    }
+    if (carry != 0) {
+        *dst = checkedRealloc(*dst, SIZE_FOR((*dst)->size + 1));
+        (*dst)->words[(*dst)->size] = carry; 
+        (*dst)->size += 1;
+    }
 }
 
 static void absWordAddBigInt(BigInt** dst, uint32_t b) {
@@ -44,7 +71,7 @@ BigInt* createBigInt() {
 
 BigInt* createBigIntFrom(intmax_t value) {
     int32_t size = (sizeof(value) + sizeof(uint32_t) - 1) / sizeof(uint32_t);
-    BigInt* res = checkedAlloc(sizeof(BigInt) + size * sizeof(uint32_t));
+    BigInt* res = checkedAlloc(SIZE_FOR(size));
     uintmax_t pos;
     if (value < 0) {
         pos = -value;
@@ -56,11 +83,8 @@ BigInt* createBigIntFrom(intmax_t value) {
         res->words[size] = pos;
         pos >>= WORD_SIZE;
     }
-    if (value < 0) {
-        res->size = -size;
-    } else {
-        res->size = size;
-    }
+    res->size = size;
+    res->negative = value < 0;
     return res;
 }
 
@@ -76,13 +100,14 @@ static int digitCharToInt(char c) {
 }
 
 BigInt* createBigIntFromString(ConstString str, uint32_t base) {
-    size_t idx = 0;
-    bool neg = false;
-    if (str.data[idx] == '-') {
-        neg = true;
-        idx++;
-    }
     BigInt* res = createBigInt();
+    size_t idx = 0;
+    if (str.data[idx] == '-') {
+        res->negative = true;
+        idx++;
+    } else {
+        res->negative = false;
+    }
     for (; idx < str.length; idx++) {
         int digit = digitCharToInt(str.data[idx]);
         if (digit != -1) {
@@ -90,14 +115,12 @@ BigInt* createBigIntFromString(ConstString str, uint32_t base) {
             absWordAddBigInt(&res, digit);
         }
     }
-    if (neg) {
-        res->size = -res->size;
-    }
+    res->size = res->size;
     return res;
 }
 
 BigInt* copyBigInt(BigInt* bi) {
-    size_t size = sizeof(BigInt) + sizeOf(bi) * sizeof(uint32_t);
+    size_t size = SIZE_FOR(bi->size);
     BigInt* res = checkedAlloc(size);
     memcpy(res, bi, size);
     return res;
@@ -109,21 +132,39 @@ void freeBigInt(BigInt* bi) {
 
 int signOfBigInt(BigInt* bi) {
     if (bi->size > 0) {
-        return 1;
-    } else if (bi->size < 0) {
-        return -1;
+        return bi->negative ? -1 : 1;
     } else {
         return 0;
     }
 }
 
+static int absCompareBigInt(BigInt* a, BigInt* b) {
+    if (a->size != b->size) {
+        return a->size - b->size;
+    } else {
+        for (size_t i = a->size; i > 0;) {
+            i--;
+            if (a->words[i] != b->words[i]) {
+                return a->words[i] - b->words[i];
+            }
+        }
+        return 0;
+    }
+}
+
 int compareBigInt(BigInt* a, BigInt* b) {
-    // TODO
+    if (signOfBigInt(a) != signOfBigInt(b)) {
+        return signOfBigInt(a) - signOfBigInt(b);
+    } else if (a->negative) {
+        return -absCompareBigInt(a, b);
+    } else {
+        return absCompareBigInt(a, b);
+    }
 }
 
 BigInt* negBigInt(BigInt* bi) {
     BigInt* res = copyBigInt(bi);
-    res->size = -res->size;
+    res->negative = !res->negative;
     return res;
 }
 
@@ -132,6 +173,10 @@ BigInt* addBigInt(BigInt* a, BigInt* b) {
 }
 
 BigInt* subBigInt(BigInt* a, BigInt* b) {
+    // TODO
+}
+
+static void absMulBigInt(BigInt** dst, BigInt* b) {
     // TODO
 }
 
