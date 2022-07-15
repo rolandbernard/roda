@@ -34,24 +34,24 @@ static void absWordMulBigInt(BigInt** dst, uint32_t b) {
     }
 }
 
-static void absAddBigInt(BigInt** dst, BigInt* b) {
-    if ((*dst)->size < b->size) {
-        *dst = checkedRealloc(*dst, SIZE_FOR(b->size));
-        for (size_t i = (*dst)->size; i < b->size; i++) {
+static void absAddBigInt(BigInt** dst, BigInt* b, uint32_t shift) {
+    if ((*dst)->size < b->size + shift) {
+        *dst = checkedRealloc(*dst, SIZE_FOR(b->size + shift));
+        for (size_t i = (*dst)->size; i < b->size + shift; i++) {
             (*dst)->words[i] = 0;
         }
-        (*dst)->size = b->size;
+        (*dst)->size = b->size + shift;
     }
     uint32_t carry = 0;
     size_t i = 0;
     for (; i < b->size; i++) {
-        uint64_t tmp = (uint64_t)(*dst)->words[i] + (uint64_t)b->words[i] + carry;
-        (*dst)->words[i] = tmp;
+        uint64_t tmp = (uint64_t)(*dst)->words[i + shift] + (uint64_t)b->words[i] + carry;
+        (*dst)->words[i + shift] = tmp;
         carry = tmp >> WORD_SIZE;
     }
-    for (; i < (*dst)->size && carry != 0; i++) {
-        uint64_t tmp = (uint64_t)(*dst)->words[i] + carry;
-        (*dst)->words[i] = tmp;
+    for (; i + shift < (*dst)->size && carry != 0; i++) {
+        uint64_t tmp = (uint64_t)(*dst)->words[i + shift] + carry;
+        (*dst)->words[i + shift] = tmp;
         carry = tmp >> WORD_SIZE;
     }
     if (carry != 0) {
@@ -63,7 +63,7 @@ static void absAddBigInt(BigInt** dst, BigInt* b) {
 
 static void absWordAddBigInt(BigInt** dst, uint32_t b) {
     TEMP_SMALLINT(a, b);
-    absAddBigInt(dst, a);
+    absAddBigInt(dst, a, 0);
 }
 
 BigInt* createBigInt() {
