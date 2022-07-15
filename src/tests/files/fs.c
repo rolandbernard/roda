@@ -35,9 +35,9 @@ DEFINE_TEST(testExistsPath, "-", {
 })
 
 DEFINE_TEST(testRemovePath, "-", {
-    FILE* file = fopen(".temporary-rodac-test-file", "w");
+    FILE* file = fopen(".rodac-test-file-remove-path", "w");
     fclose(file);
-    Path path = createPathFromCString(".temporary-rodac-test-file");
+    Path path = createPathFromCString(".rodac-test-file-remove-path");
     ASSERT_TRUE(existsPath(toConstPath(path)));
     removePath(toConstPath(path));
     ASSERT_FALSE(existsPath(toConstPath(path)));
@@ -45,7 +45,7 @@ DEFINE_TEST(testRemovePath, "-", {
 })
 
 DEFINE_TEST(testOpenPath, "-", {
-    Path path = createPathFromCString(".temporary-rodac-test-file");
+    Path path = createPathFromCString(".rodac-test-file-open-path");
     FILE* file = openPath(toConstPath(path), "w");
     fclose(file);
     ASSERT_TRUE(existsPath(toConstPath(path)));
