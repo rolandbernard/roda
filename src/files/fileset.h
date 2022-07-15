@@ -15,7 +15,7 @@ void initFileSet(FileSet* fileset);
 
 void deinitFileSet(FileSet* fileset);
 
-File* searchFileInSet(const FileSet* fileset, ConstPath absolute_path);
+File* searchFileInSet(const FileSet* fileset, ConstPath relative_or_absolute_path);
 
 File* createFileInSet(FileSet* fileset, ConstPath relative_or_absolute_path);
 
