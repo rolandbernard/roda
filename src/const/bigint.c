@@ -7,9 +7,9 @@
 #include "const/bigint.h"
 
 #define WORD_SIZE 32
+#define REALLOC_LIMIT 2
 
 #define SIZE_FOR(SIZE) (sizeof(BigInt) + (SIZE) * sizeof(uint32_t))
-
 #define TEMP_SMALLINT(NAME, VALUE)                          \
     char tmp_ ## NAME[sizeof(BigInt) + sizeof(uint32_t)];   \
     BigInt* NAME = (BigInt*)(tmp_ ## NAME);                 \
@@ -180,11 +180,30 @@ BigInt* subBigInt(BigInt* a, BigInt* b) {
 }
 
 static void absMulBigInt(BigInt** dst, BigInt* b) {
-    // TODO
+    if (b->size == 0 || (*dst)->size == 0) {
+        if ((*dst)->size > REALLOC_LIMIT) {
+            *dst = checkedRealloc(*dst, SIZE_FOR(0));
+        }
+        (*dst)->size = 0;
+    } else if (b->size == 1) {
+        absWordMulBigInt(dst, b->words[0]);
+    } else {
+        BigInt* copy = copyBigInt(*dst);
+        absWordMulBigInt(dst, b->words[0]);
+        for (size_t i = 1; i < b->size; i++) {
+            BigInt* tmp = i == b->size - 1 ? copy : copyBigInt(copy);
+            absWordMulBigInt(&tmp, b->words[i]);
+            absAddBigInt(dst, tmp, i);
+            freeBigInt(tmp);
+        }
+    }
 }
 
 BigInt* mulBigInt(BigInt* a, BigInt* b) {
-    // TODO
+    BigInt* result = copyBigInt(a);
+    result->negative = a->negative != b->negative;
+    absMulBigInt(&result, b);
+    return result;
 }
 
 BigInt* divBigInt(BigInt* a, BigInt* b) {
