@@ -330,3 +330,33 @@ DEFINE_TEST(testStringBuilderPushString, "-", {
     freeString(str);
 })
 
+DEFINE_TEST(testStringBuilderPushChar, "-", {
+    StringBuilder builder;
+    initStringBuilder(&builder);
+    pushCharToStringBuilder(&builder, 'H');
+    pushCharToStringBuilder(&builder, 'e');
+    pushToStringBuilder(&builder, str("llo"));
+    pushCharToStringBuilder(&builder, ' ');
+    pushCharToStringBuilder(&builder, 'w');
+    pushCharToStringBuilder(&builder, 'o');
+    pushCharToStringBuilder(&builder, 'r');
+    pushToStringBuilder(&builder, str("ld"));
+    String str = builderToString(&builder);
+    ASSERT_STR_EQUAL(cstr(str), "Hello world");
+    ASSERT_EQUAL(str.length, 11);
+    freeString(str);
+})
+
+DEFINE_TEST(testStringBuilderReverse, "-", {
+    StringBuilder builder;
+    initStringBuilder(&builder);
+    pushToStringBuilder(&builder, str("Hello"));
+    pushToStringBuilder(&builder, str(" "));
+    pushToStringBuilder(&builder, str("world"));
+    reverseStringBuilder(&builder);
+    String str = builderToString(&builder);
+    ASSERT_STR_EQUAL(cstr(str), "dlrow olleH");
+    ASSERT_EQUAL(str.length, 11);
+    freeString(str);
+})
+

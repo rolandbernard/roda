@@ -78,6 +78,10 @@ void deinitStringBuilder(StringBuilder* builder);
 
 void pushToStringBuilder(StringBuilder* builder, ConstString src);
 
+void pushCharToStringBuilder(StringBuilder* builder, char c);
+
+void reverseStringBuilder(StringBuilder* builder);
+
 void makeSpaceInStringBuilder(StringBuilder* builder, size_t length);
 
 String builderToString(StringBuilder* builder);

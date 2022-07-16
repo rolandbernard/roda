@@ -4,10 +4,10 @@
 #include <stdbool.h>
 #include <stdarg.h>
 
-#include "text/string.h"
 #include "errors/fatalerror.h"
-
 #include "util/alloc.h"
+
+#include "text/string.h"
 
 size_t findFirstIndexOfChar(ConstString str, char c) {
     for (size_t i = 0; i < str.length; i++) {
@@ -228,13 +228,27 @@ void pushToStringBuilder(StringBuilder* builder, ConstString src) {
     makeSpaceInStringBuilder(builder, src.length);
     memcpy(builder->data + builder->length, src.data, src.length);
     builder->length += src.length;
-    builder->data[builder->length] = 0;
+}
+
+void pushCharToStringBuilder(StringBuilder* builder, char c) {
+    makeSpaceInStringBuilder(builder, 1);
+    builder->data[builder->length] = c;
+    builder->length += 1;
+}
+
+void reverseStringBuilder(StringBuilder* builder) {
+    for (size_t i = 0; i < builder->length - i - 1; i++) {
+        char tmp = builder->data[i];
+        builder->data[i] = builder->data[builder->length - i - 1];
+        builder->data[builder->length - i - 1] = tmp;
+    }
 }
 
 String builderToString(StringBuilder* builder) {
     if (builder->data == NULL) {
         return createEmptyString();
     } else {
+        builder->data[builder->length] = 0;
         return createString(builder->data, builder->length);
     }
 }
