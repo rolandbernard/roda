@@ -24,9 +24,13 @@ void freeBigInt(BigInt* bi);
 
 int signOfBigInt(BigInt* bi);
 
+bool isZero(BigInt* a);
+
 int compareBigInt(BigInt* a, BigInt* b);
 
 BigInt* negBigInt(BigInt* bi);
+
+BigInt* absBigInt(BigInt* bi);
 
 BigInt* addBigInt(BigInt* a, BigInt* b);
 
