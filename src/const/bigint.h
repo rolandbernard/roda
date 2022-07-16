@@ -16,7 +16,7 @@ BigInt* createBigInt();
 
 BigInt* createBigIntFrom(intmax_t value);
 
-BigInt* createBigIntFromString(ConstString str, uint32_t base);
+BigInt* createBigIntFromString(ConstString str, int base);
 
 BigInt* copyBigInt(BigInt* bi);
 
@@ -48,6 +48,10 @@ BigInt* orBigInt(BigInt* a, BigInt* b);
 
 BigInt* xorBigInt(BigInt* a, BigInt* b);
 
-String stringForBigInt(BigInt* bi, uint32_t base);
+BigInt* shiftLeftBigInt(BigInt* a, size_t r);
+
+BigInt* shiftRightBigInt(BigInt* a, size_t r);
+
+String stringForBigInt(BigInt* bi, int base);
 
 #endif
