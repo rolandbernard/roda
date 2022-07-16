@@ -360,3 +360,13 @@ DEFINE_TEST(testStringBuilderReverse, "-", {
     freeString(str);
 })
 
+DEFINE_TEST(testStringBuilderReverseEmpty, "-", {
+    StringBuilder builder;
+    initStringBuilder(&builder);
+    reverseStringBuilder(&builder);
+    String str = builderToString(&builder);
+    ASSERT_STR_EQUAL(cstr(str), "");
+    ASSERT_EQUAL(str.length, 0);
+    freeString(str);
+})
+

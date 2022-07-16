@@ -237,7 +237,7 @@ void pushCharToStringBuilder(StringBuilder* builder, char c) {
 }
 
 void reverseStringBuilder(StringBuilder* builder) {
-    for (size_t i = 0; i < builder->length - i - 1; i++) {
+    for (size_t i = 0; i < builder->length / 2; i++) {
         char tmp = builder->data[i];
         builder->data[i] = builder->data[builder->length - i - 1];
         builder->data[builder->length - i - 1] = tmp;
