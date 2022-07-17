@@ -284,12 +284,10 @@ static BigInt* copyBigIntSubrange(BigInt* bi, uint32_t offset, uint32_t length) 
     }
 }
 
-static BigInt* absMulBigInt(BigInt* a, BigInt* b) {
-    if (a->size == 0 || b->size == 0) {
-        return createBigInt();
-    } else if (a->size < b->size) {
-        return absMulBigInt(b, a);
-    } else if (b->size < 32) {
+static BigInt* absMulBigInt(BigInt* a, BigInt* b);
+
+static BigInt* absMulBigIntBigSmall(BigInt* a, BigInt* b) {
+    if (b->size < 32) {
         BigInt* res = copyBigInt(a);
         absWordMulBigInt(&res, b->words[0]);
         for (size_t i = 1; i < b->size; i++) {
@@ -337,6 +335,23 @@ static BigInt* absMulBigInt(BigInt* a, BigInt* b) {
         absAddBigInt(&bd, ac, 2*split);
         freeBigInt(ac);
         return bd;
+    }
+}
+
+static BigInt* absMulBigInt(BigInt* a, BigInt* b) {
+    if (a->size == 0 || b->size == 0) {
+        return createBigInt();
+    } else if (a->size == 1 && b->size == 1) {
+        BigInt* res = createBigIntCapacity(2);
+        uint64_t tmp = (uint64_t)a->words[0] * (uint64_t)b->words[0];
+        res->words[0] = tmp;
+        res->words[1] = tmp >> WORD_SIZE;
+        res->size = res->words[1] != 0 ? 2 : 1;
+        return res;
+    } else if (a->size < b->size) {
+        return absMulBigIntBigSmall(b, a);
+    } else {
+        return absMulBigIntBigSmall(a, b);
     }
 }
 
