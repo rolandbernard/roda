@@ -232,6 +232,11 @@ static void absSubBigInt(BigInt** dst, BigInt* b) {
     }
 }
 
+static void absWordSubBigInt(BigInt** dst, uint32_t b) {
+    TEMP_SMALLINT(a, b);
+    absSubBigInt(dst, a);
+}
+
 static BigInt* absDifference(BigInt* a, BigInt* b) {
     int cmp = absCompareBigInt(a, b);
     if (cmp == -1) {
@@ -477,17 +482,90 @@ BigInt* remBigInt(BigInt* a, BigInt* b) {
     }
 }
 
-/* BigInt* andBigInt(BigInt* a, BigInt* b) { */
-/*     // TODO */
-/* } */
+typedef enum {
+    BINARY_AND,
+    BINARY_OR,
+    BINARY_XOR,
+} BinaryOperation;
 
-/* BigInt* orBigInt(BigInt* a, BigInt* b) { */
-/*     // TODO */
-/* } */
+static BigInt* binaryOpBigInt(BigInt* a, BigInt* b, BinaryOperation op) {
+    if (a->size == 0 || b->size == 0) {
+        return createBigInt();
+    } else {
+        uint32_t size = MAX(a->size, b->size) + 1;
+        BigInt* res = createBigIntCapacity(size);
+        switch (op) {
+            case BINARY_AND:
+                res->negative = a->negative && b->negative;
+                break;
+            case BINARY_OR:
+                res->negative = a->negative || b->negative;
+                break;
+            case BINARY_XOR:
+                res->negative = a->negative != b->negative;
+                break;
+        }
+        uint32_t ac = a->negative ? 1 : 0;
+        uint32_t bc = b->negative ? 1 : 0;
+        uint32_t rc = res->negative ? 1 : 0;
+        for (size_t i = 0; i < size; i++) {
+            uint32_t aw = i < a->size ? a->words[i] : 0;
+            if (a->negative) {
+                aw = ~aw + ac;
+                ac = aw == 0 ? 1 : 0;
+            }
+            uint32_t bw = i < b->size ? b->words[i] : 0;
+            if (b->negative) {
+                bw = ~bw + bc;
+                bc = bw == 0 ? 1 : 0;
+            }
+            uint32_t rw;
+            switch (op) {
+                case BINARY_AND:
+                    rw = aw & bw;
+                    break;
+                case BINARY_OR:
+                    rw = aw | bw;
+                    break;
+                case BINARY_XOR:
+                    rw = aw ^ bw;
+                    break;
+            }
+            if (res->negative) {
+                rw = ~rw + rc;
+                rc = rw == 0 && rc == 1 ? 1 : 0;
+            }
+            res->words[i] = rw;
+        }
+        while (size > 0 && res->words[size - 1] == 0) {
+            size--;
+        }
+        res->size = size;
+        return res;
+    }
+}
 
-/* BigInt* xorBigInt(BigInt* a, BigInt* b) { */
-/*     // TODO */
-/* } */
+BigInt* andBigInt(BigInt* a, BigInt* b) {
+    return binaryOpBigInt(a, b, BINARY_AND);
+}
+
+BigInt* orBigInt(BigInt* a, BigInt* b) {
+    return binaryOpBigInt(a, b, BINARY_OR);
+}
+
+BigInt* xorBigInt(BigInt* a, BigInt* b) {
+    return binaryOpBigInt(a, b, BINARY_XOR);
+}
+
+BigInt* notBigInt(BigInt* a) {
+    BigInt* res = negBigInt(a);
+    if (res->negative) {
+        absWordAddBigInt(&res, 1);
+    } else {
+        absWordSubBigInt(&res, 1);
+    }
+    return res;
+}
 
 BigInt* shiftLeftBigInt(BigInt* a, size_t r) {
     if (a->size == 0) {
@@ -518,6 +596,8 @@ BigInt* shiftLeftBigInt(BigInt* a, size_t r) {
 BigInt* shiftRightBigInt(BigInt* a, size_t r) {
     if (a->size < r / WORD_SIZE) {
         return createBigInt();
+    } else if (r == 0) {
+        return copyBigInt(a);
     } else {
         uint32_t words = r / WORD_SIZE;
         uint32_t bits = r % WORD_SIZE;

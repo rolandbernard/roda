@@ -48,6 +48,8 @@ BigInt* orBigInt(BigInt* a, BigInt* b);
 
 BigInt* xorBigInt(BigInt* a, BigInt* b);
 
+BigInt* notBigInt(BigInt* a);
+
 BigInt* shiftLeftBigInt(BigInt* a, size_t r);
 
 BigInt* shiftRightBigInt(BigInt* a, size_t r);
