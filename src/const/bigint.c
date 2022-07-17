@@ -489,13 +489,55 @@ BigInt* remBigInt(BigInt* a, BigInt* b) {
 /*     // TODO */
 /* } */
 
-/* BigInt* shiftLeftBigInt(BigInt* a, size_t r) { */
-/*     // TODO */
-/* } */
+BigInt* shiftLeftBigInt(BigInt* a, size_t r) {
+    if (a->size == 0) {
+        return createBigInt();
+    } else if (r == 0) {
+        return copyBigInt(a);
+    } else {
+        uint32_t words = r / WORD_SIZE;
+        uint32_t bits = r % WORD_SIZE;
+        BigInt* res = createBigIntCapacity(a->size + words + 1);
+        memset(res->words, 0, (a->size + words + 1) * sizeof(uint32_t));
+        for (size_t i = 0; i < a->size; i++) {
+            res->words[words + i] |= a->words[i] << bits;
+            if (bits != 0) {
+                res->words[words + i + 1] |= a->words[i] >> (WORD_SIZE - bits);
+            }
+        }
+        res->negative = a->negative;
+        if (res->words[a->size + words] == 0) {
+            res->size = a->size + words;
+        } else {
+            res->size = a->size + words + 1;
+        }
+        return res;
+    }
+}
 
-/* BigInt* shiftRightBigInt(BigInt* a, size_t r) { */
-/*     // TODO */
-/* } */
+BigInt* shiftRightBigInt(BigInt* a, size_t r) {
+    if (a->size < r / WORD_SIZE) {
+        return createBigInt();
+    } else {
+        uint32_t words = r / WORD_SIZE;
+        uint32_t bits = r % WORD_SIZE;
+        BigInt* res = createBigIntCapacity(a->size - words);
+        memset(res->words, 0, (a->size - words) * sizeof(uint32_t));
+        for (size_t i = words; i < a->size; i++) {
+            res->words[i - words] |= a->words[i] >> bits;
+            if (bits != 0 && i > words) {
+                res->words[i - words - 1] |= a->words[i] << (WORD_SIZE - bits);
+            }
+        }
+        res->negative = a->negative;
+        if (res->words[a->size - words - 1] == 0) {
+            res->size = a->size - words - 1;
+        } else {
+            res->size = a->size - words;
+        }
+        return res;
+    }
+}
 
 static char digitIntToChar(int i) {
     if (i >= 0 && i <= 9) {
