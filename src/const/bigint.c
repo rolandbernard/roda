@@ -188,7 +188,7 @@ static int absCompareBigInt(BigInt* a, BigInt* b) {
 
 int compareBigInt(BigInt* a, BigInt* b) {
     if (signOfBigInt(a) != signOfBigInt(b)) {
-        return signOfBigInt(a) - signOfBigInt(b);
+        return signOfBigInt(a) > signOfBigInt(b) ? 1 : -1;
     } else if (a->negative) {
         return -absCompareBigInt(a, b);
     } else {
@@ -449,6 +449,7 @@ BigInt* divBigInt(BigInt* a, BigInt* b) {
         BigInt* rem;
         absDivRemBigInt(a, b, &div, &rem);
         freeBigInt(rem);
+        div->negative = a->negative != b->negative;
         return reallocIfNeeded(div, a->size);
     }
 }
@@ -471,13 +472,14 @@ BigInt* remBigInt(BigInt* a, BigInt* b) {
         return copyBigInt(a);
     } else if (b->size == 1) {
         BigInt* res = createBigIntFrom(absWordRemBigInt(a, b->words[0]));
-        res->negative = a->negative != b->negative;
+        res->negative = a->negative;
         return res;
     } else {
         BigInt* div;
         BigInt* rem;
         absDivRemBigInt(a, b, &div, &rem);
         freeBigInt(div);
+        rem->negative = a->negative;
         return reallocIfNeeded(rem, a->size);
     }
 }
