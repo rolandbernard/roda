@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "text/utf8.h"
+#include "util/util.h"
 
 #include "parser/literal.h"
 
@@ -19,22 +20,6 @@ static LiteralParseError createLiteralParseError(size_t offset, size_t length) {
 
 static LiteralParseError createLiteralParseNoError() {
     return createLiteralParseError(NO_POS, NO_POS);
-}
-
-static int digitCharToInt(char c) {
-    if (c >= '0' && c <= '9') {
-        return (int)(c - '0');
-    } else if (c >= 'a' && c <= 'z') {
-        return (int)(c - 'a') + 10;
-    } else if (c >= 'A' && c <= 'Z') {
-        return (int)(c - 'A') + 10;
-    }
-    return -1;
-}
-
-static bool isDigitChar(char c, int base) {
-    return ((c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'))
-           && digitCharToInt(c) < base;
 }
 
 static CodePoint parseEscapeCode(const char* data, size_t* length) {

@@ -4,6 +4,7 @@
 
 #include "errors/fatalerror.h"
 #include "util/alloc.h"
+#include "util/util.h"
 
 #include "const/bigint.h"
 
@@ -16,10 +17,6 @@
     BigInt* NAME = (BigInt*)(tmp_ ## NAME);                 \
     NAME->size = 1;                                         \
     NAME->words[0] = VALUE;
-
-#define MAX(A, B)   ((A) < (B) ? (B) : (A))
-#define MIN(A, B)   ((A) > (B) ? (B) : (A))
-#define ABS(A)      ((A) < 0 ? -(A) : (A))
 
 static BigInt* reallocIfNeeded(BigInt* a, uint32_t cur) {
     if (cur - a->size > REALLOC_LIMIT) {
@@ -119,17 +116,6 @@ BigInt* createBigIntFrom(intmax_t value) {
     return res;
 }
 
-static int digitCharToInt(char c) {
-    if (c >= '0' && c <= '9') {
-        return (int)(c - '0');
-    } else if (c >= 'a' && c <= 'z') {
-        return (int)(c - 'a') + 10;
-    } else if (c >= 'A' && c <= 'Z') {
-        return (int)(c - 'A') + 10;
-    }
-    return -1;
-}
-
 BigInt* createBigIntFromString(ConstString str, int base) {
     BigInt* res = createBigInt();
     size_t idx = 0;
@@ -146,7 +132,6 @@ BigInt* createBigIntFromString(ConstString str, int base) {
             absWordAddBigInt(&res, digit);
         }
     }
-    res->size = res->size;
     return res;
 }
 
@@ -625,16 +610,6 @@ BigInt* shiftRightBigInt(BigInt* a, size_t r) {
             res->size = a->size - words;
         }
         return res;
-    }
-}
-
-static char digitIntToChar(int i) {
-    if (i >= 0 && i <= 9) {
-        return '0' + i;
-    } else if (i >= 0 && i <= 36) {
-        return 'a' + i - 10;
-    } else {
-        return '?';
     }
 }
 
