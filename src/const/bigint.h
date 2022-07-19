@@ -24,7 +24,7 @@ void freeBigInt(BigInt* bi);
 
 int signOfBigInt(BigInt* bi);
 
-bool isZero(BigInt* a);
+bool isBigIntZero(BigInt* a);
 
 int compareBigInt(BigInt* a, BigInt* b);
 

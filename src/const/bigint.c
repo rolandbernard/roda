@@ -17,8 +17,9 @@
     NAME->size = 1;                                         \
     NAME->words[0] = VALUE;
 
-#define MAX(A, B) ((A) < (B) ? (B) : (A))
-#define MIN(A, B) ((A) > (B) ? (B) : (A))
+#define MAX(A, B)   ((A) < (B) ? (B) : (A))
+#define MIN(A, B)   ((A) > (B) ? (B) : (A))
+#define ABS(A)      ((A) < 0 ? -(A) : (A))
 
 static BigInt* reallocIfNeeded(BigInt* a, uint32_t cur) {
     if (cur - a->size > REALLOC_LIMIT) {
@@ -98,22 +99,22 @@ static BigInt* createBigIntCapacity(uint32_t size) {
     return res;
 }
 
-BigInt* createBigIntFrom(intmax_t value) {
+static BigInt* createBigIntFromUnsigned(uintmax_t value) {
     int32_t size = (sizeof(intmax_t) + sizeof(uint32_t) - 1) / sizeof(uint32_t);
     BigInt* res = checkedAlloc(SIZE_FOR(size));
-    uintmax_t pos;
-    if (value < 0) {
-        pos = -value;
-    } else {
-        pos = value;
-    }
     size = 0;
-    while (pos > 0) {
-        res->words[size] = pos;
-        pos >>= WORD_SIZE;
+    while (value > 0) {
+        res->words[size] = value;
+        value >>= WORD_SIZE;
         size++;
     }
     res->size = size;
+    res->negative = false;
+    return res;
+}
+
+BigInt* createBigIntFrom(intmax_t value) {
+    BigInt* res = createBigIntFromUnsigned(ABS(value));
     res->negative = value < 0;
     return res;
 }
@@ -168,7 +169,7 @@ int signOfBigInt(BigInt* bi) {
     }
 }
 
-bool isZero(BigInt* a) {
+bool isBigIntZero(BigInt* a) {
     return a->size == 0;
 }
 
@@ -223,9 +224,13 @@ static void absSubBigInt(BigInt** dst, BigInt* b) {
         }
     }
     for (; i < (*dst)->size && carry != 0; i++) {
-        uint64_t tmp = (uint64_t)(*dst)->words[i] + carry;
-        (*dst)->words[i] = tmp;
-        carry = tmp >> WORD_SIZE;
+        if (carry > (*dst)->words[i]) {
+            (*dst)->words[i] = ((uint64_t)1 << WORD_SIZE) - carry;
+            carry = 1;
+        } else {
+            (*dst)->words[i] = (*dst)->words[i] - carry;
+            carry = 0;
+        }
     }
     while ((*dst)->size > 0 && (*dst)->words[(*dst)->size - 1] == 0) {
         (*dst)->size--;
@@ -278,8 +283,7 @@ static BigInt* copyBigIntSubrange(BigInt* bi, uint32_t offset, uint32_t length) 
         while (length > 0 && bi->words[offset + length - 1] == 0) {
             length--;
         }
-        size_t size = SIZE_FOR(length);
-        BigInt* res = checkedAlloc(size);
+        BigInt* res = checkedAlloc(SIZE_FOR(length));
         res->negative = bi->negative;
         res->size = length;
         memcpy(res->words, bi->words + offset, length * sizeof(uint32_t));
@@ -344,6 +348,7 @@ static BigInt* absMulBigIntBigSmall(BigInt* a, BigInt* b) {
 }
 
 static BigInt* absMulBigInt(BigInt* a, BigInt* b) {
+    BigInt* result;
     if (a->size == 0 || b->size == 0) {
         return createBigInt();
     } else if (a->size == 1 && b->size == 1) {
@@ -358,7 +363,9 @@ static BigInt* absMulBigInt(BigInt* a, BigInt* b) {
     } else {
         return absMulBigIntBigSmall(a, b);
     }
+    return result;
 }
+
 
 BigInt* mulBigInt(BigInt* a, BigInt* b) {
     if (b->size == 0 || b->size == 0) {
@@ -471,7 +478,7 @@ BigInt* remBigInt(BigInt* a, BigInt* b) {
     } else if (a->size < b->size) {
         return copyBigInt(a);
     } else if (b->size == 1) {
-        BigInt* res = createBigIntFrom(absWordRemBigInt(a, b->words[0]));
+        BigInt* res = createBigIntFromUnsigned(absWordRemBigInt(a, b->words[0]));
         res->negative = a->negative;
         return res;
     } else {
@@ -632,13 +639,13 @@ static char digitIntToChar(int i) {
 }
 
 String stringForBigInt(BigInt* bi, int base) {
-    if (isZero(bi)) {
+    if (isBigIntZero(bi)) {
         return copyFromCString("0");
     } else {
         StringBuilder builder;
         initStringBuilder(&builder);
         BigInt* copy = absBigInt(bi);
-        while (!isZero(copy)) {
+        while (!isBigIntZero(copy)) {
             int digit = absWordRemBigInt(copy, base);
             absWordDivBigInt(&copy, base);
             pushCharToStringBuilder(&builder, digitIntToChar(digit));
