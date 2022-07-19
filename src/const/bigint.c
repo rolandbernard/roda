@@ -99,7 +99,7 @@ static BigInt* createBigIntCapacity(uint32_t size) {
 }
 
 BigInt* createBigIntFrom(intmax_t value) {
-    int32_t size = (sizeof(value) + sizeof(uint32_t) - 1) / sizeof(uint32_t);
+    int32_t size = (sizeof(intmax_t) + sizeof(uint32_t) - 1) / sizeof(uint32_t);
     BigInt* res = checkedAlloc(SIZE_FOR(size));
     uintmax_t pos;
     if (value < 0) {
@@ -649,6 +649,19 @@ String stringForBigInt(BigInt* bi, int base) {
         }
         reverseStringBuilder(&builder);
         return builderToString(&builder);
+    }
+}
+
+intmax_t intMaxForBigInt(BigInt* bi) {
+    size_t size = (sizeof(intmax_t) + sizeof(uint32_t) - 1) / sizeof(uint32_t);
+    intmax_t res = 0;
+    for (size_t i = 0; i < size && i < bi->size; i++) {
+        res |= (uintmax_t)bi->words[i] << (i * WORD_SIZE);
+    }
+    if (bi->negative) {
+        return -res;
+    } else {
+        return res;
     }
 }
 

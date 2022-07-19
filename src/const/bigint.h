@@ -56,4 +56,6 @@ BigInt* shiftRightBigInt(BigInt* a, size_t r);
 
 String stringForBigInt(BigInt* bi, int base);
 
+intmax_t intMaxForBigInt(BigInt* bi);
+
 #endif
