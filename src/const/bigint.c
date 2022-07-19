@@ -89,7 +89,7 @@ BigInt* createBigInt() {
     return res;
 }
 
-static BigInt* createBigIntCapacity(uint32_t size) {
+BigInt* createBigIntCapacity(uint32_t size) {
     BigInt* res = checkedAlloc(SIZE_FOR(size));
     res->negative = false;
     res->size = 0;

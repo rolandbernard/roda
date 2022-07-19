@@ -14,6 +14,8 @@ typedef struct {
 
 BigInt* createBigInt();
 
+BigInt* createBigIntCapacity(uint32_t size);
+
 BigInt* createBigIntFrom(intmax_t value);
 
 BigInt* createBigIntFromString(ConstString str, int base);
