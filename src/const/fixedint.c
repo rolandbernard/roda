@@ -41,27 +41,27 @@ FixedInt* createFixedIntFromUnsigned(uint32_t size, uintmax_t value) {
     return res;
 }
 
-static void inlineMulWordFixedInt(FixedInt* dst, uint32_t word) {
+static void inlineMulWordFixedInt(uint32_t* words, uint32_t size, uint32_t word) {
     uint32_t carry = 0;
-    for (size_t i = 0; i < WORDS(dst->size); i++) {
-        uint64_t tmp = (uint64_t)dst->words[i] * (uint64_t)word + carry;
-        dst->words[i] = tmp;
+    for (size_t i = 0; i < WORDS(size); i++) {
+        uint64_t tmp = (uint64_t)words[i] * (uint64_t)word + carry;
+        words[i] = tmp;
         carry = tmp >> WORD_SIZE;
     }
 }
 
-static void inlineAddWordFixedInt(FixedInt* dst, uint32_t word) {
+static void inlineAddWordFixedInt(uint32_t* words, uint32_t size, uint32_t word) {
     uint32_t carry = word;
-    for (size_t i = 0; i < WORDS(dst->size) && carry != 0; i++) {
-        uint64_t tmp = (uint64_t)dst->words[i] + (uint64_t)carry;
-        dst->words[i] = tmp;
+    for (size_t i = 0; i < WORDS(size) && carry != 0; i++) {
+        uint64_t tmp = (uint64_t)words[i] + (uint64_t)carry;
+        words[i] = tmp;
         carry = tmp >> WORD_SIZE;
     }
 }
 
-static void inlineNotFixedInt(FixedInt* dst) {
-    for (size_t i = 0; i < WORDS(dst->size); i++) {
-        dst->words[i] = ~dst->words[i];
+static void inlineNotFixedInt(uint32_t* words, uint32_t size) {
+    for (size_t i = 0; i < WORDS(size); i++) {
+        words[i] = ~words[i];
     }
 }
 
@@ -74,13 +74,13 @@ FixedInt* createFixedIntFromString(uint32_t size, ConstString str, int base) {
     for (; idx < str.length; idx++) {
         int digit = digitCharToInt(str.data[idx]);
         if (digit != -1) {
-            inlineMulWordFixedInt(res, base);
-            inlineAddWordFixedInt(res, digit);
+            inlineMulWordFixedInt(res->words, res->size, base);
+            inlineAddWordFixedInt(res->words, res->size, digit);
         }
     }
     if (str.data[0] == '-') {
-        inlineNotFixedInt(res);
-        inlineAddWordFixedInt(res, 1);
+        inlineNotFixedInt(res->words, res->size);
+        inlineAddWordFixedInt(res->words, res->size, 1);
     }
     return res;
 }
@@ -91,8 +91,8 @@ FixedInt* createFixedIntFromBigInt(uint32_t size, BigInt* bi) {
         res->words[i] = bi->words[i];
     }
     if (bi->negative) {
-        inlineNotFixedInt(res);
-        inlineAddWordFixedInt(res, 1);
+        inlineNotFixedInt(res->words, res->size);
+        inlineAddWordFixedInt(res->words, res->size, 1);
     }
     return res;
 }
@@ -226,17 +226,76 @@ int signOfFixedInt(FixedInt* fi) {
     }
 }
 
-int compareFixedIntSigned(FixedInt* a, FixedInt* b);
+static int absCompareFixedInt(FixedInt* a, FixedInt* b) {
+    for (size_t i = WORDS(a->size); i > 0;) {
+        i--;
+        uint32_t wa = a->words[i];
+        uint32_t wb = b->words[i];
+        if ((i + 1) * WORD_SIZE > a->size) {
+            wa &= ~((~(uint32_t)0) << (a->size % WORD_SIZE));
+            wb &= ~((~(uint32_t)0) << (a->size % WORD_SIZE));
+        }
+        if (wa != wb) {
+            return wa > wb ? 1 : -1;
+        }
+    }
+    return 0;
+}
 
-int compareFixedIntUnsigned(FixedInt* a, FixedInt* b);
+int compareFixedIntSigned(FixedInt* a, FixedInt* b) {
+    ASSERT(a->size == b->size);
+    int sign_a = signBitOfFixedInt(a->words, a->size);
+    int sign_b = signBitOfFixedInt(b->words, b->size);
+    if (sign_a != sign_b) {
+        return sign_a == 0 ? 1 : -1;
+    } else {
+        return absCompareFixedInt(a, b);
+    }
+}
 
-/* FixedInt* negFixedInt(FixedInt* fi); */
+int compareFixedIntUnsigned(FixedInt* a, FixedInt* b) {
+    ASSERT(a->size == b->size);
+    return absCompareFixedInt(a, b);
+}
 
-/* FixedInt* absFixedInt(FixedInt* fi); */
+FixedInt* negFixedInt(FixedInt* fi) {
+    FixedInt* res = copyFixedInt(fi);
+    inlineNotFixedInt(res->words, res->size);
+    inlineAddWordFixedInt(res->words, res->size, 1);
+    return res;
+}
 
-/* FixedInt* addFixedInt(FixedInt* a, FixedInt* b); */
+FixedInt* absFixedInt(FixedInt* fi) {
+    if (signBitOfFixedInt(fi->words, fi->size) == 1) {
+        return negFixedInt(fi);
+    } else {
+        return copyFixedInt(fi);
+    }
+}
 
-/* FixedInt* subFixedInt(FixedInt* a, FixedInt* b); */
+FixedInt* addFixedInt(FixedInt* a, FixedInt* b) {
+    ASSERT(a->size == b->size);
+    FixedInt* res = copyFixedInt(a);
+    uint32_t carry = 0;
+    for (size_t i = 0; i < WORDS(a->size); i++) {
+        uint64_t tmp = (uint64_t)res->words[i] + (uint64_t)b->words[i] + (uint64_t)carry;
+        res->words[i] = tmp;
+        carry = tmp >> WORD_SIZE;
+    }
+    return res;
+}
+
+FixedInt* subFixedInt(FixedInt* a, FixedInt* b) {
+    ASSERT(a->size == b->size);
+    FixedInt* res = copyFixedInt(a);
+    uint32_t carry = 1;
+    for (size_t i = 0; i < WORDS(a->size); i++) {
+        uint64_t tmp = (uint64_t)res->words[i] + (uint64_t)~b->words[i] + (uint64_t)carry;
+        res->words[i] = tmp;
+        carry = tmp >> WORD_SIZE;
+    }
+    return res;
+}
 
 /* FixedInt* mulFixedInt(FixedInt* a, FixedInt* b); */
 
