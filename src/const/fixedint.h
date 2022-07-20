@@ -38,7 +38,9 @@ int signOfFixedInt(FixedInt* fi);
 
 bool isFixedIntZero(FixedInt* a);
 
-int compareFixedInt(FixedInt* a, FixedInt* b);
+int compareFixedIntSigned(FixedInt* a, FixedInt* b);
+
+int compareFixedIntUnsigned(FixedInt* a, FixedInt* b);
 
 FixedInt* negFixedInt(FixedInt* fi);
 

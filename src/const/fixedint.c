@@ -87,7 +87,7 @@ FixedInt* createFixedIntFromString(uint32_t size, ConstString str, int base) {
 
 FixedInt* createFixedIntFromBigInt(uint32_t size, BigInt* bi) {
     FixedInt* res = createFixedInt(size);
-    for (size_t i = 0; i * WORD_SIZE < size && i < bi->size; i++) {
+    for (size_t i = 0; i < WORDS(size) && i < bi->size; i++) {
         res->words[i] = bi->words[i];
     }
     if (bi->negative) {
@@ -97,32 +97,138 @@ FixedInt* createFixedIntFromBigInt(uint32_t size, BigInt* bi) {
     return res;
 }
 
+static int signBitOfFixedInt(uint32_t* words, uint32_t size) {
+    return (words[(size - 1) / WORD_SIZE] >> ((size - 1) % WORD_SIZE)) & 1;
+}
+
+static void inlineZeroExtendToFullWord(uint32_t* words, uint32_t size) {
+    if (size % WORD_SIZE != 0) {
+        words[size / WORD_SIZE] &= ~((~(uint32_t)0) << (size % WORD_SIZE));
+    }
+}
+
+static void inlineSignExtendToFullWord(uint32_t* words, uint32_t size) {
+    if (size % WORD_SIZE != 0) {
+        if (signBitOfFixedInt(words, size) == 0) {
+            words[size / WORD_SIZE] &= ~((~(uint32_t)0) << (size % WORD_SIZE));
+        } else {
+            words[size / WORD_SIZE] |= ((~(uint32_t)0) << (size % WORD_SIZE));
+        }
+    }
+}
+
 BigInt* createBigIntFromFixedIntZeroExtend(FixedInt* fi) {
     size_t length = WORDS(fi->size);
-    while (length > 0 && fi->words[length - 1] == 0) {
+    BigInt* res = createBigIntCapacity(length);
+    for (size_t i = 0; i < length; i++) {
+        res->words[i] = fi->words[i];
+    }
+    inlineZeroExtendToFullWord(res->words, fi->size);
+    while (length > 0 && res->words[length - 1] == 0) {
         length--;
     }
-    BigInt* res = createBigIntCapacity(length);
     res->size = length;
-    memcpy(res->words, fi->words, length * sizeof(uint32_t));
     return res;
 }
 
-/* BigInt* createBigIntFromFixedIntSignExtend(FixedInt* fi); */
+BigInt* createBigIntFromFixedIntSignExtend(FixedInt* fi) {
+    if (signBitOfFixedInt(fi->words, fi->size) == 0) {
+        return createBigIntFromFixedIntZeroExtend(fi);
+    } else {
+        size_t length = WORDS(fi->size);
+        BigInt* res = createBigIntCapacity(length + 1);
+        for (size_t i = 0; i < length; i++) {
+            res->words[i] = fi->words[i];
+        }
+        inlineSignExtendToFullWord(res->words, fi->size);
+        while (length > 0 && ~fi->words[length - 1] == 0) {
+            length--;
+        }
+        uint32_t carry = 1;
+        for (size_t i = 0; i < length; i++) {
+            res->words[i] = ~res->words[i] + carry;
+            carry = res->words[i] == 0 ? 1 : 0;
+        }
+        if (carry != 0) {
+            res->words[length] = carry;
+            res->size = length + 1;
+        } else {
+            res->size = length;
+        }
+        return res;
+    }
+}
 
-/* FixedInt* resizeFixedIntZeroExtend(FixedInt* fi, uint32_t size); */
+FixedInt* resizeFixedIntZeroExtend(FixedInt* fi, uint32_t size) {
+    FixedInt* res = createFixedInt(size);
+    size_t old_len = WORDS(fi->size);
+    size_t new_len = WORDS(size);
+    for (size_t i = 0; i < old_len && i < new_len; i++) {
+        res->words[i] = fi->words[i];
+    }
+    if (size > fi->size) {
+        inlineZeroExtendToFullWord(res->words, fi->size);
+    }
+    return res;
+}
 
-/* FixedInt* resizeFixedIntSignExtend(FixedInt* fi, uint32_t size); */
+FixedInt* resizeFixedIntSignExtend(FixedInt* fi, uint32_t size) {
+    FixedInt* res = createFixedInt(size);
+    size_t old_len = WORDS(fi->size);
+    size_t new_len = WORDS(size);
+    for (size_t i = 0; i < old_len && i < new_len; i++) {
+        res->words[i] = fi->words[i];
+    }
+    if (size > fi->size) {
+        inlineSignExtendToFullWord(res->words, fi->size);
+        uint32_t extend = (signBitOfFixedInt(fi->words, fi->size) == 0 ? 0 : ~(uint32_t)0);
+        for (size_t i = old_len; i < new_len; i++) {
+            res->words[i] = extend;
+        }
+    }
+    return res;
+}
 
-/* FixedInt* copyFixedInt(FixedInt* fi); */
+FixedInt* copyFixedInt(FixedInt* fi) {
+    FixedInt* res = createFixedInt(fi->size);
+    memcpy(res, fi, sizeof(FixedInt) + WORDS(fi->size) * sizeof(uint32_t));
+    return res;
+}
 
-/* void freeFixedInt(FixedInt* fi); */
+void freeFixedInt(FixedInt* fi) {
+    FREE(fi);
+}
 
-/* int signOfFixedInt(FixedInt* fi); */
+bool isFixedIntZero(FixedInt* a) {
+    for (size_t i = 0; i < WORDS(a->size); i++) {
+        uint32_t w = a->words[i];
+        if ((i + 1) * WORD_SIZE > a->size) {
+            if (signBitOfFixedInt(a->words, a->size) == 0) {
+                w &= ~((~(uint32_t)0) << (a->size % WORD_SIZE));
+            } else {
+                w |= ((~(uint32_t)0) << (a->size % WORD_SIZE));
+            }
+        }
+        if (w != 0) {
+            return false;
+        }
+    }
+    return true;
+}
 
-/* bool isFixedIntZero(FixedInt* a); */
+int signOfFixedInt(FixedInt* fi) {
+    if (isFixedIntZero(fi)) {
+        return 0;
+    } else if (signBitOfFixedInt(fi->words, fi->size) == 1) {
+        return -1;
+    } else {
+        return 1;
+    }
+}
 
-/* int compareFixedInt(FixedInt* a, FixedInt* b); */
+int compareFixedIntSigned(FixedInt* a, FixedInt* b);
+
+int compareFixedIntUnsigned(FixedInt* a, FixedInt* b);
 
 /* FixedInt* negFixedInt(FixedInt* fi); */
 
