@@ -74,7 +74,9 @@ FixedInt* shiftRightLogicalFixedInt(FixedInt* a, size_t r);
 
 FixedInt* shiftRightArithmeticFixedInt(FixedInt* a, size_t r);
 
-String stringForFixedInt(FixedInt* fi, int base);
+String stringForFixedIntUnsigned(FixedInt* fi, int base);
+
+String stringForFixedIntSigned(FixedInt* fi, int base);
 
 intmax_t intMaxForFixedInt(FixedInt* fi);
 

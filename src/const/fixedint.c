@@ -428,9 +428,9 @@ static void inlineShiftRightByWords(uint32_t* words, uint32_t size, size_t shift
     if (shift != 0) {
         for (size_t i = 0; i < WORDS(size); i++) {
             if (i + shift < WORDS(size)) {
-                words[i] = extend;
-            } else {
                 words[i] = words[i + shift];
+            } else {
+                words[i] = extend;
             }
         }
     }
@@ -467,7 +467,7 @@ FixedInt* shiftRightArithmeticFixedInt(FixedInt* a, size_t r) {
     return res;
 }
 
-static void inlineDivWordFixedInt(uint32_t* words, uint32_t size, uint32_t word) {
+static void inlineUdivWordFixedInt(uint32_t* words, uint32_t size, uint32_t word) {
     uint32_t carry = 0;
     for (size_t i = WORDS(size); i > 0;) {
         i--;
@@ -477,7 +477,7 @@ static void inlineDivWordFixedInt(uint32_t* words, uint32_t size, uint32_t word)
     }
 }
 
-static uint32_t remWordFixedInt(uint32_t* words, uint32_t size, uint32_t word) {
+static uint32_t uremWordFixedInt(uint32_t* words, uint32_t size, uint32_t word) {
     uint32_t carry = 0;
     for (size_t i = WORDS(size); i > 0;) {
         i--;
@@ -487,20 +487,20 @@ static uint32_t remWordFixedInt(uint32_t* words, uint32_t size, uint32_t word) {
     return carry;
 }
 
-String stringForFixedInt(FixedInt* fi, int base) {
+static String stringForFixedInt(FixedInt* fi, int base, bool sign) {
     if (isFixedIntZero(fi)) {
         return copyFromCString("0");
     } else {
         StringBuilder builder;
         initStringBuilder(&builder);
-        FixedInt* copy = absFixedInt(fi);
+        FixedInt* copy = sign ? absFixedInt(fi) : copyFixedInt(fi);
         while (!isFixedIntZero(copy)) {
-            int digit = remWordFixedInt(copy->words, copy->size, base);
-            inlineDivWordFixedInt(copy->words, copy->size, base);
+            int digit = uremWordFixedInt(copy->words, copy->size, base);
+            inlineUdivWordFixedInt(copy->words, copy->size, base);
             pushCharToStringBuilder(&builder, digitIntToChar(digit));
         }
         freeFixedInt(copy);
-        if (signBitOfFixedInt(fi->words, fi->size) == 1) {
+        if (sign && signBitOfFixedInt(fi->words, fi->size) == 1) {
             pushCharToStringBuilder(&builder, '-');
         }
         reverseStringBuilder(&builder);
@@ -508,15 +508,45 @@ String stringForFixedInt(FixedInt* fi, int base) {
     }
 }
 
+String stringForFixedIntUnsigned(FixedInt* fi, int base) {
+    return stringForFixedInt(fi, base, false);
+}
+
+String stringForFixedIntSigned(FixedInt* fi, int base) {
+    return stringForFixedInt(fi, base, true);
+}
+
 intmax_t intMaxForFixedInt(FixedInt* fi) {
-    return (intmax_t)uintMaxForFixedInt(fi);
+    size_t size = (sizeof(intmax_t) + sizeof(uint32_t) - 1) / sizeof(uint32_t);
+    uintmax_t res = 0;
+    for (size_t i = 0; i < size && i < WORDS(fi->size); i++) {
+        uint32_t w;
+        if (i < WORDS(fi->size)) {
+            w = fi->words[i];
+            if ((i + 1) * WORD_SIZE > size) {
+                if (signBitOfFixedInt(fi->words, fi->size) == 0) {
+                    w &= ~((~(uint32_t)0) << (size % WORD_SIZE));
+                } else {
+                    w |= ((~(uint32_t)0) << (size % WORD_SIZE));
+                }
+            }
+        } else {
+            w = signBitOfFixedInt(fi->words, fi->size) == 0 ? 0 : ~(uint32_t)0;
+        }
+        res |= (intmax_t)w << (i * WORD_SIZE);
+    }
+    return res;
 }
 
 uintmax_t uintMaxForFixedInt(FixedInt* fi) {
     size_t size = (sizeof(uintmax_t) + sizeof(uint32_t) - 1) / sizeof(uint32_t);
     uintmax_t res = 0;
     for (size_t i = 0; i < size && i < WORDS(fi->size); i++) {
-        res |= (uintmax_t)fi->words[i] << (i * WORD_SIZE);
+        uint32_t w = fi->words[i];
+        if ((i + 1) * WORD_SIZE > size) {
+            w &= ~((~(uint32_t)0) << (size % WORD_SIZE));
+        }
+        res |= (uintmax_t)w << (i * WORD_SIZE);
     }
     return res;
 }
