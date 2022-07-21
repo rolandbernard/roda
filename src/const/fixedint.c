@@ -23,9 +23,15 @@ FixedInt* createFixedInt(uint32_t size) {
     return res;
 }
 
+static FixedInt* createFixedIntUninitialized(uint32_t size) {
+    FixedInt* res = checkedAlloc(sizeof(FixedInt) + WORDS(size) * sizeof(uint32_t));
+    res->size = size;
+    return res;
+}
+
 FixedInt* createFixedIntFrom(uint32_t size, intmax_t value) {
-    FixedInt* res = createFixedInt(size);
-    for (size_t i = 0; i < WORDS(size) && value != 0; i++) {
+    FixedInt* res = createFixedIntUninitialized(size);
+    for (size_t i = 0; i < WORDS(size); i++) {
         res->words[i] = value;
         value >>= WORD_SIZE;
     }
@@ -33,8 +39,8 @@ FixedInt* createFixedIntFrom(uint32_t size, intmax_t value) {
 }
 
 FixedInt* createFixedIntFromUnsigned(uint32_t size, uintmax_t value) {
-    FixedInt* res = createFixedInt(size);
-    for (size_t i = 0; i < WORDS(size) && value != 0; i++) {
+    FixedInt* res = createFixedIntUninitialized(size);
+    for (size_t i = 0; i < WORDS(size); i++) {
         res->words[i] = value;
         value >>= WORD_SIZE;
     }
@@ -86,9 +92,9 @@ FixedInt* createFixedIntFromString(uint32_t size, ConstString str, int base) {
 }
 
 FixedInt* createFixedIntFromBigInt(uint32_t size, BigInt* bi) {
-    FixedInt* res = createFixedInt(size);
-    for (size_t i = 0; i < WORDS(size) && i < bi->size; i++) {
-        res->words[i] = bi->words[i];
+    FixedInt* res = createFixedIntUninitialized(size);
+    for (size_t i = 0; i < WORDS(size); i++) {
+        res->words[i] = i < bi->size ? bi->words[i] : 0;
     }
     if (bi->negative) {
         inlineNotFixedInt(res->words, res->size);
@@ -160,37 +166,40 @@ BigInt* createBigIntFromFixedIntSignExtend(FixedInt* fi) {
 }
 
 FixedInt* resizeFixedIntZeroExtend(FixedInt* fi, uint32_t size) {
-    FixedInt* res = createFixedInt(size);
+    FixedInt* res = createFixedIntUninitialized(size);
     size_t old_len = WORDS(fi->size);
     size_t new_len = WORDS(size);
     for (size_t i = 0; i < old_len && i < new_len; i++) {
         res->words[i] = fi->words[i];
     }
     if (size > fi->size) {
+        for (size_t i = old_len; i < new_len; i++) {
+            res->words[i] = 0;
+        }
         inlineZeroExtendToFullWord(res->words, fi->size);
     }
     return res;
 }
 
 FixedInt* resizeFixedIntSignExtend(FixedInt* fi, uint32_t size) {
-    FixedInt* res = createFixedInt(size);
+    FixedInt* res = createFixedIntUninitialized(size);
     size_t old_len = WORDS(fi->size);
     size_t new_len = WORDS(size);
     for (size_t i = 0; i < old_len && i < new_len; i++) {
         res->words[i] = fi->words[i];
     }
     if (size > fi->size) {
-        inlineSignExtendToFullWord(res->words, fi->size);
         uint32_t extend = (signBitOfFixedInt(fi->words, fi->size) == 0 ? 0 : ~(uint32_t)0);
         for (size_t i = old_len; i < new_len; i++) {
             res->words[i] = extend;
         }
+        inlineSignExtendToFullWord(res->words, fi->size);
     }
     return res;
 }
 
 FixedInt* copyFixedInt(FixedInt* fi) {
-    FixedInt* res = createFixedInt(fi->size);
+    FixedInt* res = createFixedIntUninitialized(fi->size);
     memcpy(res, fi, sizeof(FixedInt) + WORDS(fi->size) * sizeof(uint32_t));
     return res;
 }
@@ -291,17 +300,17 @@ FixedInt* addFixedInt(FixedInt* a, FixedInt* b) {
 
 FixedInt* subFixedInt(FixedInt* a, FixedInt* b) {
     ASSERT(a->size == b->size);
-    FixedInt* res = copyFixedInt(a);
+    FixedInt* res = createFixedIntUninitialized(a->size);
     uint32_t carry = 1;
     for (size_t i = 0; i < WORDS(a->size); i++) {
-        uint64_t tmp = (uint64_t)res->words[i] + (uint64_t)~b->words[i] + (uint64_t)carry;
+        uint64_t tmp = (uint64_t)a->words[i] + (uint64_t)~b->words[i] + (uint64_t)carry;
         res->words[i] = tmp;
         carry = tmp >> WORD_SIZE;
     }
     return res;
 }
 
-static void inlineShiftLeftByWords(uint32_t* words, uint32_t size, uint32_t shift) {
+static void inlineShiftLeftByWords(uint32_t* words, uint32_t size, size_t shift) {
     if (shift != 0) {
         for (size_t i = WORDS(size); i > 0;) {
             i--;
@@ -314,7 +323,7 @@ static void inlineShiftLeftByWords(uint32_t* words, uint32_t size, uint32_t shif
     }
 }
 
-static void inlineShiftLeftBySubWords(uint32_t* words, uint32_t size, uint32_t shift) {
+static void inlineShiftLeftBySubWord(uint32_t* words, uint32_t size, size_t shift) {
     if (shift != 0) {
         uint32_t last = 0;
         for (size_t i = 0; i < WORDS(size); i++) {
@@ -325,15 +334,15 @@ static void inlineShiftLeftBySubWords(uint32_t* words, uint32_t size, uint32_t s
     }
 }
 
-static void inlineShiftLeft(uint32_t* words, uint32_t size, uint32_t shift) {
+static void inlineShiftLeft(uint32_t* words, uint32_t size, size_t shift) {
     inlineShiftLeftByWords(words, size, shift / WORD_SIZE);
-    inlineShiftLeftBySubWords(words, size, shift % WORD_SIZE);
+    inlineShiftLeftBySubWord(words, size, shift % WORD_SIZE);
 }
 
 FixedInt* mulFixedInt(FixedInt* a, FixedInt* b) {
     ASSERT(a->size == b->size);
     FixedInt* res = createFixedInt(a->size);
-    FixedInt* tmp = createFixedInt(a->size);
+    FixedInt* tmp = createFixedIntUninitialized(a->size);
     for (size_t i = 0; i < WORDS(b->size); i++) {
         memcpy(tmp->words, a->words, WORDS(a->size) * sizeof(uint32_t));
         inlineMulWordFixedInt(tmp->words, tmp->size, b->words[i]);
@@ -355,38 +364,160 @@ FixedInt* mulFixedInt(FixedInt* a, FixedInt* b) {
     return res;
 
 FixedInt* udivFixedInt(FixedInt* a, FixedInt* b) {
+    ASSERT(a->size == b->size);
     BIGINT_DELEGATED(ZeroExtend, divBigInt);
 }
 
 FixedInt* sdivFixedInt(FixedInt* a, FixedInt* b) {
+    ASSERT(a->size == b->size);
     BIGINT_DELEGATED(SignExtend, divBigInt);
 }
 
 FixedInt* uremFixedInt(FixedInt* a, FixedInt* b) {
+    ASSERT(a->size == b->size);
     BIGINT_DELEGATED(ZeroExtend, remBigInt);
 }
 
 FixedInt* sremFixedInt(FixedInt* a, FixedInt* b) {
+    ASSERT(a->size == b->size);
     BIGINT_DELEGATED(SignExtend, remBigInt);
 }
 
-/* FixedInt* andFixedInt(FixedInt* a, FixedInt* b); */
+FixedInt* andFixedInt(FixedInt* a, FixedInt* b) {
+    ASSERT(a->size == b->size);
+    FixedInt* res = createFixedIntUninitialized(a->size);
+    for (size_t i = 0; i < WORDS(res->size); i++) {
+        res->words[i] = a->words[i] & b->words[i];
+    }
+    return res;
+}
 
-/* FixedInt* orFixedInt(FixedInt* a, FixedInt* b); */
+FixedInt* orFixedInt(FixedInt* a, FixedInt* b) {
+    ASSERT(a->size == b->size);
+    FixedInt* res = createFixedIntUninitialized(a->size);
+    for (size_t i = 0; i < WORDS(res->size); i++) {
+        res->words[i] = a->words[i] | b->words[i];
+    }
+    return res;
+}
 
-/* FixedInt* xorFixedInt(FixedInt* a, FixedInt* b); */
+FixedInt* xorFixedInt(FixedInt* a, FixedInt* b) {
+    ASSERT(a->size == b->size);
+    FixedInt* res = createFixedIntUninitialized(a->size);
+    for (size_t i = 0; i < WORDS(res->size); i++) {
+        res->words[i] = a->words[i] ^ b->words[i];
+    }
+    return res;
+}
 
-/* FixedInt* notFixedInt(FixedInt* a); */
+FixedInt* notFixedInt(FixedInt* a) {
+    FixedInt* res = createFixedIntUninitialized(a->size);
+    for (size_t i = 0; i < WORDS(res->size); i++) {
+        res->words[i] = ~a->words[i];
+    }
+    return res;
+}
 
-/* FixedInt* shiftLeftFixedInt(FixedInt* a, size_t r); */
+FixedInt* shiftLeftFixedInt(FixedInt* a, size_t r) {
+    FixedInt* res = copyFixedInt(a);
+    inlineShiftLeft(res->words, res->size, r);
+    return res;
+}
 
-/* FixedInt* shiftRightLogicalFixedInt(FixedInt* a, size_t r); */
+static void inlineShiftRightByWords(uint32_t* words, uint32_t size, size_t shift, uint32_t extend) {
+    if (shift != 0) {
+        for (size_t i = 0; i < WORDS(size); i++) {
+            if (i + shift < WORDS(size)) {
+                words[i] = extend;
+            } else {
+                words[i] = words[i + shift];
+            }
+        }
+    }
+}
 
-/* FixedInt* shiftRightArithmeticFixedInt(FixedInt* a, size_t r); */
+static void inlineShiftRightBySubWord(uint32_t* words, uint32_t size, size_t shift, uint32_t extend) {
+    if (shift != 0) {
+        uint32_t last = extend;
+        for (size_t i = WORDS(size); i > 0;) {
+            i--;
+            uint32_t w = (words[i] >> shift) | (last << (WORD_SIZE - shift));
+            last = words[i];
+            words[i] = w;
+        }
+    }
+}
 
-/* String stringForFixedInt(FixedInt* fi, int base); */
+static void inlineShiftRight(uint32_t* words, uint32_t size, size_t shift, uint32_t extend) {
+    inlineShiftRightByWords(words, size, shift / WORD_SIZE, extend);
+    inlineShiftRightBySubWord(words, size, shift % WORD_SIZE, extend);
+}
 
-/* intmax_t intMaxForFixedInt(FixedInt* fi); */
+FixedInt* shiftRightLogicalFixedInt(FixedInt* a, size_t r) {
+    FixedInt* res = copyFixedInt(a);
+    inlineShiftRight(res->words, res->size, r, 0);
+    return res;
+}
 
-/* uintmax_t uintMaxForFixedInt(FixedInt* fi); */
+FixedInt* shiftRightArithmeticFixedInt(FixedInt* a, size_t r) {
+    FixedInt* res = copyFixedInt(a);
+    inlineShiftRight(
+        res->words, res->size, r, signBitOfFixedInt(a->words, a->size) == 0 ? 0 : ~(uint32_t)0
+    );
+    return res;
+}
+
+static void inlineDivWordFixedInt(uint32_t* words, uint32_t size, uint32_t word) {
+    uint32_t carry = 0;
+    for (size_t i = WORDS(size); i > 0;) {
+        i--;
+        uint64_t tmp = (uint64_t)words[i] + ((uint64_t)carry << WORD_SIZE);
+        words[i] = tmp / word;
+        carry = tmp % word;
+    }
+}
+
+static uint32_t remWordFixedInt(uint32_t* words, uint32_t size, uint32_t word) {
+    uint32_t carry = 0;
+    for (size_t i = WORDS(size); i > 0;) {
+        i--;
+        uint64_t tmp = (uint64_t)words[i] + ((uint64_t)carry << WORD_SIZE);
+        carry = tmp % word;
+    }
+    return carry;
+}
+
+String stringForFixedInt(FixedInt* fi, int base) {
+    if (isFixedIntZero(fi)) {
+        return copyFromCString("0");
+    } else {
+        StringBuilder builder;
+        initStringBuilder(&builder);
+        FixedInt* copy = absFixedInt(fi);
+        while (!isFixedIntZero(copy)) {
+            int digit = remWordFixedInt(copy->words, copy->size, base);
+            inlineDivWordFixedInt(copy->words, copy->size, base);
+            pushCharToStringBuilder(&builder, digitIntToChar(digit));
+        }
+        freeFixedInt(copy);
+        if (signBitOfFixedInt(fi->words, fi->size) == 1) {
+            pushCharToStringBuilder(&builder, '-');
+        }
+        reverseStringBuilder(&builder);
+        return builderToString(&builder);
+    }
+}
+
+intmax_t intMaxForFixedInt(FixedInt* fi) {
+    return (intmax_t)uintMaxForFixedInt(fi);
+}
+
+uintmax_t uintMaxForFixedInt(FixedInt* fi) {
+    size_t size = (sizeof(uintmax_t) + sizeof(uint32_t) - 1) / sizeof(uint32_t);
+    uintmax_t res = 0;
+    for (size_t i = 0; i < size && i < WORDS(fi->size); i++) {
+        res |= (uintmax_t)fi->words[i] << (i * WORD_SIZE);
+    }
+    return res;
+}
 
