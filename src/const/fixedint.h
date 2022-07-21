@@ -68,11 +68,11 @@ FixedInt* xorFixedInt(FixedInt* a, FixedInt* b);
 
 FixedInt* notFixedInt(FixedInt* a);
 
-FixedInt* shiftLeftLogicalFixedInt(FixedInt* a, size_t r);
+FixedInt* shiftLeftFixedInt(FixedInt* a, size_t r);
 
-FixedInt* shiftLeftArithmeticFixedInt(FixedInt* a, size_t r);
+FixedInt* shiftRightLogicalFixedInt(FixedInt* a, size_t r);
 
-FixedInt* shiftRightFixedInt(FixedInt* a, size_t r);
+FixedInt* shiftRightArithmeticFixedInt(FixedInt* a, size_t r);
 
 String stringForFixedInt(FixedInt* fi, int base);
 

@@ -273,15 +273,19 @@ FixedInt* absFixedInt(FixedInt* fi) {
     }
 }
 
+static void inlineAddFixedInt(uint32_t* dst, uint32_t* b, uint32_t size) {
+    uint32_t carry = 0;
+    for (size_t i = 0; i < WORDS(size); i++) {
+        uint64_t tmp = (uint64_t)dst[i] + (uint64_t)b[i] + (uint64_t)carry;
+        dst[i] = tmp;
+        carry = tmp >> WORD_SIZE;
+    }
+}
+
 FixedInt* addFixedInt(FixedInt* a, FixedInt* b) {
     ASSERT(a->size == b->size);
     FixedInt* res = copyFixedInt(a);
-    uint32_t carry = 0;
-    for (size_t i = 0; i < WORDS(a->size); i++) {
-        uint64_t tmp = (uint64_t)res->words[i] + (uint64_t)b->words[i] + (uint64_t)carry;
-        res->words[i] = tmp;
-        carry = tmp >> WORD_SIZE;
-    }
+    inlineAddFixedInt(res->words, b->words, res->size);
     return res;
 }
 
@@ -297,15 +301,74 @@ FixedInt* subFixedInt(FixedInt* a, FixedInt* b) {
     return res;
 }
 
-/* FixedInt* mulFixedInt(FixedInt* a, FixedInt* b); */
+static void inlineShiftLeftByWords(uint32_t* words, uint32_t size, uint32_t shift) {
+    if (shift != 0) {
+        for (size_t i = WORDS(size); i > 0;) {
+            i--;
+            if (i < shift) {
+                words[i] = 0;
+            } else {
+                words[i] = words[i - shift];
+            }
+        }
+    }
+}
 
-/* FixedInt* udivFixedInt(FixedInt* a, FixedInt* b); */
+static void inlineShiftLeftBySubWords(uint32_t* words, uint32_t size, uint32_t shift) {
+    if (shift != 0) {
+        uint32_t last = 0;
+        for (size_t i = 0; i < WORDS(size); i++) {
+            uint32_t w = (words[i] << shift) | (last >> (WORD_SIZE - shift));
+            last = words[i];
+            words[i] = w;
+        }
+    }
+}
 
-/* FixedInt* sdivFixedInt(FixedInt* a, FixedInt* b); */
+static void inlineShiftLeft(uint32_t* words, uint32_t size, uint32_t shift) {
+    inlineShiftLeftByWords(words, size, shift / WORD_SIZE);
+    inlineShiftLeftBySubWords(words, size, shift % WORD_SIZE);
+}
 
-/* FixedInt* uremFixedInt(FixedInt* a, FixedInt* b); */
+FixedInt* mulFixedInt(FixedInt* a, FixedInt* b) {
+    ASSERT(a->size == b->size);
+    FixedInt* res = createFixedInt(a->size);
+    FixedInt* tmp = createFixedInt(a->size);
+    for (size_t i = 0; i < WORDS(b->size); i++) {
+        memcpy(tmp->words, a->words, WORDS(a->size) * sizeof(uint32_t));
+        inlineMulWordFixedInt(tmp->words, tmp->size, b->words[i]);
+        inlineShiftLeftByWords(tmp->words, tmp->size, i);
+        inlineAddFixedInt(res->words, tmp->words, tmp->size);
+    }
+    freeFixedInt(tmp);
+    return res;
+}
 
-/* FixedInt* sremFixedInt(FixedInt* a, FixedInt* b); */
+#define BIGINT_DELEGATED(EXT, OP)                           \
+    BigInt* ba = createBigIntFromFixedInt ## EXT (a);       \
+    BigInt* bb = createBigIntFromFixedInt ## EXT (b);       \
+    BigInt* br = OP(ba, bb);                                \
+    freeBigInt(ba);                                         \
+    freeBigInt(bb);                                         \
+    FixedInt* res = createFixedIntFromBigInt(a->size, br);  \
+    freeBigInt(br);                                         \
+    return res;
+
+FixedInt* udivFixedInt(FixedInt* a, FixedInt* b) {
+    BIGINT_DELEGATED(ZeroExtend, divBigInt);
+}
+
+FixedInt* sdivFixedInt(FixedInt* a, FixedInt* b) {
+    BIGINT_DELEGATED(SignExtend, divBigInt);
+}
+
+FixedInt* uremFixedInt(FixedInt* a, FixedInt* b) {
+    BIGINT_DELEGATED(ZeroExtend, remBigInt);
+}
+
+FixedInt* sremFixedInt(FixedInt* a, FixedInt* b) {
+    BIGINT_DELEGATED(SignExtend, remBigInt);
+}
 
 /* FixedInt* andFixedInt(FixedInt* a, FixedInt* b); */
 
@@ -315,11 +378,11 @@ FixedInt* subFixedInt(FixedInt* a, FixedInt* b) {
 
 /* FixedInt* notFixedInt(FixedInt* a); */
 
-/* FixedInt* shiftLeftLogicalFixedInt(FixedInt* a, size_t r); */
+/* FixedInt* shiftLeftFixedInt(FixedInt* a, size_t r); */
 
-/* FixedInt* shiftLeftArithmeticFixedInt(FixedInt* a, size_t r); */
+/* FixedInt* shiftRightLogicalFixedInt(FixedInt* a, size_t r); */
 
-/* FixedInt* shiftRightFixedInt(FixedInt* a, size_t r); */
+/* FixedInt* shiftRightArithmeticFixedInt(FixedInt* a, size_t r); */
 
 /* String stringForFixedInt(FixedInt* fi, int base); */
 
