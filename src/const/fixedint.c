@@ -523,11 +523,11 @@ intmax_t intMaxForFixedInt(FixedInt* fi) {
         uint32_t w;
         if (i < WORDS(fi->size)) {
             w = fi->words[i];
-            if ((i + 1) * WORD_SIZE > size) {
+            if ((i + 1) * WORD_SIZE > fi->size) {
                 if (signBitOfFixedInt(fi->words, fi->size) == 0) {
-                    w &= ~((~(uint32_t)0) << (size % WORD_SIZE));
+                    w &= ~((~(uint32_t)0) << (fi->size % WORD_SIZE));
                 } else {
-                    w |= ((~(uint32_t)0) << (size % WORD_SIZE));
+                    w |= ((~(uint32_t)0) << (fi->size % WORD_SIZE));
                 }
             }
         } else {
@@ -543,8 +543,8 @@ uintmax_t uintMaxForFixedInt(FixedInt* fi) {
     uintmax_t res = 0;
     for (size_t i = 0; i < size && i < WORDS(fi->size); i++) {
         uint32_t w = fi->words[i];
-        if ((i + 1) * WORD_SIZE > size) {
-            w &= ~((~(uint32_t)0) << (size % WORD_SIZE));
+        if ((i + 1) * WORD_SIZE > fi->size) {
+            w &= ~((~(uint32_t)0) << (fi->size % WORD_SIZE));
         }
         res |= (uintmax_t)w << (i * WORD_SIZE);
     }
