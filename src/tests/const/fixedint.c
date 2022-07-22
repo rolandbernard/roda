@@ -8,12 +8,22 @@
     freeString(str);                                \
 }
 
+#define ASSERT_FIXEDINT_STR_UNSIGNED(INT, STR) {        \
+    String str = stringForFixedIntUnsigned(INT, 10);    \
+    ASSERT_STR_EQUAL(cstr(str), STR);                   \
+    freeString(str);                                    \
+}
+
 #define ASSERT_FIXEDINT(INT, NUM) \
     ASSERT_EQUAL(intMaxForFixedInt(INT), NUM);
+
+#define ASSERT_FIXEDINT_UNSIGNED(INT, NUM) \
+    ASSERT_EQUAL(uintMaxForFixedInt(INT), NUM);
 
 DEFINE_TEST(testCreateFixedInt, "-", {
     FixedInt* a = createFixedInt(128);
     ASSERT_FIXEDINT(a, 0);
+    ASSERT_FIXEDINT_STR(a, "0");
     freeFixedInt(a);
 })
 
@@ -26,6 +36,7 @@ DEFINE_TEST(testCreateFixedIntFromSmall, "-", {
 DEFINE_TEST(testCreateFixedIntFromLarge, "-", {
     FixedInt* a = createFixedIntFrom(128, 1234567890123456789);
     ASSERT_FIXEDINT(a, 1234567890123456789);
+    ASSERT_FIXEDINT_STR(a, "1234567890123456789");
     freeFixedInt(a);
 })
 
@@ -39,6 +50,112 @@ DEFINE_TEST(testCreateFixedIntFromLargeNeg, "-", {
     FixedInt* a = createFixedIntFrom(128, -98765432100000000);
     ASSERT_FIXEDINT(a, -98765432100000000);
     freeFixedInt(a);
+})
+
+DEFINE_TEST(testCreateFixedIntFromUnsignedSmall, "-", {
+    FixedInt* a = createFixedIntFromUnsigned(128, 42);
+    ASSERT_FIXEDINT(a, 42);
+    freeFixedInt(a);
+})
+
+DEFINE_TEST(testCreateFixedIntFromUnsignedLarge, "-", {
+    FixedInt* a = createFixedIntFromUnsigned(128, 1234567890123456789);
+    ASSERT_FIXEDINT(a, 1234567890123456789);
+    freeFixedInt(a);
+})
+
+DEFINE_TEST(testCreateFixedIntFromUnsignedSmallNeg, "-", {
+    FixedInt* a = createFixedIntFromUnsigned(128, -123);
+    ASSERT_FIXEDINT(a, -123);
+    freeFixedInt(a);
+})
+
+DEFINE_TEST(testCreateFixedIntFromUnsignedLargeNeg, "-", {
+    FixedInt* a = createFixedIntFromUnsigned(128, 11198765432100000000U);
+    ASSERT_FIXEDINT_UNSIGNED(a, 11198765432100000000U);
+    freeFixedInt(a);
+})
+
+DEFINE_TEST(testCreateFixedIntUnsignedSmaller, "-", {
+    FixedInt* a = createFixedIntFrom(8, -42);
+    ASSERT_FIXEDINT(a, -42);
+    ASSERT_FIXEDINT_STR(a, "-42");
+    freeFixedInt(a);
+})
+
+DEFINE_TEST(testCreateFixedIntOverflowNeg, "-", {
+    FixedInt* a = createFixedIntFrom(3, -42);
+    ASSERT_FIXEDINT(a, -2);
+    ASSERT_FIXEDINT_STR(a, "-2");
+    freeFixedInt(a);
+})
+
+DEFINE_TEST(testCreateFixedIntOverflowPos, "-", {
+    FixedInt* a = createFixedIntFrom(3, 42);
+    ASSERT_FIXEDINT(a, 2);
+    ASSERT_FIXEDINT_STR(a, "2");
+    freeFixedInt(a);
+})
+
+DEFINE_TEST(testStringForFixedIntUnsigned, "-", {
+    FixedInt* a = createFixedIntFrom(3, -42);
+    ASSERT_FIXEDINT_UNSIGNED(a, 6);
+    ASSERT_FIXEDINT_STR_UNSIGNED(a, "6");
+    freeFixedInt(a);
+})
+
+DEFINE_TEST(testResizeFixedIntSignExtendShrink, "-", {
+    FixedInt* a = createFixedIntFrom(128, -98765432100000000);
+    FixedInt* b = resizeFixedIntSignExtend(a, 32);
+    FixedInt* c = resizeFixedIntSignExtend(b, 16);
+    ASSERT_FIXEDINT_STR(a, "-98765432100000000");
+    ASSERT_FIXEDINT_STR(b, "-543723776");
+    ASSERT_FIXEDINT_STR(c, "28416");
+    freeFixedInt(a);
+    freeFixedInt(b);
+    freeFixedInt(c);
+})
+
+DEFINE_TEST(testResizeFixedIntZeroExtendShrink, "-", {
+    FixedInt* a = createFixedIntFrom(128, -98765432100000000);
+    FixedInt* b = resizeFixedIntZeroExtend(a, 32);
+    FixedInt* c = resizeFixedIntZeroExtend(b, 16);
+    ASSERT_FIXEDINT_STR(a, "-98765432100000000");
+    ASSERT_FIXEDINT_STR(b, "-543723776");
+    ASSERT_FIXEDINT_STR(c, "28416");
+    freeFixedInt(a);
+    freeFixedInt(b);
+    freeFixedInt(c);
+})
+
+DEFINE_TEST(testResizeFixedIntZeroExtendGrow, "-", {
+    FixedInt* a = createFixedIntFrom(64, -98765432100000000);
+    FixedInt* b = resizeFixedIntZeroExtend(a, 256);
+    FixedInt* c = resizeFixedIntZeroExtend(b, 512);
+    FixedInt* d = resizeFixedIntZeroExtend(b, 550);
+    ASSERT_FIXEDINT_STR(a, "-98765432100000000");
+    ASSERT_FIXEDINT_STR(b, "18347978641609551616");
+    ASSERT_FIXEDINT_STR(c, "18347978641609551616");
+    ASSERT_FIXEDINT_STR(d, "18347978641609551616");
+    freeFixedInt(a);
+    freeFixedInt(b);
+    freeFixedInt(c);
+    freeFixedInt(d);
+})
+
+DEFINE_TEST(testResizeFixedInSignExtendGrow, "-", {
+    FixedInt* a = createFixedIntFrom(64, -98765432100000000);
+    FixedInt* b = resizeFixedIntSignExtend(a, 256);
+    FixedInt* c = resizeFixedIntSignExtend(b, 512);
+    FixedInt* d = resizeFixedIntSignExtend(b, 550);
+    ASSERT_FIXEDINT_STR(a, "-98765432100000000");
+    ASSERT_FIXEDINT_STR(b, "-98765432100000000");
+    ASSERT_FIXEDINT_STR(c, "-98765432100000000");
+    ASSERT_FIXEDINT_STR(d, "-98765432100000000");
+    freeFixedInt(a);
+    freeFixedInt(b);
+    freeFixedInt(c);
+    freeFixedInt(d);
 })
 
 DEFINE_TEST(testCreateFixedIntFromStringSmall, "-", {
@@ -600,7 +717,6 @@ DEFINE_TEST(testDivFixedInt2, "-", {
     FixedInt* a = createFixedIntFrom(128, 987654321987654321);
     FixedInt* b = createFixedIntFrom(128, -1234);
     FixedInt* c = sdivFixedInt(a, b);
-    fprintf(stderr, "%li\n", intMaxForFixedInt(c));
     ASSERT_FIXEDINT(c, -800368170168277);
     freeFixedInt(a);
     freeFixedInt(b);
@@ -672,6 +788,16 @@ DEFINE_TEST(testDivFixedInt9, "-", {
     FixedInt* b = createFixedIntFromString(1024, str("-abcdefabcdefabcdefabcdefabcdefab"), 16);
     FixedInt* c = sdivFixedInt(a, b);
     ASSERT_FIXEDINT(c, -65536);
+    freeFixedInt(a);
+    freeFixedInt(b);
+    freeFixedInt(c);
+})
+
+DEFINE_TEST(testDivFixedInt10, "-", {
+    FixedInt* a = createFixedIntFrom(32, -1);
+    FixedInt* b = createFixedIntFrom(32, -1);
+    FixedInt* c = sdivFixedInt(a, b);
+    ASSERT_FIXEDINT(c, 1);
     freeFixedInt(a);
     freeFixedInt(b);
     freeFixedInt(c);
@@ -945,6 +1071,30 @@ DEFINE_TEST(testShiftRightFixedInt3, "-", {
     FixedInt* a = createFixedIntFromString(6400, str("12424071433540142420521877220076350813026266859685665674061360696127608733442034818964261164431878107830633205880980151711074477771876033959355142924279319687537208647948638557706820526101026562169644639169603467248951302514030775012441411551731304491930775759074912082229886225695359354289776176171318118053274739978971350726662145988449999470415097463527440874884697161728"), 10);
     FixedInt* c = shiftRightLogicalFixedInt(a, 1234);
     ASSERT_FIXEDINT(c, 42);
+    freeFixedInt(a);
+    freeFixedInt(c);
+})
+
+DEFINE_TEST(testShiftRightArithFixedInt1, "-", {
+    FixedInt* a = createFixedIntFrom(6400, -12345678987654321);
+    FixedInt* c = shiftRightArithmeticFixedInt(a, 32);
+    ASSERT_FIXEDINT(c, -2874453);
+    freeFixedInt(a);
+    freeFixedInt(c);
+})
+
+DEFINE_TEST(testShiftRightArithFixedInt2, "-", {
+    FixedInt* a = createFixedIntFrom(6400, -12345678987654321);
+    FixedInt* c = shiftRightArithmeticFixedInt(a, 42);
+    ASSERT_FIXEDINT(c, -2808);
+    freeFixedInt(a);
+    freeFixedInt(c);
+})
+
+DEFINE_TEST(testShiftRightArithFixedInt3, "-", {
+    FixedInt* a = createFixedIntFromString(6400, str("-12424071433540142420521877220076350813026266859685665674061360696127608733442034818964261164431878107830633205880980151711074477771876033959355142924279319687537208647948638557706820526101026562169644639169603467248951302514030775012441411551731304491930775759074912082229886225695359354289776176171318118053274739978971350726662145988449999470415097463527440874884697161728"), 10);
+    FixedInt* c = shiftRightArithmeticFixedInt(a, 1234);
+    ASSERT_FIXEDINT(c, -42);
     freeFixedInt(a);
     freeFixedInt(c);
 })
