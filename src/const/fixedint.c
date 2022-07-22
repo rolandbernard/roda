@@ -517,3 +517,25 @@ uintmax_t uintMaxForFixedInt(FixedInt* fi) {
     return res;
 }
 
+uint64_t* convertTo64BitWordsZeroExtend(FixedInt* a, size_t* length) {
+    size_t len = (WORDS(a->size) + 1) / 2;
+    uint64_t* res = ALLOC(uint64_t, len);
+    for (size_t i = 0; i < len; i++) {
+        res[i] = (uint64_t)getWordZeroExtend(a->words, a->size, 2 * i)
+                 | ((uint64_t)getWordZeroExtend(a->words, a->size, 2 * i + 1) << WORD_SIZE);
+    }
+    *length = len;
+    return res;
+}
+
+uint64_t* convertTo64BitWordsSignExtend(FixedInt* a, size_t* length) {
+    size_t len = (WORDS(a->size) + 1) / 2;
+    uint64_t* res = ALLOC(uint64_t, len);
+    for (size_t i = 0; i < len; i++) {
+        res[i] = (uint64_t)getWordSignExtend(a->words, a->size, 2 * i)
+                 | ((uint64_t)getWordSignExtend(a->words, a->size, 2 * i + 1) << WORD_SIZE);
+    }
+    *length = len;
+    return res;
+}
+

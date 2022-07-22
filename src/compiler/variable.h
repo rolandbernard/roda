@@ -28,7 +28,7 @@ typedef struct {
     SYMBOL_ENTRY_BASE
     Type* type;
     bool constant;
-    ConstValue value;
+    ConstValue* value;
 } SymbolVariable;
 
 typedef struct SymbolType {

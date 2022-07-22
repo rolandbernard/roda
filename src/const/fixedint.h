@@ -82,4 +82,8 @@ intmax_t intMaxForFixedInt(FixedInt* fi);
 
 uintmax_t uintMaxForFixedInt(FixedInt* fi);
 
+uint64_t* convertTo64BitWordsZeroExtend(FixedInt* a, size_t* length);
+
+uint64_t* convertTo64BitWordsSignExtend(FixedInt* a, size_t* length);
+
 #endif

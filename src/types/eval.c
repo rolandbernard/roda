@@ -106,33 +106,26 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
                 if (context->msgs.error_count != 0) {
                     n->res_type = getErrorType(&context->types);
                 } else {
-                    ConstValue size = evaluateConstExpr(context, n->left);
-                    if (isErrorType(size.type)) {
-                        n->res_type = size.type;
-                    } else if (!isIntegerType(size.type)) {
-                        String idx_type = buildTypeName(size.type);
-                        addMessageToContext(
-                            &context->msgs,
-                            createMessage(
-                                ERROR_INCOMPATIBLE_TYPE,
-                                createFormattedString("array length with non integer type `%s`", cstr(idx_type)), 1,
-                                createMessageFragment(MESSAGE_ERROR, createFormattedString("type `%s` is not an integer type", cstr(idx_type)), n->left->location)
-                            )
-                        );
-                        freeString(idx_type);
-                        n->res_type = getErrorType(&context->types);
-                    } else if (isSignedIntegerType(size.type) && size.sint < 0) {
+                    ConstValueInt* size = (ConstValueInt*)evaluateConstExpr(context, n->left);
+                    if (size->kind == CONST_INT && signOfFixedInt(size->val) < 0) {
+                        String size_str = stringForFixedIntSigned(size->val, 10);
                         addMessageToContext(
                             &context->msgs,
                             createMessage(
                                 ERROR_INVALID_ARRAY_LENGTH,
-                                createFormattedString("negative array length, `%i` is less than 0", size.sint), 1,
-                                createMessageFragment(MESSAGE_ERROR, createFormattedString("array length of `%i` not allowed here", size.sint), n->left->location)
+                                createFormattedString("negative array length, `%s` is less than 0", cstr(size_str)),
+                                1,
+                                createMessageFragment(
+                                    MESSAGE_ERROR,
+                                    createFormattedString("array length of `%s` not allowed here", cstr(size_str)),
+                                    n->left->location
+                                )
                             )
                         );
+                        freeString(size_str);
                         n->res_type = getErrorType(&context->types);
                     } else {
-                        size_t len = isSignedIntegerType(size.type) ? (size_t)size.sint : (size_t)size.uint;
+                        size_t len = uintMaxForFixedInt(size->val);
                         n->res_type = createArrayType(&context->types, node, base, len);
                     }
                 }

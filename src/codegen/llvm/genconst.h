@@ -6,6 +6,6 @@
 #include "const/value.h"
 #include "codegen/llvm/context.h"
 
-LLVMValueRef generateLlvmConstValue(LlvmCodegenContext* context, ConstValue value);
+LLVMValueRef generateLlvmConstValue(LlvmCodegenContext* context, ConstValue* value);
 
 #endif

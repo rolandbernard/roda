@@ -18,7 +18,7 @@ SymbolVariable* createVariableSymbol(Symbol name, struct AstVar* def, bool const
     initSymbolEntry((SymbolEntry*)sym, SYMBOL_VARIABLE, name, def);
     sym->type = NULL;
     sym->constant = constant;
-    sym->value.type = NULL;
+    sym->value = NULL;
     return sym;
 }
 
