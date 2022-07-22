@@ -229,11 +229,11 @@ static void absWordSubBigInt(BigInt** dst, uint32_t b) {
 
 static BigInt* absDifference(BigInt* a, BigInt* b) {
     int cmp = absCompareBigInt(a, b);
-    if (cmp == -1) {
+    if (cmp < 0) {
         BigInt* res = copyBigInt(b);
         absSubBigInt(&res, a);
         return reallocIfNeeded(res, b->size);
-    } else if (cmp == 1) {
+    } else if (cmp > 0) {
         BigInt* res = copyBigInt(a);
         absSubBigInt(&res, b);
         return reallocIfNeeded(res, a->size);
@@ -258,7 +258,11 @@ BigInt* subBigInt(BigInt* a, BigInt* b) {
         absAddBigInt(&res, b, 0);
         return res;
     } else {
-        return absDifference(a, b);
+        BigInt* res = absDifference(a, b);
+        if (absCompareBigInt(a, b) < 0) {
+            res->negative = !res->negative;
+        }
+        return res;
     }
 }
 
@@ -333,7 +337,6 @@ static BigInt* absMulBigIntBigSmall(BigInt* a, BigInt* b) {
 }
 
 static BigInt* absMulBigInt(BigInt* a, BigInt* b) {
-    BigInt* result;
     if (a->size == 0 || b->size == 0) {
         return createBigInt();
     } else if (a->size == 1 && b->size == 1) {
@@ -348,7 +351,6 @@ static BigInt* absMulBigInt(BigInt* a, BigInt* b) {
     } else {
         return absMulBigIntBigSmall(a, b);
     }
-    return result;
 }
 
 
@@ -589,7 +591,7 @@ BigInt* shiftLeftBigInt(BigInt* a, size_t r) {
 
 BigInt* shiftRightBigInt(BigInt* a, size_t r) {
     if (a->size < r / WORD_SIZE) {
-        return createBigInt();
+        return a->negative ? createBigIntFrom(-1) : createBigInt();
     } else if (r == 0) {
         return copyBigInt(a);
     } else {

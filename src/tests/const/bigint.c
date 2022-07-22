@@ -14,6 +14,7 @@
 DEFINE_TEST(testCreateBigInt, "-", {
     BigInt* a = createBigInt();
     ASSERT_BIGINT(a, 0);
+    ASSERT_BIGINT_STR(a, "0");
     ASSERT_FALSE(a->negative);
     ASSERT_EQUAL(a->size, 0);
     freeBigInt(a);
@@ -394,6 +395,26 @@ DEFINE_TEST(testAddBigInt8, "-", {
     freeBigInt(c);
 })
 
+DEFINE_TEST(testAddBigInt9, "-", {
+    BigInt* a = createBigIntFrom(-42);
+    BigInt* b = createBigIntFrom(80);
+    BigInt* c = addBigInt(a, b);
+    ASSERT_BIGINT(c, 38);
+    freeBigInt(a);
+    freeBigInt(b);
+    freeBigInt(c);
+})
+
+DEFINE_TEST(testAddBigInt10, "-", {
+    BigInt* a = createBigIntFrom(42);
+    BigInt* b = createBigIntFrom(-80);
+    BigInt* c = addBigInt(a, b);
+    ASSERT_BIGINT(c, -38);
+    freeBigInt(a);
+    freeBigInt(b);
+    freeBigInt(c);
+})
+
 DEFINE_TEST(testSubBigInt1, "-", {
     BigInt* a = createBigIntFrom(42);
     BigInt* b = createBigIntFrom(42);
@@ -419,6 +440,7 @@ DEFINE_TEST(testSubBigInt3, "-", {
     BigInt* a = createBigIntFrom(-42);
     BigInt* b = createBigIntFrom(-20);
     BigInt* c = subBigInt(a, b);
+    fprintf(stderr, "%li", intMaxForBigInt(c));
     ASSERT_BIGINT(c, -22);
     freeBigInt(a);
     freeBigInt(b);
@@ -452,6 +474,36 @@ DEFINE_TEST(testSubBigInt6, "-", {
     ASSERT_BIGINT_STR(c, "14966505724369675501907842622245151975259546");
     freeBigInt(a);
     freeBigInt(b);
+    freeBigInt(c);
+})
+
+DEFINE_TEST(testSubBigInt7, "-", {
+    BigInt* a = createBigIntFromString(str("100000000"), 16);
+    BigInt* b = createBigIntFrom(1);
+    BigInt* c = subBigInt(a, b);
+    freeBigInt(a);
+    freeBigInt(b);
+    ASSERT_BIGINT_STR(c, "4294967295");
+    freeBigInt(c);
+})
+
+DEFINE_TEST(testSubBigInt8, "-", {
+    BigInt* a = createBigIntFrom(2);
+    BigInt* b = createBigIntFrom(42);
+    BigInt* c = subBigInt(a, b);
+    freeBigInt(a);
+    freeBigInt(b);
+    ASSERT_BIGINT_STR(c, "-40");
+    freeBigInt(c);
+})
+
+DEFINE_TEST(testSubBigInt9, "-", {
+    BigInt* a = createBigIntFrom(-2);
+    BigInt* b = createBigIntFrom(-42);
+    BigInt* c = subBigInt(a, b);
+    freeBigInt(a);
+    freeBigInt(b);
+    ASSERT_BIGINT_STR(c, "40");
     freeBigInt(c);
 })
 
@@ -621,6 +673,32 @@ DEFINE_TEST(testMulBigInt13, "-", {
     freeBigInt(c);
 })
 
+DEFINE_TEST(testMulBigInt14, "-", {
+    BigInt* a = createBigIntFromString(str("100000000"), 16);
+    BigInt* n = createBigIntFrom(1);
+    for (size_t i = 0; i < 2; i++) {
+        BigInt* nn = mulBigInt(n, a);
+        freeBigInt(n);
+        n = nn;
+    }
+    freeBigInt(a);
+    ASSERT_BIGINT_STR(n, "18446744073709551616");
+    freeBigInt(n);
+})
+
+DEFINE_TEST(testMulBigInt15, "-", {
+    BigInt* a = createBigIntFromString(str("100000000"), 16);
+    BigInt* n = createBigIntFrom(1);
+    for (size_t i = 0; i < 100; i++) {
+        BigInt* nn = mulBigInt(n, a);
+        freeBigInt(n);
+        n = nn;
+    }
+    freeBigInt(a);
+    ASSERT_EQUAL(n->size, 101);
+    freeBigInt(n);
+})
+
 DEFINE_TEST(testDivBigInt1, "-", {
     BigInt* a = createBigIntFrom(42);
     BigInt* b = createBigIntFrom(20);
@@ -711,6 +789,26 @@ DEFINE_TEST(testDivBigInt9, "-", {
     freeBigInt(c);
 })
 
+DEFINE_TEST(testDivBigInt10, "-", {
+    BigInt* a = createBigIntFromString(str("-abcdefabcdefabcdefabcdefabcdefabcdef"), 16);
+    BigInt* b = createBigIntFromString(str("abcdefabcdefabcdefabcdefabcdefabcdef"), 16);
+    BigInt* c = divBigInt(a, b);
+    ASSERT_BIGINT(c, -1);
+    freeBigInt(a);
+    freeBigInt(b);
+    freeBigInt(c);
+})
+
+DEFINE_TEST(testDivBigInt11, "-", {
+    BigInt* a = createBigInt();
+    BigInt* b = createBigIntFrom(1234);
+    BigInt* c = divBigInt(a, b);
+    ASSERT_BIGINT(c, 0);
+    freeBigInt(a);
+    freeBigInt(b);
+    freeBigInt(c);
+})
+
 DEFINE_TEST(testRemBigInt1, "-", {
     BigInt* a = createBigIntFrom(42);
     BigInt* b = createBigIntFrom(20);
@@ -791,6 +889,16 @@ DEFINE_TEST(testRemBigInt8, "-", {
     freeBigInt(c);
 })
 
+DEFINE_TEST(testRemBigInt9, "-", {
+    BigInt* a = createBigInt();
+    BigInt* b = createBigIntFrom(1234);
+    BigInt* c = remBigInt(a, b);
+    ASSERT_BIGINT(c, 0);
+    freeBigInt(a);
+    freeBigInt(b);
+    freeBigInt(c);
+})
+
 DEFINE_TEST(testAndBigInt1, "-", {
     BigInt* a = createBigIntFrom(42);
     BigInt* b = createBigIntFrom(26);
@@ -826,6 +934,16 @@ DEFINE_TEST(testAndBigInt4, "-", {
     BigInt* b = createBigIntFrom(-26);
     BigInt* c = andBigInt(a, b);
     ASSERT_BIGINT(c, -58);
+    freeBigInt(a);
+    freeBigInt(b);
+    freeBigInt(c);
+})
+
+DEFINE_TEST(testAnsBigInt5, "-", {
+    BigInt* a = createBigInt();
+    BigInt* b = createBigInt();
+    BigInt* c = andBigInt(a, b);
+    ASSERT_BIGINT(c, 0);
     freeBigInt(a);
     freeBigInt(b);
     freeBigInt(c);
@@ -871,6 +989,16 @@ DEFINE_TEST(testOrBigInt4, "-", {
     freeBigInt(c);
 })
 
+DEFINE_TEST(testOrBigInt5, "-", {
+    BigInt* a = createBigInt();
+    BigInt* b = createBigInt();
+    BigInt* c = orBigInt(a, b);
+    ASSERT_BIGINT(c, 0);
+    freeBigInt(a);
+    freeBigInt(b);
+    freeBigInt(c);
+})
+
 DEFINE_TEST(testXorBigInt1, "-", {
     BigInt* a = createBigIntFrom(42);
     BigInt* b = createBigIntFrom(26);
@@ -906,6 +1034,16 @@ DEFINE_TEST(testXorBigInt4, "-", {
     BigInt* b = createBigIntFrom(-26);
     BigInt* c = xorBigInt(a, b);
     ASSERT_BIGINT(c, 48);
+    freeBigInt(a);
+    freeBigInt(b);
+    freeBigInt(c);
+})
+
+DEFINE_TEST(testXorBigInt5, "-", {
+    BigInt* a = createBigInt();
+    BigInt* b = createBigInt();
+    BigInt* c = xorBigInt(a, b);
+    ASSERT_BIGINT(c, 0);
     freeBigInt(a);
     freeBigInt(b);
     freeBigInt(c);
@@ -959,6 +1097,14 @@ DEFINE_TEST(testShiftLeftBigInt4, "-", {
     freeBigInt(c);
 })
 
+DEFINE_TEST(testShiftLeftBigInt5, "-", {
+    BigInt* a = createBigInt();
+    BigInt* c = shiftLeftBigInt(a, 123);
+    ASSERT_BIGINT_STR(c, "0");
+    freeBigInt(a);
+    freeBigInt(c);
+})
+
 DEFINE_TEST(testShiftRightBigInt1, "-", {
     BigInt* a = createBigIntFrom(12345678987654321);
     BigInt* c = shiftRightBigInt(a, 32);
@@ -979,6 +1125,38 @@ DEFINE_TEST(testShiftRightBigInt3, "-", {
     BigInt* a = createBigIntFromString(str("12424071433540142420521877220076350813026266859685665674061360696127608733442034818964261164431878107830633205880980151711074477771876033959355142924279319687537208647948638557706820526101026562169644639169603467248951302514030775012441411551731304491930775759074912082229886225695359354289776176171318118053274739978971350726662145988449999470415097463527440874884697161728"), 10);
     BigInt* c = shiftRightBigInt(a, 1234);
     ASSERT_BIGINT(c, 42);
+    freeBigInt(a);
+    freeBigInt(c);
+})
+
+DEFINE_TEST(testShiftRightBigInt4, "-", {
+    BigInt* a = createBigIntFrom(-12345678987654321);
+    BigInt* c = shiftRightBigInt(a, 1234567);
+    ASSERT_BIGINT(c, -1);
+    freeBigInt(a);
+    freeBigInt(c);
+})
+
+DEFINE_TEST(testShiftRightBigInt5, "-", {
+    BigInt* a = createBigIntFrom(-12345678987654321);
+    BigInt* c = shiftRightBigInt(a, 0);
+    ASSERT_BIGINT(c, -12345678987654321);
+    freeBigInt(a);
+    freeBigInt(c);
+})
+
+DEFINE_TEST(testShiftRightBigInt6, "-", {
+    BigInt* a = createBigIntFrom(12);
+    BigInt* c = shiftRightBigInt(a, 6);
+    ASSERT_BIGINT(c, 0);
+    freeBigInt(a);
+    freeBigInt(c);
+})
+
+DEFINE_TEST(testShiftRightBigInt7, "-", {
+    BigInt* a = createBigIntFrom(12);
+    BigInt* c = shiftRightBigInt(a, 100);
+    ASSERT_BIGINT(c, 0);
     freeBigInt(a);
     freeBigInt(c);
 })
