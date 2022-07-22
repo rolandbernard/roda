@@ -326,7 +326,6 @@ DEFINE_TEST(testAddFixedInt5, "-", {
     FixedInt* a = createFixedIntFrom(32, -42);
     FixedInt* b = createFixedIntFrom(32, -20);
     FixedInt* c = addFixedInt(a, b);
-    fprintf(stderr, "%li\n", intMaxForFixedInt(c));
     ASSERT_FIXEDINT(c, -62);
     freeFixedInt(a);
     freeFixedInt(b);
@@ -601,6 +600,7 @@ DEFINE_TEST(testDivFixedInt2, "-", {
     FixedInt* a = createFixedIntFrom(128, 987654321987654321);
     FixedInt* b = createFixedIntFrom(128, -1234);
     FixedInt* c = sdivFixedInt(a, b);
+    fprintf(stderr, "%li\n", intMaxForFixedInt(c));
     ASSERT_FIXEDINT(c, -800368170168277);
     freeFixedInt(a);
     freeFixedInt(b);

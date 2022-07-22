@@ -143,6 +143,7 @@ BigInt* createBigIntFromFixedIntSignExtend(FixedInt* fi) {
     } else {
         size_t length = WORDS(fi->size);
         BigInt* res = createBigIntCapacity(length + 1);
+        res->negative = true;
         for (size_t i = 0; i < length; i++) {
             res->words[i] = fi->words[i];
         }
@@ -152,8 +153,9 @@ BigInt* createBigIntFromFixedIntSignExtend(FixedInt* fi) {
         }
         uint32_t carry = 1;
         for (size_t i = 0; i < length; i++) {
-            res->words[i] = ~res->words[i] + carry;
-            carry = res->words[i] == 0 ? 1 : 0;
+            uint64_t tmp = ~res->words[i] + carry;
+            res->words[i] = tmp;
+            carry = tmp >> WORD_SIZE;
         }
         if (carry != 0) {
             res->words[length] = carry;
@@ -356,7 +358,7 @@ FixedInt* mulFixedInt(FixedInt* a, FixedInt* b) {
 #define BIGINT_DELEGATED(EXT, OP)                           \
     BigInt* ba = createBigIntFromFixedInt ## EXT (a);       \
     BigInt* bb = createBigIntFromFixedInt ## EXT (b);       \
-    BigInt* br = OP(ba, bb);                                \
+    BigInt* br = OP ## BigInt (ba, bb);                     \
     freeBigInt(ba);                                         \
     freeBigInt(bb);                                         \
     FixedInt* res = createFixedIntFromBigInt(a->size, br);  \
@@ -365,22 +367,22 @@ FixedInt* mulFixedInt(FixedInt* a, FixedInt* b) {
 
 FixedInt* udivFixedInt(FixedInt* a, FixedInt* b) {
     ASSERT(a->size == b->size);
-    BIGINT_DELEGATED(ZeroExtend, divBigInt);
+    BIGINT_DELEGATED(ZeroExtend, div);
 }
 
 FixedInt* sdivFixedInt(FixedInt* a, FixedInt* b) {
     ASSERT(a->size == b->size);
-    BIGINT_DELEGATED(SignExtend, divBigInt);
+    BIGINT_DELEGATED(SignExtend, div);
 }
 
 FixedInt* uremFixedInt(FixedInt* a, FixedInt* b) {
     ASSERT(a->size == b->size);
-    BIGINT_DELEGATED(ZeroExtend, remBigInt);
+    BIGINT_DELEGATED(ZeroExtend, rem);
 }
 
 FixedInt* sremFixedInt(FixedInt* a, FixedInt* b) {
     ASSERT(a->size == b->size);
-    BIGINT_DELEGATED(SignExtend, remBigInt);
+    BIGINT_DELEGATED(SignExtend, rem);
 }
 
 FixedInt* andFixedInt(FixedInt* a, FixedInt* b) {
@@ -518,7 +520,7 @@ String stringForFixedIntSigned(FixedInt* fi, int base) {
 
 intmax_t intMaxForFixedInt(FixedInt* fi) {
     size_t size = (sizeof(intmax_t) + sizeof(uint32_t) - 1) / sizeof(uint32_t);
-    uintmax_t res = 0;
+    intmax_t res = 0;
     for (size_t i = 0; i < size && i < WORDS(fi->size); i++) {
         uint32_t w;
         if (i < WORDS(fi->size)) {
@@ -534,6 +536,10 @@ intmax_t intMaxForFixedInt(FixedInt* fi) {
             w = signBitOfFixedInt(fi->words, fi->size) == 0 ? 0 : ~(uint32_t)0;
         }
         res |= (intmax_t)w << (i * WORD_SIZE);
+    }
+    uint32_t extend = signBitOfFixedInt(fi->words, fi->size) == 0 ? 0 : ~(uint32_t)0;
+    for (size_t i = WORDS(fi->size); i < size; i++) {
+        res |= (intmax_t)extend << (i * WORD_SIZE);
     }
     return res;
 }
