@@ -893,16 +893,15 @@ static void assumeAmbiguousTypes(CompilerContext* context, AssumeAmbiguousPhase 
     }
 }
 
-void typeInferExpr(CompilerContext* context, AstNode* node, Type* assumption) {
+void typeInferExpr(CompilerContext* context, AstNode* node, Type* res_type) {
     evaluateTypeHints(context, node);
     propagateAllTypes(context, node); 
     assumeAmbiguousTypes(context, ASSUME_SIZEOF | ASSUME_INDEX, node);
     assumeAmbiguousTypes(context, ASSUME_LITERALS, node);
     assumeAmbiguousTypes(context, ASSUME_CASTS, node);
-    if (assumption != NULL && node->res_type == NULL) {
-        Type* type = createUnsureType(&context->types, node, UNSURE_ANY, assumption);
-        if (moveTypeIntoAstNode(context, node, type)) {
-            propagateTypes(context, node->parent);
+    if (node->res_type == NULL) {
+        if (moveTypeIntoAstNode(context, node, res_type)) {
+            propagateAllTypes(context, node);
         }
     }
     if (context->msgs.error_count == 0) {

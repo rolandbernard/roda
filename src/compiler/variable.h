@@ -29,6 +29,7 @@ typedef struct {
     Type* type;
     bool constant;
     ConstValue* value;
+    bool evaluated;
 } SymbolVariable;
 
 typedef struct SymbolType {

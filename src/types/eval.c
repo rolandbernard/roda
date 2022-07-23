@@ -115,11 +115,16 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
             case AST_ARRAY: {
                 AstBinary* n = (AstBinary*)node;
                 Type* base = evaluateTypeExpr(context, n->right);
+                size_t old_error = context->msgs.error_count;
                 if (checkValidInConstExpr(context, n->left)) {
-                    typeInferExpr(context, n->left, createSizedPrimitiveType(&context->types, node, TYPE_UINT, SIZE_SIZE));
+                    Type* type = createUnsureType(
+                        &context->types, node, UNSURE_INTEGER,
+                        createSizedPrimitiveType(&context->types, node, TYPE_INT, SIZE_SIZE)
+                    );
+                    typeInferExpr(context, n->left, type);
                     typeCheckExpr(context, n->left);
                 }
-                if (context->msgs.error_count != 0) {
+                if (context->msgs.error_count != old_error) {
                     n->res_type = getErrorType(&context->types);
                 } else if (!isIntegerType(n->left->res_type)) {
                     String idx_type = buildTypeName(n->left->res_type);
@@ -135,7 +140,9 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
                     n->res_type = getErrorType(&context->types);
                 } else {
                     ConstValue* size = evaluateConstExpr(context, n->left);
-                    if (size->kind == CONST_INT && signOfFixedInt(((ConstValueInt*)size)->val) < 0) {
+                    if (size == NULL) {
+                        n->res_type = getErrorType(&context->types);
+                    } else if (size->kind == CONST_INT && signOfFixedInt(((ConstValueInt*)size)->val) < 0) {
                         String size_str = stringForFixedIntSigned(((ConstValueInt*)size)->val, 10);
                         raiseNegativeArrayLengthError(context, n, cstr(size_str));
                         freeString(size_str);

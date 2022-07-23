@@ -96,11 +96,15 @@ static void raiseOpErrorNotInConst(CompilerContext* context, AstNode* node) {
     AstBinary* n = (AstBinary*)node;                                        \
     ASSERT(compareStructuralTypes(n->left->res_type, n->right->res_type));  \
     ConstValue* left = evaluateConstExpr(context, n->left);                 \
-    ConstValue* right = evaluateConstExpr(context, n->right);               \
-    ASSERT(left->kind == right->kind);                                      \
-    OPS                                                                     \
-    freeConstValue(right);                                                  \
-    freeConstValue(left);                                                   \
+    if (left != NULL) {                                                     \
+        ConstValue* right = evaluateConstExpr(context, n->right);           \
+        if (right != NULL) {                                                \
+            ASSERT(left->kind == right->kind);                              \
+            OPS                                                             \
+            freeConstValue(right);                                          \
+        }                                                                   \
+        freeConstValue(left);                                               \
+    }                                                                       \
     break;                                                                  \
 }
 
@@ -120,10 +124,10 @@ ConstValue* evaluateConstExpr(CompilerContext* context, AstNode* node) {
                         createMessageFragment(MESSAGE_ERROR, copyFromCString("recursive reference to constant"), node->location)
                     ));
                 } else {
-                    if (var->value == NULL) {
-                        evaluateConstantDefinition(context, (AstVarDef*)var->def->parent);
+                    evaluateConstantDefinition(context, (AstVarDef*)var->def->parent);
+                    if (var->value != NULL) {
+                        res = copyConstValue(var->value);
                     }
-                    res = copyConstValue(var->value);
                 }
                 break;
             }
@@ -138,84 +142,88 @@ ConstValue* evaluateConstExpr(CompilerContext* context, AstNode* node) {
             case AST_IF_ELSE_EXPR: {
                 AstIfElse* n = (AstIfElse*)node;
                 ConstValueBool* cond = (ConstValueBool*)evaluateConstExpr(context, n->condition);
-                ASSERT(cond->kind == CONST_BOOL);
-                if (cond->val) {
-                    res = evaluateConstExpr(context, n->if_block);
-                } else {
-                    res = evaluateConstExpr(context, n->else_block);
+                if (cond != NULL) {
+                    ASSERT(cond->kind == CONST_BOOL);
+                    if (cond->val) {
+                        res = evaluateConstExpr(context, n->if_block);
+                    } else {
+                        res = evaluateConstExpr(context, n->else_block);
+                    }
+                    freeConstValue((ConstValue*)cond);
                 }
-                freeConstValue((ConstValue*)cond);
                 break;
             }
             case AST_AS: {
                 AstBinary* n = (AstBinary*)node;
                 ConstValue* op = evaluateConstExpr(context, n->left);
-                size_t size = getIntRealTypeSize(n->res_type);
-                if (compareStructuralTypes(op->type, n->res_type)) {
-                    res = op;
-                } else if (isRealType(n->res_type)) {
-                    double value = 0;
-                    if (op->kind == CONST_DOUBLE) {
-                        value = ((ConstValueDouble*)op)->val;
-                    } else if (op->kind == CONST_FLOAT) {
-                        value = ((ConstValueFloat*)op)->val;
-                    } else if (op->kind == CONST_INT) {
-                        value = doubleForFixedIntSigned(((ConstValueInt*)op)->val);
-                    } else if (op->kind == CONST_UINT) {
-                        value = doubleForFixedIntUnsigned(((ConstValueInt*)op)->val);
-                    } else if (op->kind == CONST_BIG_INT) {
-                        value = doubleForFixedIntUnsigned(((ConstValueInt*)op)->val);
+                if (op != NULL) {
+                    size_t size = getIntRealTypeSize(n->res_type);
+                    if (compareStructuralTypes(op->type, n->res_type)) {
+                        res = op;
+                    } else if (isRealType(n->res_type)) {
+                        double value = 0;
+                        if (op->kind == CONST_DOUBLE) {
+                            value = ((ConstValueDouble*)op)->val;
+                        } else if (op->kind == CONST_FLOAT) {
+                            value = ((ConstValueFloat*)op)->val;
+                        } else if (op->kind == CONST_INT) {
+                            value = doubleForFixedIntSigned(((ConstValueInt*)op)->val);
+                        } else if (op->kind == CONST_UINT) {
+                            value = doubleForFixedIntUnsigned(((ConstValueInt*)op)->val);
+                        } else if (op->kind == CONST_BIG_INT) {
+                            value = doubleForFixedIntUnsigned(((ConstValueInt*)op)->val);
+                        } else {
+                            UNREACHABLE("should have correct type");
+                        }
+                        freeConstValue(op);
+                        if (size == 32) {
+                            res = createConstFloat(n->res_type, value);
+                        } else if (size == 64) {
+                            res = createConstDouble(n->res_type, value);
+                        }
+                    } else if (isIntegerType(n->res_type)) {
+                        if (size == SIZE_SIZE || size == 0) {
+                            BigInt* value = NULL;
+                            if (op->kind == CONST_DOUBLE) {
+                                value = createBigIntFromDouble(((ConstValueDouble*)op)->val);
+                            } else if (op->kind == CONST_FLOAT) {
+                                value = createBigIntFromDouble(((ConstValueFloat*)op)->val);
+                            } else if (op->kind == CONST_INT) {
+                                value = createBigIntFromFixedIntSignExtend(((ConstValueInt*)op)->val);
+                            } else if (op->kind == CONST_UINT) {
+                                value = createBigIntFromFixedIntZeroExtend(((ConstValueInt*)op)->val);
+                            } else if (op->kind == CONST_BIG_INT) {
+                                value = copyBigInt(((ConstValueBigInt*)op)->val);
+                            } else {
+                                UNREACHABLE("should have correct type");
+                            }
+                            freeConstValue(op);
+                            res = createConstBigInt(n->res_type, value);
+                        } else {
+                            FixedInt* value = NULL;
+                            if (op->kind == CONST_DOUBLE) {
+                                value = createFixedIntFromDouble(size, ((ConstValueDouble*)op)->val);
+                            } else if (op->kind == CONST_FLOAT) {
+                                value = createFixedIntFromDouble(size, ((ConstValueFloat*)op)->val);
+                            } else if (op->kind == CONST_INT) {
+                                value = resizeFixedIntSignExtend(((ConstValueInt*)op)->val, size);
+                            } else if (op->kind == CONST_UINT) {
+                                value = resizeFixedIntZeroExtend(((ConstValueInt*)op)->val, size);
+                            } else if (op->kind == CONST_BIG_INT) {
+                                value = createFixedIntFromBigInt(size, ((ConstValueBigInt*)op)->val);
+                            } else {
+                                UNREACHABLE("should have correct type");
+                            }
+                            freeConstValue(op);
+                            if (isSignedIntegerType(n->res_type)) {
+                                res = createConstInt(n->res_type, value);
+                            } else {
+                                res = createConstUint(n->res_type, value);
+                            }
+                        }
                     } else {
                         UNREACHABLE("should have correct type");
                     }
-                    freeConstValue(op);
-                    if (size == 32) {
-                        res = createConstFloat(n->res_type, value);
-                    } else if (size == 64) {
-                        res = createConstDouble(n->res_type, value);
-                    }
-                } else if (isIntegerType(n->res_type)) {
-                    if (size == SIZE_SIZE) {
-                        BigInt* value = NULL;
-                        if (op->kind == CONST_DOUBLE) {
-                            value = createBigIntFromDouble(((ConstValueDouble*)op)->val);
-                        } else if (op->kind == CONST_FLOAT) {
-                            value = createBigIntFromDouble(((ConstValueFloat*)op)->val);
-                        } else if (op->kind == CONST_INT) {
-                            value = createBigIntFromFixedIntSignExtend(((ConstValueInt*)op)->val);
-                        } else if (op->kind == CONST_UINT) {
-                            value = createBigIntFromFixedIntZeroExtend(((ConstValueInt*)op)->val);
-                        } else if (op->kind == CONST_BIG_INT) {
-                            value = copyBigInt(((ConstValueBigInt*)op)->val);
-                        } else {
-                            UNREACHABLE("should have correct type");
-                        }
-                        freeConstValue(op);
-                        res = createConstBigInt(n->res_type, value);
-                    } else {
-                        FixedInt* value = NULL;
-                        if (op->kind == CONST_DOUBLE) {
-                            value = createFixedIntFromDouble(size, ((ConstValueDouble*)op)->val);
-                        } else if (op->kind == CONST_FLOAT) {
-                            value = createFixedIntFromDouble(size, ((ConstValueFloat*)op)->val);
-                        } else if (op->kind == CONST_INT) {
-                            value = resizeFixedIntSignExtend(((ConstValueInt*)op)->val, size);
-                        } else if (op->kind == CONST_UINT) {
-                            value = resizeFixedIntZeroExtend(((ConstValueInt*)op)->val, size);
-                        } else if (op->kind == CONST_BIG_INT) {
-                            value = createFixedIntFromBigInt(size, ((ConstValueBigInt*)op)->val);
-                        } else {
-                            UNREACHABLE("should have correct type");
-                        }
-                        freeConstValue(op);
-                        if (isSignedIntegerType(n->res_type)) {
-                            res = createConstInt(n->res_type, value);
-                        } else {
-                            res = createConstUint(n->res_type, value);
-                        }
-                    }
-                } else {
-                    UNREACHABLE("should have correct type");
                 }
                 break;
             }
@@ -247,19 +255,23 @@ ConstValue* evaluateConstExpr(CompilerContext* context, AstNode* node) {
                 AstBinary* n = (AstBinary*)node;
                 ASSERT(compareStructuralTypes(n->left->res_type, n->right->res_type));
                 ConstValue* left = evaluateConstExpr(context, n->left);
-                ASSERT(left->kind == CONST_BOOL);
-                if (
-                    (n->kind == AST_AND && !((ConstValueBool*)left)->val)
-                    || (n->kind == AST_OR && ((ConstValueBool*)left)->val)
-                ) {
-                    res = createConstBool(node->res_type, ((ConstValueBool*)left)->val);
-                } else {
-                    ConstValue* right = evaluateConstExpr(context, n->right);
-                    ASSERT(right->kind == CONST_BOOL);
-                    res = createConstBool(node->res_type, ((ConstValueBool*)right)->val);
-                    freeConstValue(right);
+                if (left != NULL) {
+                    ASSERT(left->kind == CONST_BOOL);
+                    if (
+                        (n->kind == AST_AND && !((ConstValueBool*)left)->val)
+                        || (n->kind == AST_OR && ((ConstValueBool*)left)->val)
+                    ) {
+                        res = createConstBool(node->res_type, ((ConstValueBool*)left)->val);
+                    } else {
+                        ConstValue* right = evaluateConstExpr(context, n->right);
+                        if (right != NULL) {
+                            ASSERT(right->kind == CONST_BOOL);
+                            res = createConstBool(node->res_type, ((ConstValueBool*)right)->val);
+                            freeConstValue(right);
+                        }
+                    }
+                    freeConstValue(left);
                 }
-                freeConstValue(left);
                 break;
             }
             case AST_POS: {
@@ -270,43 +282,47 @@ ConstValue* evaluateConstExpr(CompilerContext* context, AstNode* node) {
             case AST_NEG: {
                 AstUnary* n = (AstUnary*)node;
                 ConstValue* op = evaluateConstExpr(context, n->op);
-                if (op->kind == CONST_INT) {
-                    FixedInt* v = ((ConstValueInt*)op)->val;
-                    res = createConstInt(node->res_type, negFixedInt(v));
-                } else if (op->kind == CONST_BIG_INT) {
-                    BigInt* v = ((ConstValueBigInt*)op)->val;
-                    res = createConstBigInt(node->res_type, negBigInt(v));
-                } else if (op->kind == CONST_DOUBLE) {
-                    double v = ((ConstValueDouble*)op)->val;
-                    res = createConstDouble(node->res_type, -v);
-                } else if (op->kind == CONST_FLOAT) {
-                    float v = ((ConstValueFloat*)op)->val;
-                    res = createConstFloat(node->res_type, -v);
+                if (op != NULL) {
+                    if (op->kind == CONST_INT) {
+                        FixedInt* v = ((ConstValueInt*)op)->val;
+                        res = createConstInt(node->res_type, negFixedInt(v));
+                    } else if (op->kind == CONST_BIG_INT) {
+                        BigInt* v = ((ConstValueBigInt*)op)->val;
+                        res = createConstBigInt(node->res_type, negBigInt(v));
+                    } else if (op->kind == CONST_DOUBLE) {
+                        double v = ((ConstValueDouble*)op)->val;
+                        res = createConstDouble(node->res_type, -v);
+                    } else if (op->kind == CONST_FLOAT) {
+                        float v = ((ConstValueFloat*)op)->val;
+                        res = createConstFloat(node->res_type, -v);
+                    }
+                    freeConstValue(op);
                 }
-                freeConstValue(op);
                 break;
             }
             case AST_NOT: {
                 AstUnary* n = (AstUnary*)node;
                 ConstValue* op = evaluateConstExpr(context, n->op);
-                if (op->kind == CONST_INT) {
-                    FixedInt* v = ((ConstValueInt*)op)->val;
-                    res = createConstInt(node->res_type, notFixedInt(v));
-                } else if (op->kind == CONST_UINT) {
-                    FixedInt* v = ((ConstValueInt*)op)->val;
-                    res = createConstUint(node->res_type, notFixedInt(v));
-                } else if (op->kind == CONST_BIG_INT) {
-                    BigInt* v = ((ConstValueBigInt*)op)->val;
-                    res = createConstBigInt(node->res_type, notBigInt(v));
+                if (op != NULL) {
+                    if (op->kind == CONST_INT) {
+                        FixedInt* v = ((ConstValueInt*)op)->val;
+                        res = createConstInt(node->res_type, notFixedInt(v));
+                    } else if (op->kind == CONST_UINT) {
+                        FixedInt* v = ((ConstValueInt*)op)->val;
+                        res = createConstUint(node->res_type, notFixedInt(v));
+                    } else if (op->kind == CONST_BIG_INT) {
+                        BigInt* v = ((ConstValueBigInt*)op)->val;
+                        res = createConstBigInt(node->res_type, notBigInt(v));
+                    }
+                    freeConstValue(op);
                 }
-                freeConstValue(op);
                 break;
             }
             case AST_CHAR:
             case AST_INT: {
                 AstInt* n = (AstInt*)node;
                 size_t size = getIntRealTypeSize(n->res_type);
-                if (size == SIZE_SIZE) {
+                if (size == SIZE_SIZE || size == 0) {
                     res = createConstBigInt(node->res_type, createBigIntFrom(n->number));
                 } else if (isSignedIntegerType(n->res_type)) {
                     res = createConstInt(node->res_type, createFixedIntFrom(size, n->number));
@@ -332,7 +348,6 @@ ConstValue* evaluateConstExpr(CompilerContext* context, AstNode* node) {
             default:
                 UNREACHABLE("should not evaluate");
         }
-        ASSERT(res != NULL);
         return res;
     }
 }
@@ -418,15 +433,21 @@ bool checkValidInConstExpr(CompilerContext* context, AstNode* node) {
 }
 
 void evaluateConstantDefinition(CompilerContext* context, AstVarDef* def) {
-    size_t old_error = context->msgs.error_count;
-    if (checkValidInConstExpr(context, def->val)) {
-        typeInferExpr(context, (AstNode*)def, NULL);
-        typeCheckExpr(context, (AstNode*)def);
-    }
-    if (context->msgs.error_count == old_error && def->name->binding != NULL) {
+    if (def->name->binding != NULL) {
         SymbolVariable* var = (SymbolVariable*)def->name->binding;
-        var->value = RECURSION_CHECK_TYPE;
-        var->value = evaluateConstExpr(context, def->val);
+        if (!var->evaluated) {
+            size_t old_error = context->msgs.error_count;
+            if (checkValidInConstExpr(context, def->val)) {
+                Type* type = createUnsureType(&context->types, (AstNode*)def->name, UNSURE_ANY, NULL);
+                typeInferExpr(context, (AstNode*)def, type);
+                typeCheckExpr(context, (AstNode*)def);
+            }
+            if (context->msgs.error_count == old_error) {
+                var->value = RECURSION_CHECK_TYPE;
+                var->value = evaluateConstExpr(context, def->val);
+                var->evaluated = true;
+            }
+        }
     }
 }
 

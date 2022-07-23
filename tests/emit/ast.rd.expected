@@ -261,7 +261,7 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │        │type:
     │        └─array [2]&Node [tests/emit/ast.rd:34:42-34:49]
     │           │left:
-    │           ├─integer (value = 2) i64 [tests/emit/ast.rd:34:43]
+    │           ├─integer (value = 2) {integer} [tests/emit/ast.rd:34:43]
     │           │right:
     │           └─address of &Node [tests/emit/ast.rd:34:45-34:49]
     │              │op:
@@ -560,7 +560,7 @@ root () [tests/emit/ast.rd:1:1-185:1]
     │  │  │  │type:
     │  │  │  └─array [2]Char [tests/emit/ast.rd:63:49-63:55]
     │  │  │     │left:
-    │  │  │     ├─integer (value = 2) i64 [tests/emit/ast.rd:63:50]
+    │  │  │     ├─integer (value = 2) {integer} [tests/emit/ast.rd:63:50]
     │  │  │     │right:
     │  │  │     └─variable (name = Char) Char [tests/emit/ast.rd:63:52-63:55]
     │  │  └─argument definition () [tests/emit/ast.rd:63:58-63:84]
