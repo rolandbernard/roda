@@ -38,6 +38,16 @@ LLVMValueRef generateLlvmConstValue(LlvmCodegenContext* context, ConstValue* val
             FREE(words);
             return res;
         }
+        case CONST_BIG_INT: {
+            ConstValueBigInt* v = (ConstValueBigInt*)value;
+            FixedInt* fixed = createFixedIntFromBigInt(getIntRealTypeSize(v->type), v->val);
+            size_t length = 0;
+            uint64_t* words = convertTo64BitWordsZeroExtend(fixed, &length);
+            freeFixedInt(fixed);
+            LLVMValueRef res = LLVMConstIntOfArbitraryPrecision(llvm_type, length, words);
+            FREE(words);
+            return res;
+        }
         case CONST_ARRAY: {
             ConstValueList* v = (ConstValueList*)value;
             LLVMValueRef* elems = ALLOC(LLVMValueRef, v->count);

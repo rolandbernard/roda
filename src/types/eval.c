@@ -62,6 +62,22 @@ bool checkStructFieldsHaveNoDups(CompilerContext* context, AstList* n) {
     return error;
 }
 
+static void raiseNegativeArrayLengthError(CompilerContext* context, AstBinary* node, const char* size) {
+    addMessageToContext(
+        &context->msgs,
+        createMessage(
+            ERROR_INVALID_ARRAY_LENGTH,
+            createFormattedString("negative array length, `%s` is less than 0", size),
+            1,
+            createMessageFragment(
+                MESSAGE_ERROR,
+                createFormattedString("array length of `%s` not allowed here", size),
+                node->left->location
+            )
+        )
+    );
+}
+
 Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
     if (node == NULL) {
         UNREACHABLE("should not evaluate");
@@ -118,26 +134,25 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
                     freeString(idx_type);
                     n->res_type = getErrorType(&context->types);
                 } else {
-                    ConstValueInt* size = (ConstValueInt*)evaluateConstExpr(context, n->left);
-                    if (size->kind == CONST_INT && signOfFixedInt(size->val) < 0) {
-                        String size_str = stringForFixedIntSigned(size->val, 10);
-                        addMessageToContext(
-                            &context->msgs,
-                            createMessage(
-                                ERROR_INVALID_ARRAY_LENGTH,
-                                createFormattedString("negative array length, `%s` is less than 0", cstr(size_str)),
-                                1,
-                                createMessageFragment(
-                                    MESSAGE_ERROR,
-                                    createFormattedString("array length of `%s` not allowed here", cstr(size_str)),
-                                    n->left->location
-                                )
-                            )
-                        );
+                    ConstValue* size = evaluateConstExpr(context, n->left);
+                    if (size->kind == CONST_INT && signOfFixedInt(((ConstValueInt*)size)->val) < 0) {
+                        String size_str = stringForFixedIntSigned(((ConstValueInt*)size)->val, 10);
+                        raiseNegativeArrayLengthError(context, n, cstr(size_str));
+                        freeString(size_str);
+                        n->res_type = getErrorType(&context->types);
+                    } else if (size->kind == CONST_BIG_INT && signOfBigInt(((ConstValueBigInt*)size)->val) < 0) {
+                        String size_str = stringForBigInt(((ConstValueBigInt*)size)->val, 10);
+                        raiseNegativeArrayLengthError(context, n, cstr(size_str));
                         freeString(size_str);
                         n->res_type = getErrorType(&context->types);
                     } else {
-                        size_t len = uintMaxForFixedInt(size->val);
+                        size_t len;
+                        if (size->kind == CONST_BIG_INT) {
+                            len = intMaxForBigInt(((ConstValueBigInt*)size)->val);
+                        } else {
+                            len = uintMaxForFixedInt(((ConstValueInt*)size)->val);
+                        }
+                        freeConstValue((ConstValue*)size);
                         n->res_type = createArrayType(&context->types, node, base, len);
                     }
                 }

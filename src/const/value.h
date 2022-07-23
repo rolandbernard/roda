@@ -10,6 +10,7 @@ typedef enum {
     CONST_VOID,
     CONST_INT,
     CONST_UINT,
+    CONST_BIG_INT,
     CONST_DOUBLE,
     CONST_FLOAT,
     CONST_BOOL,
@@ -31,6 +32,11 @@ typedef struct {
     CONST_VALUE_BASE
     FixedInt* val;
 } ConstValueInt;
+
+typedef struct {
+    CONST_VALUE_BASE
+    BigInt* val;
+} ConstValueBigInt;
 
 typedef struct {
     CONST_VALUE_BASE
@@ -65,6 +71,8 @@ ConstValue* createConstVoid(Type* type);
 ConstValue* createConstInt(Type* type, FixedInt* value);
 
 ConstValue* createConstUint(Type* type, FixedInt* value);
+
+ConstValue* createConstBigInt(Type* type, BigInt* value);
 
 ConstValue* createConstDouble(Type* type, double value);
 

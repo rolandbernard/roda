@@ -29,6 +29,13 @@ ConstValue* createConstUint(Type* type, FixedInt* value) {
     return (ConstValue*)res;
 }
 
+ConstValue* createConstBigInt(Type* type, BigInt* value) {
+    ConstValueBigInt* res = NEW(ConstValueBigInt);
+    initConstValue((ConstValue*)res, CONST_BIG_INT, type);
+    res->val = value;
+    return (ConstValue*)res;
+}
+
 ConstValue* createConstDouble(Type* type, double value) {
     ConstValueDouble* res = NEW(ConstValueDouble);
     initConstValue((ConstValue*)res, CONST_DOUBLE, type);
@@ -94,6 +101,11 @@ void freeConstValue(ConstValue* value) {
                 case CONST_UINT: {
                     ConstValueInt* v = (ConstValueInt*)value;
                     freeFixedInt(v->val);
+                    break;
+                }
+                case CONST_BIG_INT: {
+                    ConstValueBigInt* v = (ConstValueBigInt*)value;
+                    freeBigInt(v->val);
                     break;
                 }
                 case CONST_ARRAY:
