@@ -182,6 +182,7 @@ typedef struct {
     AstList* arguments;
 } AstCall;
 
+// TODO: change this to BigInt*
 typedef uintmax_t AstIntType;
 
 typedef struct {

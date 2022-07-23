@@ -99,8 +99,8 @@ static void raiseOpErrorNotInConst(CompilerContext* context, AstNode* node) {
     ConstValue* right = evaluateConstExpr(context, n->right);               \
     ASSERT(left->kind == right->kind);                                      \
     OPS                                                                     \
-    freeConstValue(left);                                                   \
     freeConstValue(right);                                                  \
+    freeConstValue(left);                                                   \
     break;                                                                  \
 }
 
@@ -242,67 +242,97 @@ ConstValue* evaluateConstExpr(CompilerContext* context, AstNode* node) {
             case AST_GE: BINARY_OP(BOP_CMP(>=))
             case AST_LT: BINARY_OP(BOP_CMP(<))
             case AST_GT: BINARY_OP(BOP_CMP(>))
-            case AST_OR: BINARY_OP(BOP_BOOL(a || b))
-            case AST_AND: BINARY_OP(BOP_BOOL(a && b))
-            /* case AST_POS: UNARY_OP(UACTION_NUM(o)) */
-            /* case AST_NEG: UNARY_OP(UACTION_NUM(-o)) */
-            /* case AST_NOT: UNARY_OP(UACTIONS_T(UACTION_INTS(~o) else UACTION_BOOLS(!o))) */
-            /* case AST_CHAR: */
-            /* case AST_INT: { */
-            /*     AstInt* n = (AstInt*)node; */
-            /*     if (!isErrorType(n->res_type)) { */
-            /*         if (n->res_type == NULL) { */
-            /*             n->res_type = createSizedPrimitiveType(&context->types, NULL, TYPE_INT, 64); */
-            /*         } */
-            /*         if (isSignedIntegerType(n->res_type)) { */
-            /*             res = createConstInt(context, getIntRealTypeSize(n->res_type), n->number); */
-            /*         } else if (isUnsignedIntegerType(n->res_type)) { */
-            /*             res = createConstUInt(context, getIntRealTypeSize(n->res_type), n->number); */
-            /*         } else { */
-            /*             UNREACHABLE("integer type expected"); */
-            /*         } */
-            /*     } else { */
-            /*         res = createConstError(context); */
-            /*     } */
-            /*     break; */
-            /* } */
-            /* case AST_REAL: { */
-            /*     AstReal* n = (AstReal*)node; */
-            /*     if (!isErrorType(n->res_type)) { */
-            /*         if (n->res_type == NULL) { */
-            /*             n->res_type = createSizedPrimitiveType(&context->types, NULL, TYPE_REAL, 64); */
-            /*         } */
-            /*         if (isFloatType(n->res_type)) { */
-            /*             res = createConstF32(context, n->number); */
-            /*         } else if (isDoubleType(n->res_type)) { */
-            /*             res = createConstF64(context, n->number); */
-            /*         } else { */
-            /*             UNREACHABLE("unexpected real type size"); */
-            /*         } */
-            /*     } else { */
-            /*         res = createConstError(context); */
-            /*     } */
-            /*     break; */
-            /* } */
-            /* case AST_BOOL: { */
-            /*     AstBool* n = (AstBool*)node; */
-            /*     if (!isErrorType(n->res_type)) { */
-            /*         if (n->res_type == NULL) { */
-            /*             n->res_type = createUnsizedPrimitiveType(&context->types, NULL, TYPE_BOOL); */
-            /*         } */
-            /*         if (isBooleanType(n->res_type)) { */
-            /*             res = createConstBool(context, n->value); */
-            /*         } else { */
-            /*             UNREACHABLE("boolean type expected"); */
-            /*         } */
-            /*     } else { */
-            /*         res = createConstError(context); */
-            /*     } */
-            /*     break; */
-            /* } */
+            case AST_OR:
+            case AST_AND: {
+                AstBinary* n = (AstBinary*)node;
+                ASSERT(compareStructuralTypes(n->left->res_type, n->right->res_type));
+                ConstValue* left = evaluateConstExpr(context, n->left);
+                ASSERT(left->kind == CONST_BOOL);
+                if (
+                    (n->kind == AST_AND && !((ConstValueBool*)left)->val)
+                    || (n->kind == AST_OR && ((ConstValueBool*)left)->val)
+                ) {
+                    res = createConstBool(node->res_type, ((ConstValueBool*)left)->val);
+                } else {
+                    ConstValue* right = evaluateConstExpr(context, n->right);
+                    ASSERT(right->kind == CONST_BOOL);
+                    res = createConstBool(node->res_type, ((ConstValueBool*)right)->val);
+                    freeConstValue(right);
+                }
+                freeConstValue(left);
+                break;
+            }
+            case AST_POS: {
+                AstUnary* n = (AstUnary*)node;
+                res = evaluateConstExpr(context, n->op);
+                break;
+            }
+            case AST_NEG: {
+                AstUnary* n = (AstUnary*)node;
+                ConstValue* op = evaluateConstExpr(context, n->op);
+                if (op->kind == CONST_INT) {
+                    FixedInt* v = ((ConstValueInt*)op)->val;
+                    res = createConstInt(node->res_type, negFixedInt(v));
+                } else if (op->kind == CONST_BIG_INT) {
+                    BigInt* v = ((ConstValueBigInt*)op)->val;
+                    res = createConstBigInt(node->res_type, negBigInt(v));
+                } else if (op->kind == CONST_DOUBLE) {
+                    double v = ((ConstValueDouble*)op)->val;
+                    res = createConstDouble(node->res_type, -v);
+                } else if (op->kind == CONST_FLOAT) {
+                    float v = ((ConstValueFloat*)op)->val;
+                    res = createConstFloat(node->res_type, -v);
+                }
+                freeConstValue(op);
+                break;
+            }
+            case AST_NOT: {
+                AstUnary* n = (AstUnary*)node;
+                ConstValue* op = evaluateConstExpr(context, n->op);
+                if (op->kind == CONST_INT) {
+                    FixedInt* v = ((ConstValueInt*)op)->val;
+                    res = createConstInt(node->res_type, notFixedInt(v));
+                } else if (op->kind == CONST_UINT) {
+                    FixedInt* v = ((ConstValueInt*)op)->val;
+                    res = createConstUint(node->res_type, notFixedInt(v));
+                } else if (op->kind == CONST_BIG_INT) {
+                    BigInt* v = ((ConstValueBigInt*)op)->val;
+                    res = createConstBigInt(node->res_type, notBigInt(v));
+                }
+                freeConstValue(op);
+                break;
+            }
+            case AST_CHAR:
+            case AST_INT: {
+                AstInt* n = (AstInt*)node;
+                size_t size = getIntRealTypeSize(n->res_type);
+                if (size == SIZE_SIZE) {
+                    res = createConstBigInt(node->res_type, createBigIntFrom(n->number));
+                } else if (isSignedIntegerType(n->res_type)) {
+                    res = createConstInt(node->res_type, createFixedIntFrom(size, n->number));
+                } else if (isUnsignedIntegerType(n->res_type)) {
+                    res = createConstUint(node->res_type, createFixedIntFromUnsigned(size, n->number));
+                }
+                break;
+            }
+            case AST_REAL: {
+                AstReal* n = (AstReal*)node;
+                if (isFloatType(n->res_type)) {
+                    res = createConstFloat(n->res_type, n->number);
+                } else if (isDoubleType(n->res_type)) {
+                    res = createConstDouble(n->res_type, n->number);
+                }
+                break;
+            }
+            case AST_BOOL: {
+                AstBool* n = (AstBool*)node;
+                res = createConstBool(node->res_type, n->value);
+                break;
+            }
             default:
                 UNREACHABLE("should not evaluate");
         }
+        ASSERT(res != NULL);
         return res;
     }
 }

@@ -77,5 +77,6 @@ LLVMValueRef generateLlvmConstValue(LlvmCodegenContext* context, ConstValue* val
             return LLVMConstStructInContext(context->llvm_cxt, elems, v->count, false);
         }
     }
+    UNREACHABLE("unknown const value");
 }
 

@@ -97,7 +97,7 @@ BigInt* createBigIntCapacity(uint32_t size) {
     return res;
 }
 
-static BigInt* createBigIntFromUnsigned(uintmax_t value) {
+BigInt* createBigIntFromUnsigned(uintmax_t value) {
     int32_t size = (sizeof(intmax_t) + sizeof(uint32_t) - 1) / sizeof(uint32_t);
     BigInt* res = checkedAlloc(SIZE_FOR(size));
     size = 0;
