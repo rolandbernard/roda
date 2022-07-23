@@ -20,6 +20,8 @@ BigInt* createBigIntFrom(intmax_t value);
 
 BigInt* createBigIntFromString(ConstString str, int base);
 
+BigInt* createBigIntFromDouble(double value);
+
 BigInt* copyBigInt(BigInt* bi);
 
 void freeBigInt(BigInt* bi);
@@ -59,5 +61,7 @@ BigInt* shiftRightBigInt(BigInt* a, size_t r);
 String stringForBigInt(BigInt* bi, int base);
 
 intmax_t intMaxForBigInt(BigInt* bi);
+
+double doubleForBigInt(BigInt* fi);
 
 #endif

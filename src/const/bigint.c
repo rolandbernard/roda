@@ -1,4 +1,5 @@
 
+#include <math.h>
 #include <stdbool.h>
 #include <string.h>
 
@@ -132,6 +133,24 @@ BigInt* createBigIntFromString(ConstString str, int base) {
             absWordAddBigInt(&res, digit);
         }
     }
+    return res;
+}
+
+BigInt* createBigIntFromDouble(double value) {
+    double abs = ABS(value);
+    size_t len = 0;
+    while (abs > 0) {
+        len++;
+        abs /= 1UL << WORD_SIZE;
+    }
+    abs = ABS(value);
+    BigInt* res = createBigIntCapacity(len);
+    for (size_t i = 0; i < len; i++) {
+        res->words[i] = fmod(abs, 1UL << WORD_SIZE);
+        abs /= 1UL << WORD_SIZE;
+    }
+    res->size = len;
+    res->negative = value < 0;
     return res;
 }
 
@@ -643,6 +662,20 @@ intmax_t intMaxForBigInt(BigInt* bi) {
         res |= (uintmax_t)bi->words[i] << (i * WORD_SIZE);
     }
     if (bi->negative) {
+        return -res;
+    } else {
+        return res;
+    }
+}
+
+double doubleForBigInt(BigInt* fi) {
+    double res = 0;
+    for (size_t i = fi->size; i > 0;) {
+        i--,
+        res *= (1UL << WORD_SIZE);
+        res += fi->words[i];
+    }
+    if (fi->negative) {
         return -res;
     } else {
         return res;

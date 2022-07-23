@@ -534,9 +534,10 @@ uintmax_t uintMaxForFixedInt(FixedInt* fi) {
 
 double doubleForFixedIntUnsigned(FixedInt* fi) {
     double res = 0;
-    for (size_t i = 0; i < WORDS(fi->size); i++) {
+    for (size_t i = WORDS(fi->size); i > 0;) {
+        i--;
         res *= (1UL << WORD_SIZE);
-        res += getWordZeroExtend(fi->words, fi->size, WORDS(fi->size) - 1 - i);
+        res += getWordZeroExtend(fi->words, fi->size, i);
     }
     return res;
 }

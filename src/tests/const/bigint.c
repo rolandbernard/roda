@@ -108,6 +108,48 @@ DEFINE_TEST(testCreateBigIntFromStringLarge2, "-", {
     freeBigInt(a);
 })
 
+DEFINE_TEST(testCreateBigIntFromDouble1, "-", {
+    BigInt* a = createBigIntFromDouble(42.7);
+    ASSERT_BIGINT(a, 42);
+    freeBigInt(a);
+})
+
+DEFINE_TEST(testCreateBigIntFromDouble2, "-", {
+    BigInt* a = createBigIntFromDouble(42.2);
+    ASSERT_BIGINT(a, 42);
+    freeBigInt(a);
+})
+
+DEFINE_TEST(testCreateBigIntFromDouble3, "-", {
+    BigInt* a = createBigIntFromDouble(42.7e100);
+    ASSERT_BIGINT_STR(a, "426999999999999994551720482845391859206396512692294403496499600687353731685257089941638171603272466432");
+    freeBigInt(a);
+})
+
+DEFINE_TEST(testDoubleForBigInt1, "-", {
+    BigInt* a = createBigIntFrom(42);
+    ASSERT_EQUAL(doubleForBigInt(a), 42.0);
+    freeBigInt(a);
+})
+
+DEFINE_TEST(testDoubleForBigInt2, "-", {
+    BigInt* a = createBigIntFrom(100200300400);
+    ASSERT_EQUAL(doubleForBigInt(a), 100200300400);
+    freeBigInt(a);
+})
+
+DEFINE_TEST(testDoubleForBigInt3, "-", {
+    BigInt* a = createBigIntFrom(-100200300400);
+    ASSERT_EQUAL(doubleForBigInt(a), -100200300400);
+    freeBigInt(a);
+})
+
+DEFINE_TEST(testDoubleForBigInt4, "-", {
+    BigInt* a = createBigIntFromString(str("4270000000000000000000"), 10);
+    ASSERT_EQUAL(doubleForBigInt(a), 42.7e20);
+    freeBigInt(a);
+})
+
 DEFINE_TEST(testCopyBigIntZero, "-", {
     BigInt* a = createBigInt();
     BigInt* b = copyBigInt(a);
