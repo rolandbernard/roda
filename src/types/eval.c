@@ -105,6 +105,18 @@ Type* evaluateTypeExpr(CompilerContext* context, AstNode* node) {
                 }
                 if (context->msgs.error_count != 0) {
                     n->res_type = getErrorType(&context->types);
+                } else if (!isIntegerType(n->left->res_type)) {
+                    String idx_type = buildTypeName(n->left->res_type);
+                    addMessageToContext(
+                        &context->msgs,
+                        createMessage(
+                            ERROR_INCOMPATIBLE_TYPE,
+                            createFormattedString("array length with non integer type `%s`", cstr(idx_type)), 1,
+                            createMessageFragment(MESSAGE_ERROR, createFormattedString("type `%s` is not an integer type", cstr(idx_type)), n->left->location)
+                        )
+                    );
+                    freeString(idx_type);
+                    n->res_type = getErrorType(&context->types);
                 } else {
                     ConstValueInt* size = (ConstValueInt*)evaluateConstExpr(context, n->left);
                     if (size->kind == CONST_INT && signOfFixedInt(size->val) < 0) {

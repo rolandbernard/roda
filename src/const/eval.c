@@ -26,201 +26,172 @@ ConstValue* evaluateConstExpr(CompilerContext* context, AstNode* node) {
     if (node == NULL) {
         UNREACHABLE("should not evaluate");
     } else {
-        {
-            /* ConstValue* res = NULL; */
-            /* switch (node->kind) { */
-            /*     case AST_ERROR: { */
-            /*         res = createConstError(context); */
-            /*         break; */
-            /*     } */
-            /*     case AST_VAR: { */
-            /*         AstVar* n = (AstVar*)node; */
-            /*         SymbolVariable* var = (SymbolVariable*)n->binding; */
-            /*         if (var->value.type == RECURSION_CHECK_TYPE) { */
-            /*             addMessageToContext(&context->msgs, createMessage(ERROR_INVALID_CONST, */
-            /*                 createFormattedString("recursive reference in constant definition of `%s`", var->name), 1, */
-            /*                 createMessageFragment(MESSAGE_ERROR, copyFromCString("recursive reference to constant"), node->location) */
-            /*             )); */
-            /*             res = createConstError(context); */
-            /*         } else { */
-            /*             if (var->value.type == NULL) { */
-            /*                 evaluateConstantDefinition(context, (AstVarDef*)var->def->parent); */
-            /*             } */
-            /*             res = var->value; */
-            /*         } */
-            /*         break; */
-            /*     } */
-            /*     case AST_BLOCK_EXPR: { */
-            /*         AstBlock* n = (AstBlock*)node; */
-            /*         for (size_t i = 0; i < n->nodes->count; i++) { */
-            /*             res = evaluateConstExpr(context, n->nodes->nodes[i]); */
-            /*         } */
-            /*         break; */
-            /*     } */
-            /*     case AST_IF_ELSE_EXPR: { */
-            /*         AstIfElse* n = (AstIfElse*)node; */
-            /*         ConstValue* cond = evaluateConstExpr(context, n->condition); */
-            /*         if (cond->kind == CONST_BOOL) { */
-            /*             if (cond.boolean) { */
-            /*                 res = evaluateConstExpr(context, n->if_block); */
-            /*             } else { */
-            /*                 res = evaluateConstExpr(context, n->else_block); */
-            /*             } */
-            /*         } else { */
-            /*             res = raiseTypeErrorNotInConst(context, n->condition, n->condition->res_type); */
-            /*         } */
-            /*         break; */
-            /*     } */
-            /*     case AST_AS: { */
-            /*         AstBinary* n = (AstBinary*)node; */
+        ASSERT(node->res_type != NULL /* Type check first */);
+        ConstValue* res = NULL;
+        switch (node->kind) {
+            case AST_VAR: {
+                AstVar* n = (AstVar*)node;
+                SymbolVariable* var = (SymbolVariable*)n->binding;
+                if (var->value == RECURSION_CHECK_TYPE) {
+                    addMessageToContext(&context->msgs, createMessage(ERROR_INVALID_CONST,
+                        createFormattedString("recursive reference in constant definition of `%s`", var->name), 1,
+                        createMessageFragment(MESSAGE_ERROR, copyFromCString("recursive reference to constant"), node->location)
+                    ));
+                } else {
+                    if (var->value == NULL) {
+                        evaluateConstantDefinition(context, (AstVarDef*)var->def->parent);
+                    }
+                    res = copyConstValue(var->value);
+                }
+                break;
+            }
+            case AST_BLOCK_EXPR: {
+                AstBlock* n = (AstBlock*)node;
+                for (size_t i = 0; i < n->nodes->count; i++) {
+                    freeConstValue(res);
+                    res = evaluateConstExpr(context, n->nodes->nodes[i]);
+                }
+                break;
+            }
+            case AST_IF_ELSE_EXPR: {
+                AstIfElse* n = (AstIfElse*)node;
+                ConstValueBool* cond = (ConstValueBool*)evaluateConstExpr(context, n->condition);
+                ASSERT(cond->kind == CONST_BOOL);
+                if (cond->val) {
+                    res = evaluateConstExpr(context, n->if_block);
+                } else {
+                    res = evaluateConstExpr(context, n->else_block);
+                }
+                freeConstValue((ConstValue*)cond);
+                break;
+            }
+            case AST_AS: {
+                AstBinary* n = (AstBinary*)node;
+                ConstValue* op = evaluateConstExpr(context, n->left);
+                size_t size = getIntRealTypeSize(n->res_type);
+                if (compareStructuralTypes(op->type, n->res_type)) {
+                    res = op;
+                } else if (isRealType(n->res_type)) {
+                    double value = 0;
+                    if (op->kind == CONST_DOUBLE) {
+                        value = ((ConstValueDouble*)op)->val;
+                    } else if (op->kind == CONST_FLOAT) {
+                        value = ((ConstValueFloat*)op)->val;
+                    } else if (op->kind == CONST_INT) {
+                        value = doubleForFixedIntSigned(((ConstValueInt*)op)->val);
+                    } else if (op->kind == CONST_UINT) {
+                        value = doubleForFixedIntUnsigned(((ConstValueInt*)op)->val);
+                    } else {
+                        UNREACHABLE("should have correct type");
+                    }
+                    freeConstValue(op);
+                    if (size == 32) {
+                        res = createConstFloat(n->res_type, value);
+                    } else if (size == 64) {
+                        res = createConstDouble(n->res_type, value);
+                    }
+                } else if (isIntegerType(n->res_type)) {
+                    FixedInt* value = NULL;
+                    if (op->kind == CONST_DOUBLE) {
+                        value = createFixedIntFromDouble(size, ((ConstValueDouble*)op)->val);
+                    } else if (op->kind == CONST_FLOAT) {
+                        value = createFixedIntFromDouble(size, ((ConstValueFloat*)op)->val);
+                    } else if (op->kind == CONST_INT) {
+                        value = resizeFixedIntSignExtend(((ConstValueInt*)op)->val, size);
+                    } else if (op->kind == CONST_UINT) {
+                        value = resizeFixedIntZeroExtend(((ConstValueInt*)op)->val, size);
+                    } else {
+                        UNREACHABLE("should have correct type");
+                    }
+                    freeConstValue(op);
+                    if (isSignedIntegerType(n->res_type)) {
+                        res = createConstInt(n->res_type, value);
+                    } else {
+                        res = createConstUint(n->res_type, value);
+                    }
+                } else {
+                    UNREACHABLE("should have correct type");
+                }
+                break;
+            }
+            /* case AST_ADD: BINARY_OP(BACTION_NUM(l + r)) */
+            /* case AST_SUB: BINARY_OP(BACTION_NUM(l - r)) */
+            /* case AST_MUL: BINARY_OP(BACTION_NUM(l * r)) */
+            /* case AST_DIV: BINARY_OP(BACTION_NUM(l / r)) */
+            /* case AST_MOD: BINARY_OP(BACTION_INT(l % r)) */
+            /* case AST_SHL: BINARY_OP(BACTION_INT(l << r)) */
+            /* case AST_SHR: BINARY_OP(BACTION_INT(l >> r)) */
+            /* case AST_BAND: BINARY_OP(BACTION_INT(l & r)) */
+            /* case AST_BOR: BINARY_OP(BACTION_INT(l | r)) */
+            /* case AST_BXOR: BINARY_OP(BACTION_INT(l ^ r)) */
+            /* case AST_EQ: BINARY_OP(BACTION_CMP(l == r)) */
+            /* case AST_NE: BINARY_OP(BACTION_CMP(l != r)) */
+            /* case AST_LE: BINARY_OP(BACTION_CMP(l <= r)) */
+            /* case AST_GE: BINARY_OP(BACTION_CMP(l >= r)) */
+            /* case AST_LT: BINARY_OP(BACTION_CMP(l < r)) */
+            /* case AST_GT: BINARY_OP(BACTION_CMP(l > r)) */
+            /* case AST_OR: BINARY_OP(BACTION_BOOL(l || r)) */
+            /* case AST_AND: BINARY_OP(BACTION_BOOL(l && r)) */
+            /* case AST_POS: UNARY_OP(UACTION_NUM(o)) */
+            /* case AST_NEG: UNARY_OP(UACTION_NUM(-o)) */
+            /* case AST_NOT: UNARY_OP(UACTIONS_T(UACTION_INTS(~o) else UACTION_BOOLS(!o))) */
+            /* case AST_CHAR: */
+            /* case AST_INT: { */
+            /*     AstInt* n = (AstInt*)node; */
+            /*     if (!isErrorType(n->res_type)) { */
             /*         if (n->res_type == NULL) { */
-            /*             n->res_type = evaluateTypeExpr(context, n->right); */
+            /*             n->res_type = createSizedPrimitiveType(&context->types, NULL, TYPE_INT, 64); */
             /*         } */
-            /*         ConstValue* op = evaluateConstExpr(context, n->left); */
-            /*         size_t size = getIntRealTypeSize(n->res_type); */
-            /*         if (isRealType(n->res_type)) { */
-            /*             size_t op_size = getIntRealTypeSize(n->left->res_type); */
-            /*             if (isRealType(n->left->res_type)) { */
-            /*                 if (size == op_size) { */
-            /*                     res = op; */
-            /*                     break; */
-            /*                 } else if (size == 32) { */
-            /*                     res = createConstF32(context, (float)op.f64); */
-            /*                     break; */
-            /*                 } else if (size == 64) { */
-            /*                     res = createConstF64(context, (double)op.f32); */
-            /*                     break; */
-            /*                 } */
-            /*             } else if (isSignedIntegerType(n->left->res_type)) { */
-            /*                 if (size == 32) { */
-            /*                     res = createConstF32(context, (float)op.sint); */
-            /*                     break; */
-            /*                 } else if (size == 64) { */
-            /*                     res = createConstF64(context, (double)op.sint); */
-            /*                     break; */
-            /*                 } */
-            /*             } else if (isUnsignedIntegerType(n->left->res_type)) { */
-            /*                 if (size == 32) { */
-            /*                     res = createConstF32(context, (float)op.uint); */
-            /*                     break; */
-            /*                 } else if (size == 64) { */
-            /*                     res = createConstF64(context, (double)op.uint); */
-            /*                     break; */
-            /*                 } */
-            /*             } */
-            /*         } else if (isSignedIntegerType(n->res_type)) { */
-            /*             if (isFloatType(n->left->res_type)) { */
-            /*                 res = createConstInt(context, size, (intmax_t)op.f32); */
-            /*                 break; */
-            /*             } else if (isDoubleType(n->left->res_type)) { */
-            /*                 res = createConstInt(context, size, (intmax_t)op.f64); */
-            /*                 break; */
-            /*             } else if (isSignedIntegerType(n->left->res_type)) { */
-            /*                 res = createConstInt(context, size, (intmax_t)op.sint); */
-            /*                 break; */
-            /*             } else if (isUnsignedIntegerType(n->left->res_type)) { */
-            /*                 res = createConstInt(context, size, (intmax_t)op.uint); */
-            /*                 break; */
-            /*             } */
+            /*         if (isSignedIntegerType(n->res_type)) { */
+            /*             res = createConstInt(context, getIntRealTypeSize(n->res_type), n->number); */
             /*         } else if (isUnsignedIntegerType(n->res_type)) { */
-            /*             if (isFloatType(n->left->res_type)) { */
-            /*                 res = createConstUInt(context, size, (uintmax_t)op.f32); */
-            /*                 break; */
-            /*             } else if (isDoubleType(n->left->res_type)) { */
-            /*                 res = createConstUInt(context, size, (uintmax_t)op.f64); */
-            /*                 break; */
-            /*             } else if (isSignedIntegerType(n->left->res_type)) { */
-            /*                 res = createConstUInt(context, size, (uintmax_t)op.sint); */
-            /*                 break; */
-            /*             } else if (isUnsignedIntegerType(n->left->res_type)) { */
-            /*                 res = createConstUInt(context, size, (uintmax_t)op.uint); */
-            /*                 break; */
-            /*             } */
-            /*         } */
-            /*         res = raiseTypeErrorNotInConst(context, n->left, n->left->res_type); */
-            /*         break; */
-            /*     } */
-            /*     case AST_ADD: BINARY_OP(BACTION_NUM(l + r)) */
-            /*     case AST_SUB: BINARY_OP(BACTION_NUM(l - r)) */
-            /*     case AST_MUL: BINARY_OP(BACTION_NUM(l * r)) */
-            /*     case AST_DIV: BINARY_OP(BACTION_NUM(l / r)) */
-            /*     case AST_MOD: BINARY_OP(BACTION_INT(l % r)) */
-            /*     case AST_SHL: BINARY_OP(BACTION_INT(l << r)) */
-            /*     case AST_SHR: BINARY_OP(BACTION_INT(l >> r)) */
-            /*     case AST_BAND: BINARY_OP(BACTION_INT(l & r)) */
-            /*     case AST_BOR: BINARY_OP(BACTION_INT(l | r)) */
-            /*     case AST_BXOR: BINARY_OP(BACTION_INT(l ^ r)) */
-            /*     case AST_EQ: BINARY_OP(BACTION_CMP(l == r)) */
-            /*     case AST_NE: BINARY_OP(BACTION_CMP(l != r)) */
-            /*     case AST_LE: BINARY_OP(BACTION_CMP(l <= r)) */
-            /*     case AST_GE: BINARY_OP(BACTION_CMP(l >= r)) */
-            /*     case AST_LT: BINARY_OP(BACTION_CMP(l < r)) */
-            /*     case AST_GT: BINARY_OP(BACTION_CMP(l > r)) */
-            /*     case AST_OR: BINARY_OP(BACTION_BOOL(l || r)) */
-            /*     case AST_AND: BINARY_OP(BACTION_BOOL(l && r)) */
-            /*     case AST_POS: UNARY_OP(UACTION_NUM(o)) */
-            /*     case AST_NEG: UNARY_OP(UACTION_NUM(-o)) */
-            /*     case AST_NOT: UNARY_OP(UACTIONS_T(UACTION_INTS(~o) else UACTION_BOOLS(!o))) */
-            /*     case AST_CHAR: */
-            /*     case AST_INT: { */
-            /*         AstInt* n = (AstInt*)node; */
-            /*         if (!isErrorType(n->res_type)) { */
-            /*             if (n->res_type == NULL) { */
-            /*                 n->res_type = createSizedPrimitiveType(&context->types, NULL, TYPE_INT, 64); */
-            /*             } */
-            /*             if (isSignedIntegerType(n->res_type)) { */
-            /*                 res = createConstInt(context, getIntRealTypeSize(n->res_type), n->number); */
-            /*             } else if (isUnsignedIntegerType(n->res_type)) { */
-            /*                 res = createConstUInt(context, getIntRealTypeSize(n->res_type), n->number); */
-            /*             } else { */
-            /*                 UNREACHABLE("integer type expected"); */
-            /*             } */
+            /*             res = createConstUInt(context, getIntRealTypeSize(n->res_type), n->number); */
             /*         } else { */
-            /*             res = createConstError(context); */
+            /*             UNREACHABLE("integer type expected"); */
             /*         } */
-            /*         break; */
+            /*     } else { */
+            /*         res = createConstError(context); */
             /*     } */
-            /*     case AST_REAL: { */
-            /*         AstReal* n = (AstReal*)node; */
-            /*         if (!isErrorType(n->res_type)) { */
-            /*             if (n->res_type == NULL) { */
-            /*                 n->res_type = createSizedPrimitiveType(&context->types, NULL, TYPE_REAL, 64); */
-            /*             } */
-            /*             if (isFloatType(n->res_type)) { */
-            /*                 res = createConstF32(context, n->number); */
-            /*             } else if (isDoubleType(n->res_type)) { */
-            /*                 res = createConstF64(context, n->number); */
-            /*             } else { */
-            /*                 UNREACHABLE("unexpected real type size"); */
-            /*             } */
-            /*         } else { */
-            /*             res = createConstError(context); */
-            /*         } */
-            /*         break; */
-            /*     } */
-            /*     case AST_BOOL: { */
-            /*         AstBool* n = (AstBool*)node; */
-            /*         if (!isErrorType(n->res_type)) { */
-            /*             if (n->res_type == NULL) { */
-            /*                 n->res_type = createUnsizedPrimitiveType(&context->types, NULL, TYPE_BOOL); */
-            /*             } */
-            /*             if (isBooleanType(n->res_type)) { */
-            /*                 res = createConstBool(context, n->value); */
-            /*             } else { */
-            /*                 UNREACHABLE("boolean type expected"); */
-            /*             } */
-            /*         } else { */
-            /*             res = createConstError(context); */
-            /*         } */
-            /*         break; */
-            /*     } */
-            /*     default: */
-            /*         UNREACHABLE("should not evaluate"); */
+            /*     break; */
             /* } */
-            /* node->res_type = res.type; */
-            /* return res; */
+            /* case AST_REAL: { */
+            /*     AstReal* n = (AstReal*)node; */
+            /*     if (!isErrorType(n->res_type)) { */
+            /*         if (n->res_type == NULL) { */
+            /*             n->res_type = createSizedPrimitiveType(&context->types, NULL, TYPE_REAL, 64); */
+            /*         } */
+            /*         if (isFloatType(n->res_type)) { */
+            /*             res = createConstF32(context, n->number); */
+            /*         } else if (isDoubleType(n->res_type)) { */
+            /*             res = createConstF64(context, n->number); */
+            /*         } else { */
+            /*             UNREACHABLE("unexpected real type size"); */
+            /*         } */
+            /*     } else { */
+            /*         res = createConstError(context); */
+            /*     } */
+            /*     break; */
+            /* } */
+            /* case AST_BOOL: { */
+            /*     AstBool* n = (AstBool*)node; */
+            /*     if (!isErrorType(n->res_type)) { */
+            /*         if (n->res_type == NULL) { */
+            /*             n->res_type = createUnsizedPrimitiveType(&context->types, NULL, TYPE_BOOL); */
+            /*         } */
+            /*         if (isBooleanType(n->res_type)) { */
+            /*             res = createConstBool(context, n->value); */
+            /*         } else { */
+            /*             UNREACHABLE("boolean type expected"); */
+            /*         } */
+            /*     } else { */
+            /*         res = createConstError(context); */
+            /*     } */
+            /*     break; */
+            /* } */
+            default:
+                UNREACHABLE("should not evaluate");
         }
-        UNREACHABLE("TODO");
+        return res;
     }
 }
 

@@ -56,7 +56,7 @@ YFLAGS += -Wall
 CFLAGS.llvm  += $(shell $(LLVM_CONFIG) --cflags || true)
 LDFLAGS.llvm += $(shell $(LLVM_CONFIG) --ldflags || true)
 LDLIBS.llvm  += $(shell $(LLVM_CONFIG) --libs --system-libs || true)
-LDLIBS.tests += -lpthread
+LDLIBS += -lm
 # ==
 
 # == Parser generator files
