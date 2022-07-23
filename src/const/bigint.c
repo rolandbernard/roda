@@ -656,8 +656,12 @@ String stringForBigInt(BigInt* bi, int base) {
 }
 
 intmax_t intMaxForBigInt(BigInt* bi) {
-    size_t size = (sizeof(intmax_t) + sizeof(uint32_t) - 1) / sizeof(uint32_t);
-    intmax_t res = 0;
+    return (intmax_t)uintMaxForBigInt(bi);
+}
+
+uintmax_t uintMaxForBigInt(BigInt* bi) {
+    size_t size = (sizeof(uintmax_t) + sizeof(uint32_t) - 1) / sizeof(uint32_t);
+    uintmax_t res = 0;
     for (size_t i = 0; i < size && i < bi->size; i++) {
         res |= (uintmax_t)bi->words[i] << (i * WORD_SIZE);
     }

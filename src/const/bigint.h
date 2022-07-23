@@ -62,6 +62,8 @@ String stringForBigInt(BigInt* bi, int base);
 
 intmax_t intMaxForBigInt(BigInt* bi);
 
+uintmax_t uintMaxForBigInt(BigInt* bi);
+
 double doubleForBigInt(BigInt* fi);
 
 #endif

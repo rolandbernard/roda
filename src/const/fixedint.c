@@ -512,24 +512,24 @@ String stringForFixedIntSigned(FixedInt* fi, int base) {
     return stringForFixedInt(fi, base, true);
 }
 
-intmax_t intMaxForFixedInt(FixedInt* fi) {
-    size_t size = (sizeof(uintmax_t) + sizeof(uint32_t) - 1) / sizeof(uint32_t);
-    uintmax_t res = 0;
-    for (size_t i = 0; i < size; i++) {
-        uint32_t w = getWordSignExtend(fi->words, fi->size, i);
-        res |= (uintmax_t)w << (i * WORD_SIZE);
-    }
-    return (intmax_t)res;
-}
-
-uintmax_t uintMaxForFixedInt(FixedInt* fi) {
+static uintmax_t uintMaxForFixedIntSigned(FixedInt* fi, bool sign) {
     size_t size = (sizeof(uintmax_t) + sizeof(uint32_t) - 1) / sizeof(uint32_t);
     uintmax_t res = 0;
     for (size_t i = 0; i < size && i < WORDS(fi->size); i++) {
-        uint32_t w = getWordZeroExtend(fi->words, fi->size, i);
+        uint32_t w = sign
+            ? getWordSignExtend(fi->words, fi->size, i)
+            : getWordZeroExtend(fi->words, fi->size, i);
         res |= (uintmax_t)w << (i * WORD_SIZE);
     }
     return res;
+}
+
+intmax_t intMaxForFixedInt(FixedInt* fi) {
+    return (uintmax_t)uintMaxForFixedIntSigned(fi, true);
+}
+
+uintmax_t uintMaxForFixedInt(FixedInt* fi) {
+    return uintMaxForFixedIntSigned(fi, false);
 }
 
 double doubleForFixedIntUnsigned(FixedInt* fi) {

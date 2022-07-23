@@ -22,6 +22,88 @@ static void raiseOpErrorNotInConst(CompilerContext* context, AstNode* node) {
 
 #define RECURSION_CHECK_TYPE ((ConstValue*)-1)
 
+#define BOP_INT_A(ACTION)                               \
+    if (left->kind == CONST_INT) {                      \
+        FixedInt* a = ((ConstValueInt*)left)->val;      \
+        FixedInt* b = ((ConstValueInt*)right)->val;     \
+        ACTION                                          \
+    }
+#define BOP_INT(ACTION) \
+    BOP_INT_A(res = createConstInt(node->res_type, ACTION);)
+
+#define BOP_UINT_A(ACTION)                              \
+    if (left->kind == CONST_UINT) {                     \
+        FixedInt* a = ((ConstValueInt*)left)->val;      \
+        FixedInt* b = ((ConstValueInt*)right)->val;     \
+        ACTION                                          \
+    }
+#define BOP_UINT(ACTION) \
+    BOP_UINT_A(res = createConstUint(node->res_type, ACTION);)
+
+#define BOP_FIXED_INT(ACTION) BOP_INT(ACTION) else BOP_UINT(ACTION)
+#define BOP_FIXED_INT_S(ACTION) BOP_INT(s ## ACTION (a, b)) else BOP_UINT(u ## ACTION (a, b))
+
+#define BOP_BIG_INT_A(ACTION)                           \
+    if (left->kind == CONST_BIG_INT) {                  \
+        BigInt* a = ((ConstValueBigInt*)left)->val;     \
+        BigInt* b = ((ConstValueBigInt*)right)->val;    \
+        ACTION                                          \
+    }
+#define BOP_BIG_INT(ACTION) \
+    BOP_BIG_INT_A(res = createConstBigInt(node->res_type, ACTION);)
+
+#define BOP_ANY_INT(ACTION) BOP_FIXED_INT(ACTION ## FixedInt (a, b)) else BOP_BIG_INT(ACTION ## BigInt (a, b))
+#define BOP_ANY_INT_S(ACTION) BOP_FIXED_INT_S(ACTION ## FixedInt) else BOP_BIG_INT(ACTION ## BigInt (a, b))
+
+#define BOP_DOUBLE_A(ACTION)                            \
+    if (left->kind == CONST_DOUBLE) {                   \
+        double a = ((ConstValueDouble*)left)->val;      \
+        double b = ((ConstValueDouble*)right)->val;     \
+        ACTION                                          \
+    }
+#define BOP_DOUBLE(ACTION) \
+    BOP_DOUBLE_A(res = createConstDouble(node->res_type, ACTION);)
+
+#define BOP_FLOAT_A(ACTION)                             \
+    if (left->kind == CONST_FLOAT) {                    \
+        float a = ((ConstValueFloat*)left)->val;        \
+        float b = ((ConstValueFloat*)right)->val;       \
+        ACTION                                          \
+    }
+#define BOP_FLOAT(ACTION) \
+    BOP_FLOAT_A(res = createConstFloat(node->res_type, ACTION);)
+
+#define BOP_REAL(ACTION) BOP_DOUBLE(ACTION) else BOP_FLOAT(ACTION)
+
+#define BOP_BOOL_A(ACTION)                              \
+    if (left->kind == CONST_BOOL) {                     \
+        bool a = ((ConstValueBool*)left)->val;          \
+        bool b = ((ConstValueBool*)right)->val;         \
+        ACTION                                          \
+    }
+#define CREATE_BOOL(ACTION) res = createConstBool(node->res_type, ACTION);
+#define BOP_BOOL(ACTION) \
+    BOP_BOOL_A(CREATE_BOOL(ACTION))
+
+#define BOP_CMP(REL)                                                    \
+    BOP_INT_A(CREATE_BOOL(compareFixedIntSigned(a, b) REL 0))           \
+    else BOP_UINT_A(CREATE_BOOL(compareFixedIntUnsigned(a, b) REL 0))   \
+    else BOP_BIG_INT_A(CREATE_BOOL(compareBigInt(a, b) REL 0))          \
+    else BOP_DOUBLE_A(CREATE_BOOL(a REL b))                             \
+    else BOP_FLOAT_A(CREATE_BOOL(a REL b))
+
+#define BINARY_OP(OPS) {                                                    \
+    AstBinary* n = (AstBinary*)node;                                        \
+    ASSERT(compareStructuralTypes(n->left->res_type, n->right->res_type));  \
+    ConstValue* left = evaluateConstExpr(context, n->left);                 \
+    ConstValue* right = evaluateConstExpr(context, n->right);               \
+    ASSERT(left->kind == right->kind);                                      \
+    OPS                                                                     \
+    freeConstValue(left);                                                   \
+    freeConstValue(right);                                                  \
+    break;                                                                  \
+}
+
 ConstValue* evaluateConstExpr(CompilerContext* context, AstNode* node) {
     if (node == NULL) {
         UNREACHABLE("should not evaluate");
@@ -81,6 +163,8 @@ ConstValue* evaluateConstExpr(CompilerContext* context, AstNode* node) {
                         value = doubleForFixedIntSigned(((ConstValueInt*)op)->val);
                     } else if (op->kind == CONST_UINT) {
                         value = doubleForFixedIntUnsigned(((ConstValueInt*)op)->val);
+                    } else if (op->kind == CONST_BIG_INT) {
+                        value = doubleForFixedIntUnsigned(((ConstValueInt*)op)->val);
                     } else {
                         UNREACHABLE("should have correct type");
                     }
@@ -91,47 +175,75 @@ ConstValue* evaluateConstExpr(CompilerContext* context, AstNode* node) {
                         res = createConstDouble(n->res_type, value);
                     }
                 } else if (isIntegerType(n->res_type)) {
-                    FixedInt* value = NULL;
-                    if (op->kind == CONST_DOUBLE) {
-                        value = createFixedIntFromDouble(size, ((ConstValueDouble*)op)->val);
-                    } else if (op->kind == CONST_FLOAT) {
-                        value = createFixedIntFromDouble(size, ((ConstValueFloat*)op)->val);
-                    } else if (op->kind == CONST_INT) {
-                        value = resizeFixedIntSignExtend(((ConstValueInt*)op)->val, size);
-                    } else if (op->kind == CONST_UINT) {
-                        value = resizeFixedIntZeroExtend(((ConstValueInt*)op)->val, size);
+                    if (size == SIZE_SIZE) {
+                        BigInt* value = NULL;
+                        if (op->kind == CONST_DOUBLE) {
+                            value = createBigIntFromDouble(((ConstValueDouble*)op)->val);
+                        } else if (op->kind == CONST_FLOAT) {
+                            value = createBigIntFromDouble(((ConstValueFloat*)op)->val);
+                        } else if (op->kind == CONST_INT) {
+                            value = createBigIntFromFixedIntSignExtend(((ConstValueInt*)op)->val);
+                        } else if (op->kind == CONST_UINT) {
+                            value = createBigIntFromFixedIntZeroExtend(((ConstValueInt*)op)->val);
+                        } else if (op->kind == CONST_BIG_INT) {
+                            value = copyBigInt(((ConstValueBigInt*)op)->val);
+                        } else {
+                            UNREACHABLE("should have correct type");
+                        }
+                        freeConstValue(op);
+                        res = createConstBigInt(n->res_type, value);
                     } else {
-                        UNREACHABLE("should have correct type");
-                    }
-                    freeConstValue(op);
-                    if (isSignedIntegerType(n->res_type)) {
-                        res = createConstInt(n->res_type, value);
-                    } else {
-                        res = createConstUint(n->res_type, value);
+                        FixedInt* value = NULL;
+                        if (op->kind == CONST_DOUBLE) {
+                            value = createFixedIntFromDouble(size, ((ConstValueDouble*)op)->val);
+                        } else if (op->kind == CONST_FLOAT) {
+                            value = createFixedIntFromDouble(size, ((ConstValueFloat*)op)->val);
+                        } else if (op->kind == CONST_INT) {
+                            value = resizeFixedIntSignExtend(((ConstValueInt*)op)->val, size);
+                        } else if (op->kind == CONST_UINT) {
+                            value = resizeFixedIntZeroExtend(((ConstValueInt*)op)->val, size);
+                        } else if (op->kind == CONST_BIG_INT) {
+                            value = createFixedIntFromBigInt(size, ((ConstValueBigInt*)op)->val);
+                        } else {
+                            UNREACHABLE("should have correct type");
+                        }
+                        freeConstValue(op);
+                        if (isSignedIntegerType(n->res_type)) {
+                            res = createConstInt(n->res_type, value);
+                        } else {
+                            res = createConstUint(n->res_type, value);
+                        }
                     }
                 } else {
                     UNREACHABLE("should have correct type");
                 }
                 break;
             }
-            /* case AST_ADD: BINARY_OP(BACTION_NUM(l + r)) */
-            /* case AST_SUB: BINARY_OP(BACTION_NUM(l - r)) */
-            /* case AST_MUL: BINARY_OP(BACTION_NUM(l * r)) */
-            /* case AST_DIV: BINARY_OP(BACTION_NUM(l / r)) */
-            /* case AST_MOD: BINARY_OP(BACTION_INT(l % r)) */
-            /* case AST_SHL: BINARY_OP(BACTION_INT(l << r)) */
-            /* case AST_SHR: BINARY_OP(BACTION_INT(l >> r)) */
-            /* case AST_BAND: BINARY_OP(BACTION_INT(l & r)) */
-            /* case AST_BOR: BINARY_OP(BACTION_INT(l | r)) */
-            /* case AST_BXOR: BINARY_OP(BACTION_INT(l ^ r)) */
-            /* case AST_EQ: BINARY_OP(BACTION_CMP(l == r)) */
-            /* case AST_NE: BINARY_OP(BACTION_CMP(l != r)) */
-            /* case AST_LE: BINARY_OP(BACTION_CMP(l <= r)) */
-            /* case AST_GE: BINARY_OP(BACTION_CMP(l >= r)) */
-            /* case AST_LT: BINARY_OP(BACTION_CMP(l < r)) */
-            /* case AST_GT: BINARY_OP(BACTION_CMP(l > r)) */
-            /* case AST_OR: BINARY_OP(BACTION_BOOL(l || r)) */
-            /* case AST_AND: BINARY_OP(BACTION_BOOL(l && r)) */
+            case AST_ADD: BINARY_OP(BOP_ANY_INT(add) else BOP_REAL(a + b))
+            case AST_SUB: BINARY_OP(BOP_ANY_INT(sub) else BOP_REAL(a - b))
+            case AST_MUL: BINARY_OP(BOP_ANY_INT(mul) else BOP_REAL(a * b))
+            case AST_DIV: BINARY_OP(BOP_ANY_INT_S(div) else BOP_REAL(a / b))
+            case AST_MOD: BINARY_OP(BOP_ANY_INT_S(rem))
+            case AST_SHL: BINARY_OP(
+                BOP_BIG_INT(shiftLeftBigInt(a, uintMaxForBigInt(b)))
+                else BOP_FIXED_INT(shiftLeftFixedInt(a, uintMaxForFixedInt(b)))
+            )
+            case AST_SHR: BINARY_OP(
+                BOP_BIG_INT(shiftRightBigInt(a, uintMaxForBigInt(b)))
+                else BOP_INT(shiftRightArithmeticFixedInt(a, uintMaxForFixedInt(b)))
+                else BOP_UINT(shiftRightLogicalFixedInt(a, uintMaxForFixedInt(b)))
+            )
+            case AST_BAND: BINARY_OP(BOP_ANY_INT(and))
+            case AST_BOR: BINARY_OP(BOP_ANY_INT(or))
+            case AST_BXOR: BINARY_OP(BOP_ANY_INT(xor))
+            case AST_EQ: BINARY_OP(BOP_CMP(==) else BOP_BOOL(a == b))
+            case AST_NE: BINARY_OP(BOP_CMP(!=) else BOP_BOOL(a != b))
+            case AST_LE: BINARY_OP(BOP_CMP(<=))
+            case AST_GE: BINARY_OP(BOP_CMP(>=))
+            case AST_LT: BINARY_OP(BOP_CMP(<))
+            case AST_GT: BINARY_OP(BOP_CMP(>))
+            case AST_OR: BINARY_OP(BOP_BOOL(a || b))
+            case AST_AND: BINARY_OP(BOP_BOOL(a && b))
             /* case AST_POS: UNARY_OP(UACTION_NUM(o)) */
             /* case AST_NEG: UNARY_OP(UACTION_NUM(-o)) */
             /* case AST_NOT: UNARY_OP(UACTIONS_T(UACTION_INTS(~o) else UACTION_BOOLS(!o))) */

@@ -36,6 +36,8 @@ SymbolType* createTypeSymbolWithType(Symbol name, struct AstVar* def, Type* type
 void freeSymbolEntry(SymbolEntry* var) {
     switch (var->kind) {
         case SYMBOL_VARIABLE:
+            freeConstValue(((SymbolVariable*)var)->value);
+            break;
         case SYMBOL_TYPE:
             break;
     }
