@@ -18,6 +18,8 @@ FixedInt* createFixedIntFrom(uint32_t size, intmax_t value);
 
 FixedInt* createFixedIntFromUnsigned(uint32_t size, uintmax_t value);
 
+FixedInt* createFixedIntFromDouble(uint32_t size, double value);
+
 FixedInt* createFixedIntFromString(uint32_t size, ConstString str, int base);
 
 FixedInt* createFixedIntFromBigInt(uint32_t size, BigInt* bi);
@@ -81,6 +83,10 @@ String stringForFixedIntSigned(FixedInt* fi, int base);
 intmax_t intMaxForFixedInt(FixedInt* fi);
 
 uintmax_t uintMaxForFixedInt(FixedInt* fi);
+
+double doubleForFixedIntUnsigned(FixedInt* fi);
+
+double doubleForFixedIntSigned(FixedInt* fi);
 
 uint64_t* convertTo64BitWordsZeroExtend(FixedInt* a, size_t* length);
 

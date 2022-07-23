@@ -52,6 +52,50 @@ DEFINE_TEST(testCreateFixedIntFromLargeNeg, "-", {
     freeFixedInt(a);
 })
 
+DEFINE_TEST(testCreateFixedIntFromDouble1, "-", {
+    FixedInt* a = createFixedIntFromDouble(128, 42.7);
+    ASSERT_FIXEDINT(a, 42);
+    freeFixedInt(a);
+})
+
+DEFINE_TEST(testCreateFixedIntFromDouble2, "-", {
+    FixedInt* a = createFixedIntFromDouble(128, 42.2);
+    ASSERT_FIXEDINT(a, 42);
+    freeFixedInt(a);
+})
+
+DEFINE_TEST(testCreateFixedIntFromDouble3, "-", {
+    FixedInt* a = createFixedIntFromDouble(400, 42.7e100);
+    ASSERT_FIXEDINT_STR(a, "426999999999999994551720482845391859206396512692294403496499600687353731685257089941638171603272466432");
+    freeFixedInt(a);
+})
+
+DEFINE_TEST(testDoubleForFixedInt1, "-", {
+    FixedInt* a = createFixedIntFrom(128, 42);
+    ASSERT_EQUAL(doubleForFixedIntSigned(a), 42.0);
+    ASSERT_EQUAL(doubleForFixedIntUnsigned(a), 42.0);
+    freeFixedInt(a);
+})
+
+DEFINE_TEST(testDoubleForFixedInt2, "-", {
+    FixedInt* a = createFixedIntFrom(128, 100200300400);
+    ASSERT_EQUAL(doubleForFixedIntSigned(a), 100200300400);
+    ASSERT_EQUAL(doubleForFixedIntUnsigned(a), 100200300400);
+    freeFixedInt(a);
+})
+
+DEFINE_TEST(testDoubleForFixedInt3, "-", {
+    FixedInt* a = createFixedIntFrom(128, -100200300400);
+    ASSERT_EQUAL(doubleForFixedIntSigned(a), -100200300400);
+    freeFixedInt(a);
+})
+
+DEFINE_TEST(testDoubleForFixedInt4, "-", {
+    FixedInt* a = createFixedIntFromString(128, str("4270000000000000000000"), 10);
+    ASSERT_EQUAL(doubleForFixedIntSigned(a), 42.7e20);
+    freeFixedInt(a);
+})
+
 DEFINE_TEST(testCreateFixedIntFromUnsignedSmall, "-", {
     FixedInt* a = createFixedIntFromUnsigned(128, 42);
     ASSERT_FIXEDINT(a, 42);

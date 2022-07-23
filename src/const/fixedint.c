@@ -1,4 +1,5 @@
 
+#include <math.h>
 #include <string.h>
 
 #include "errors/fatalerror.h"
@@ -85,6 +86,20 @@ FixedInt* createFixedIntFromString(uint32_t size, ConstString str, int base) {
         }
     }
     if (str.data[0] == '-') {
+        inlineNotFixedInt(res->words, res->size);
+        inlineAddWordFixedInt(res->words, res->size, 1);
+    }
+    return res;
+}
+
+FixedInt* createFixedIntFromDouble(uint32_t size, double value) {
+    double abs = ABS(value);
+    FixedInt* res = createFixedInt(size);
+    for (size_t i = 0; i < WORDS(size); i++) {
+        res->words[i] = (uint32_t)fmod(abs, 1UL << WORD_SIZE);
+        abs /= 1UL << WORD_SIZE;
+    }
+    if (value < 0) {
         inlineNotFixedInt(res->words, res->size);
         inlineAddWordFixedInt(res->words, res->size, 1);
     }
@@ -515,6 +530,26 @@ uintmax_t uintMaxForFixedInt(FixedInt* fi) {
         res |= (uintmax_t)w << (i * WORD_SIZE);
     }
     return res;
+}
+
+double doubleForFixedIntUnsigned(FixedInt* fi) {
+    double res = 0;
+    for (size_t i = 0; i < WORDS(fi->size); i++) {
+        res *= (1UL << WORD_SIZE);
+        res += getWordZeroExtend(fi->words, fi->size, WORDS(fi->size) - 1 - i);
+    }
+    return res;
+}
+
+double doubleForFixedIntSigned(FixedInt* fi) {
+    if (signBitOfFixedInt(fi->words, fi->size) == 0) {
+        return doubleForFixedIntUnsigned(fi);
+    } else {
+        FixedInt* copy = absFixedInt(fi);
+        double res = -doubleForFixedIntUnsigned(copy);
+        freeFixedInt(copy);
+        return res;
+    }
 }
 
 uint64_t* convertTo64BitWordsZeroExtend(FixedInt* a, size_t* length) {
