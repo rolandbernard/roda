@@ -39,7 +39,7 @@ static noreturn inline void unreachable_impl() {}
 #else
 #define ASSERT(COND)
 
-#define UNREACHABLE(MSG) unreachable()
+#define UNREACHABLE(MSG) unreachable();
 #endif
 
 noreturn void fatalError(ConstString message);
