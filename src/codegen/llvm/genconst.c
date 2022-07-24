@@ -15,7 +15,7 @@ LLVMValueRef generateLlvmConstValue(LlvmCodegenContext* context, ConstValue* val
             return LLVMConstReal(llvm_type, v->val);
         }
         case CONST_FLOAT: {
-            ConstValueDouble* v = (ConstValueDouble*)value;
+            ConstValueFloat* v = (ConstValueFloat*)value;
             return LLVMConstReal(llvm_type, v->val);
         }
         case CONST_BOOL: {

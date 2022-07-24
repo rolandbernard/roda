@@ -356,12 +356,39 @@ ConstValue* evaluateConstExpr(CompilerContext* context, AstNode* node) {
                 ConstValue** vals = ALLOC(ConstValue*, n->count);
                 for (size_t i = 0; i < n->count; i++) {
                     vals[i] = evaluateConstExpr(context, n->nodes[i]);
+                    if (vals[i] == NULL) {
+                        for (size_t j = 0; j < i; j++) {
+                            freeConstValue(vals[i]);
+                        }
+                        FREE(vals);
+                        return NULL;
+                    }
                 }
                 if (n->kind == AST_ARRAY_LIT) {
                     res = createConstArray(n->res_type, vals, n->count);
                 } else {
                     res = createConstTuple(n->res_type, vals, n->count);
                 }
+                break;
+            }
+            case AST_STRUCT_LIT: {
+                AstList* n = (AstList*)node;
+                Symbol* names = ALLOC(Symbol, n->count);
+                ConstValue** vals = ALLOC(ConstValue*, n->count);
+                for (size_t i = 0; i < n->count; i++) {
+                    AstStructField* f = (AstStructField*)n->nodes[i];
+                    names[i] = f->name->name;
+                    vals[i] = evaluateConstExpr(context, f->field_value);
+                    if (vals[i] == NULL) {
+                        for (size_t j = 0; j < i; j++) {
+                            freeConstValue(vals[i]);
+                        }
+                        FREE(vals);
+                        FREE(names);
+                        return NULL;
+                    }
+                }
+                res = createConstStruct(n->res_type, names, vals, n->count);
                 break;
             }
             default:
@@ -452,7 +479,16 @@ bool checkValidInConstExpr(CompilerContext* context, AstNode* node) {
                 }
                 return true;
             }
-            case AST_STRUCT_LIT:
+            case AST_STRUCT_LIT: {
+                AstList* n = (AstList*)node;
+                for (size_t i = 0; i < n->count; i++) {
+                    AstStructField* f = (AstStructField*)n->nodes[i];
+                    if (!checkValidInConstExpr(context, f->field_value)) {
+                        return false;
+                    }
+                }
+                return true;
+            }
             case AST_INDEX:
             case AST_TUPLE_INDEX:
             case AST_STRUCT_INDEX:
