@@ -421,6 +421,8 @@ ConstValue* evaluateConstExpr(CompilerContext* context, AstNode* node) {
                 }
                 break;
             }
+            case AST_CONSTDEF:
+                break;
             default:
                 UNREACHABLE("should not evaluate");
         }
@@ -524,9 +526,10 @@ bool checkValidInConstExpr(CompilerContext* context, AstNode* node) {
                 return checkValidInConstExpr(context, n->left)
                     && checkValidInConstExpr(context, n->right);
             }
+            case AST_CONSTDEF:
+                return true;
             case AST_STRUCT_INDEX:
             case AST_TUPLE_INDEX:
-            case AST_CONSTDEF:
                 // TODO
             default: {
                 // None of these are allowed in constant expressions.
