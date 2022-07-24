@@ -121,7 +121,7 @@ ConstValue* evaluateConstExpr(CompilerContext* context, AstNode* node) {
                 SymbolVariable* var = (SymbolVariable*)n->binding;
                 if (var->value == RECURSION_CHECK_TYPE) {
                     addMessageToContext(&context->msgs, createMessage(ERROR_INVALID_CONST,
-                        createFormattedString("recursive reference in constant definition of `%s`", var->name), 1,
+                        createFormattedString("in constant expression, recursive constant reference to `%s`", var->name), 1,
                         createMessageFragment(MESSAGE_ERROR, copyFromCString("recursive reference to constant"), node->location)
                     ));
                 } else {
@@ -358,7 +358,7 @@ ConstValue* evaluateConstExpr(CompilerContext* context, AstNode* node) {
                     vals[i] = evaluateConstExpr(context, n->nodes[i]);
                     if (vals[i] == NULL) {
                         for (size_t j = 0; j < i; j++) {
-                            freeConstValue(vals[i]);
+                            freeConstValue(vals[j]);
                         }
                         FREE(vals);
                         return NULL;
@@ -381,7 +381,7 @@ ConstValue* evaluateConstExpr(CompilerContext* context, AstNode* node) {
                     vals[i] = evaluateConstExpr(context, f->field_value);
                     if (vals[i] == NULL) {
                         for (size_t j = 0; j < i; j++) {
-                            freeConstValue(vals[i]);
+                            freeConstValue(vals[j]);
                         }
                         FREE(vals);
                         FREE(names);
@@ -389,6 +389,36 @@ ConstValue* evaluateConstExpr(CompilerContext* context, AstNode* node) {
                     }
                 }
                 res = createConstStruct(n->res_type, names, vals, n->count);
+                break;
+            }
+            case AST_INDEX: {
+                AstBinary* n = (AstBinary*)node;
+                ConstValue* arr = evaluateConstExpr(context, n->left);
+                if (arr != NULL) {
+                    ASSERT(arr->kind == CONST_ARRAY);
+                    ConstValue* index = evaluateConstExpr(context, n->right);
+                    if (index != NULL) {
+                        size_t idx;
+                        if (index->kind == CONST_BIG_INT) {
+                            idx = intMaxForBigInt(((ConstValueBigInt*)index)->val);
+                        } else {
+                            idx = uintMaxForFixedInt(((ConstValueInt*)index)->val);
+                        }
+                        ConstValueList* list = (ConstValueList*)arr;
+                        if (idx < list->count) {
+                            res = copyConstValue(list->values[idx]);
+                        } else {
+                            String type = buildTypeName(arr->type);
+                            addMessageToContext(&context->msgs, createMessage(ERROR_INVALID_CONST,
+                                createFormattedString("in constant expession, array index `%zu` out of bounds for type `%s`", idx, cstr(type)), 1,
+                                createMessageFragment(MESSAGE_ERROR, copyFromCString("index out of bounds"), n->right->location)
+                            ));
+                            freeString(type);
+                        }
+                        freeConstValue(index);
+                    }
+                    freeConstValue(arr);
+                }
                 break;
             }
             default:
@@ -489,9 +519,13 @@ bool checkValidInConstExpr(CompilerContext* context, AstNode* node) {
                 }
                 return true;
             }
-            case AST_INDEX:
-            case AST_TUPLE_INDEX:
+            case AST_INDEX: {
+                AstBinary* n = (AstBinary*)node;
+                return checkValidInConstExpr(context, n->left)
+                    && checkValidInConstExpr(context, n->right);
+            }
             case AST_STRUCT_INDEX:
+            case AST_TUPLE_INDEX:
             case AST_CONSTDEF:
                 // TODO
             default: {
