@@ -4,6 +4,7 @@
 #include "const/eval.h"
 #include "types/check.h"
 #include "types/infer.h"
+#include "types/eval.h"
 
 #include "const/defeval.h"
 
@@ -33,7 +34,22 @@ void runGlobalInitEvaluation(CompilerContext* context) {
     });
 }
 
-static void evaluateConstantValueDefinitions(CompilerContext* context, AstNode* node) {
+static void evaluateConstantDefinitionTypes(CompilerContext* context, AstNode* node) {
+    if (node != NULL) {
+        switch (node->kind) {
+            case AST_CONSTDEF:
+                typeInferExpr(context, node, NULL);
+                break;
+            default:
+                break;
+        }
+        AST_FOR_EACH_CHILD(node, false, false, true, {
+            evaluateConstantDefinitionTypes(context, child);
+        });
+    }
+}
+
+static void evaluateConstantDefinitionValues(CompilerContext* context, AstNode* node) {
     if (node != NULL) {
         switch (node->kind) {
             case AST_CONSTDEF: {
@@ -47,14 +63,17 @@ static void evaluateConstantValueDefinitions(CompilerContext* context, AstNode* 
                 break;
         }
         AST_FOR_EACH_CHILD(node, false, false, true, {
-            evaluateConstantValueDefinitions(context, child);
+            evaluateConstantDefinitionValues(context, child);
         });
     }
 }
 
 void runConstantValueEvaluation(CompilerContext* context) {
     FOR_ALL_MODULES({
-        evaluateConstantValueDefinitions(context, file->ast);
+        evaluateConstantDefinitionTypes(context, file->ast);
+    });
+    FOR_ALL_MODULES({
+        evaluateConstantDefinitionValues(context, file->ast);
     });
 }
 

@@ -899,7 +899,7 @@ void typeInferExpr(CompilerContext* context, AstNode* node, Type* res_type) {
     assumeAmbiguousTypes(context, ASSUME_SIZEOF | ASSUME_INDEX, node);
     assumeAmbiguousTypes(context, ASSUME_LITERALS, node);
     assumeAmbiguousTypes(context, ASSUME_CASTS, node);
-    if (node->res_type == NULL) {
+    if (res_type != NULL && node->res_type == NULL) {
         if (moveTypeIntoAstNode(context, node, res_type)) {
             propagateAllTypes(context, node);
         }

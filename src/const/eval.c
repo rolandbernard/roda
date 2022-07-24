@@ -421,6 +421,28 @@ ConstValue* evaluateConstExpr(CompilerContext* context, AstNode* node) {
                 }
                 break;
             }
+            case AST_STRUCT_INDEX: {
+                AstStructIndex* n = (AstStructIndex*)node;
+                ConstValue* value = evaluateConstExpr(context, n->strct);
+                if (value != NULL) {
+                    ASSERT(value->kind == CONST_STRUCT);
+                    ConstValueStruct* strct = (ConstValueStruct*)value;
+                    res = copyConstValue(getValueFromConstStruct(strct, n->field->name));
+                    freeConstValue(value);
+                }
+                break;
+            }
+            case AST_TUPLE_INDEX: {
+                AstTupleIndex* n = (AstTupleIndex*)node;
+                ConstValue* value = evaluateConstExpr(context, n->tuple);
+                if (value != NULL) {
+                    ASSERT(value->kind == CONST_TUPLE);
+                    ConstValueList* list = (ConstValueList*)value;
+                    res = copyConstValue(list->values[n->field->number]);
+                    freeConstValue(value);
+                }
+                break;
+            }
             case AST_CONSTDEF:
                 break;
             default:
@@ -526,11 +548,16 @@ bool checkValidInConstExpr(CompilerContext* context, AstNode* node) {
                 return checkValidInConstExpr(context, n->left)
                     && checkValidInConstExpr(context, n->right);
             }
+            case AST_STRUCT_INDEX: {
+                AstStructIndex* n = (AstStructIndex*)node;
+                return checkValidInConstExpr(context, n->strct);
+            }
+            case AST_TUPLE_INDEX: {
+                AstTupleIndex* n = (AstTupleIndex*)node;
+                return checkValidInConstExpr(context, n->tuple);
+            }
             case AST_CONSTDEF:
                 return true;
-            case AST_STRUCT_INDEX:
-            case AST_TUPLE_INDEX:
-                // TODO
             default: {
                 // None of these are allowed in constant expressions.
                 raiseOpErrorNotInConst(context, node);
@@ -547,8 +574,7 @@ void evaluateConstantDefinition(CompilerContext* context, AstVarDef* def) {
         if (!var->evaluated) {
             size_t old_error = context->msgs.error_count;
             if (checkValidInConstExpr(context, def->val)) {
-                Type* type = createUnsureType(&context->types, (AstNode*)def->name, UNSURE_ANY, NULL);
-                typeInferExpr(context, (AstNode*)def, type);
+                typeInferExpr(context, (AstNode*)def, NULL);
                 typeCheckExpr(context, (AstNode*)def);
             }
             if (context->msgs.error_count == old_error) {
