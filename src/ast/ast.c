@@ -390,14 +390,18 @@ void freeAstNode(AstNode* node) {
                 freeAstNode((AstNode*)n->field);
                 break;
             }
+            case AST_CHAR:
+            case AST_INT: {
+                AstInt* n = (AstInt*)node;
+                freeBigInt(n->number);
+                break;
+            }
             case AST_BREAK:
             case AST_CONTINUE:
             case AST_VAR:
             case AST_ERROR:
             case AST_VOID:
             case AST_BOOL:
-            case AST_INT:
-            case AST_CHAR:
             case AST_REAL: break;
         }
         FREE(node);

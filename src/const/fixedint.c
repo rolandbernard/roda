@@ -80,7 +80,7 @@ FixedInt* createFixedIntFromString(uint32_t size, ConstString str, int base) {
     }
     for (; idx < str.length; idx++) {
         int digit = digitCharToInt(str.data[idx]);
-        if (digit != -1) {
+        if (digit != -1 && digit < base) {
             inlineMulWordFixedInt(res->words, res->size, base);
             inlineAddWordFixedInt(res->words, res->size, digit);
         }

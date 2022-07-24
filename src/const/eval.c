@@ -324,11 +324,11 @@ ConstValue* evaluateConstExpr(CompilerContext* context, AstNode* node) {
                 AstInt* n = (AstInt*)node;
                 size_t size = getIntRealTypeSize(n->res_type);
                 if (size == SIZE_SIZE || size == 0) {
-                    res = createConstBigInt(node->res_type, createBigIntFrom(n->number));
+                    res = createConstBigInt(node->res_type, copyBigInt(n->number));
                 } else if (isSignedIntegerType(n->res_type)) {
-                    res = createConstInt(node->res_type, createFixedIntFrom(size, n->number));
+                    res = createConstInt(node->res_type, createFixedIntFromBigInt(size, n->number));
                 } else if (isUnsignedIntegerType(n->res_type)) {
-                    res = createConstUint(node->res_type, createFixedIntFromUnsigned(size, n->number));
+                    res = createConstUint(node->res_type, createFixedIntFromBigInt(size, n->number));
                 }
                 break;
             }
@@ -438,7 +438,8 @@ ConstValue* evaluateConstExpr(CompilerContext* context, AstNode* node) {
                 if (value != NULL) {
                     ASSERT(value->kind == CONST_TUPLE);
                     ConstValueList* list = (ConstValueList*)value;
-                    res = copyConstValue(list->values[n->field->number]);
+                    size_t idx = uintMaxForBigInt(n->field->number);
+                    res = copyConstValue(list->values[idx]);
                     freeConstValue(value);
                 }
                 break;

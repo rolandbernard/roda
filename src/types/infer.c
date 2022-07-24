@@ -493,8 +493,9 @@ static void propagateTypes(CompilerContext* context, AstNode* node) {
                 if (n->tuple->res_type != NULL) {
                     TypeTuple* type = (TypeTuple*)getTypeOfKind(n->tuple->res_type, TYPE_TUPLE);
                     if (type != NULL) {
-                        if (n->field->number < type->count) {
-                            if (moveTypeIntoAstNode(context, node, type->types[n->field->number])) {
+                        size_t idx = uintMaxForBigInt(n->field->number);
+                        if (idx < type->count) {
+                            if (moveTypeIntoAstNode(context, node, type->types[idx])) {
                                 propagateTypes(context, node->parent);
                             }
                         }

@@ -181,7 +181,6 @@ LiteralParseError parseCharLiteral(const char* str, CodePoint* res) {
 }
 
 LiteralParseError parseIntLiteral(const char* str, AstIntType* res) {
-    AstIntType num = 0;
     size_t idx = 0;
     int base = 10;
     if (str[0] == '0' && str[1] == 'b') {
@@ -197,16 +196,12 @@ LiteralParseError parseIntLiteral(const char* str, AstIntType* res) {
         base = 16;
         idx += 2;
     }
-    while (str[idx] != 0) {
-        if (isDigitChar(str[idx], base)) {
-            num *= base;
-            num += digitCharToInt(str[idx]);
-        } else if (str[idx] != '_') {
-            return createLiteralParseError(idx, 1);
+    for (size_t i = idx; str[i] != 0; i++) {
+        if (!isDigitChar(str[i], base) && str[i] != '_') {
+            return createLiteralParseError(i, 1);
         }
-        idx++;
     }
-    *res = num;
+    *res = createBigIntFromString(str(str + idx), base);
     return createLiteralParseNoError();
 }
 
@@ -306,7 +301,7 @@ AstNode* parseCharLiteralIn(ParserContext* ctx, Span loc, const char* str) {
     CodePoint result;
     LiteralParseError error = parseCharLiteral(str, &result);
     if (isLiteralParseNoError(error)) {
-        return (AstNode*)createAstInt(loc, AST_CHAR, result);
+        return (AstNode*)createAstInt(loc, AST_CHAR, createBigIntFrom(result));
     } else if (error.length == getSpanLength(loc)) {
         addMessageToContext(&ctx->context->msgs, createMessage(ERROR_INVALID_INT, copyFromCString("character literal is invalid"), 1,
             createMessageFragment(MESSAGE_ERROR, copyFromCString("invalid character literal"), loc)

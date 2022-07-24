@@ -408,7 +408,9 @@ static void printAstIndented(FILE* file, AstNode* node, bool colors, IndentStack
             case AST_CHAR:
             case AST_INT: {
                 AstInt* n = (AstInt*)node;
-                fprintf(file, " (value = %ji)", n->number);
+                String s = stringForBigInt(n->number, 10);
+                fprintf(file, " (value = %s)", cstr(s));
+                freeString(s);
                 printAstNodeExtraInfo(file, node, colors);
                 fprintf(file, "\n");
                 break;

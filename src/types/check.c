@@ -286,9 +286,11 @@ static void raiseNoSuchFieldError(CompilerContext* context, AstStructIndex* node
 
 static void raiseNoSuchTupleFieldError(CompilerContext* context, AstTupleIndex* node) {
     String type_name = buildTypeName(node->tuple->res_type);
+    String idx_str = stringForBigInt(node->field->number, 10);
     String message = createFormattedString(
-        "no field at index `%zu` in tuple type `%s`", node->field->number, cstr(type_name)
+        "no field at index `%s` in tuple type `%s`", cstr(idx_str), cstr(type_name)
     );
+    freeString(idx_str);
     MessageFragment* error = createMessageFragment(
         MESSAGE_ERROR, copyFromCString("no such field exists"), node->field->location
     );
@@ -793,7 +795,7 @@ void checkTypeConstraints(CompilerContext* context, AstNode* node) {
                             context, node, n->tuple, n->tuple->res_type, ", must be a tuple"
                         );
                         return;
-                    } else if (n->field->number >= type->count) {
+                    } else if (uintMaxForBigInt(n->field->number) >= type->count) {
                         raiseNoSuchTupleFieldError(context, n);
                         return;
                     }

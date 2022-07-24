@@ -128,7 +128,7 @@ BigInt* createBigIntFromString(ConstString str, int base) {
     }
     for (; idx < str.length; idx++) {
         int digit = digitCharToInt(str.data[idx]);
-        if (digit != -1) {
+        if (digit != -1 && digit < base) {
             absWordMulBigInt(&res, base);
             absWordAddBigInt(&res, digit);
         }

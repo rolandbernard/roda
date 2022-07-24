@@ -316,7 +316,18 @@ LlvmCodegenValue buildLlvmFunctionBody(LlvmCodegenContext* context, LlvmCodegenM
         case AST_CHAR:
         case AST_INT: {
             AstInt* n = (AstInt*)node;
-            LLVMValueRef value = LLVMConstInt(generateLlvmType(context, n->res_type), n->number, isSignedIntegerType(n->res_type));
+            LLVMTypeRef llvm_type = generateLlvmType(context, n->res_type);
+            FixedInt* fi = createFixedIntFromBigInt(LLVMGetIntTypeWidth(llvm_type), n->number);
+            size_t len = 0;
+            uint64_t* words = NULL;
+            if (isSignedIntegerType(n->res_type)) {
+                words = convertTo64BitWordsSignExtend(fi, &len);
+            } else {
+                words = convertTo64BitWordsZeroExtend(fi, &len);
+            }
+            freeFixedInt(fi);
+            LLVMValueRef value = LLVMConstIntOfArbitraryPrecision(llvm_type, len, words);
+            FREE(words);
             return createLlvmCodegenValue(value, false);
         }
         case AST_BOOL: {
@@ -655,7 +666,7 @@ LlvmCodegenValue buildLlvmFunctionBody(LlvmCodegenContext* context, LlvmCodegenM
             ASSERT(type != NULL);
             LLVMTypeRef strct_type = generateLlvmType(context, n->tuple->res_type);
             LlvmCodegenValue strct = buildLlvmFunctionBody(context, data, n->tuple);
-            size_t idx = CODEGEN(type)->struct_mapping[n->field->number];
+            size_t idx = CODEGEN(type)->struct_mapping[uintMaxForBigInt(n->field->number)];
             if (strct.is_reference) {
                 LLVMValueRef value = LLVMBuildStructGEP2(
                     data->builder, strct_type, strct.value, idx, "index"

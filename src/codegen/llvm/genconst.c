@@ -40,7 +40,7 @@ LLVMValueRef generateLlvmConstValue(LlvmCodegenContext* context, ConstValue* val
         }
         case CONST_BIG_INT: {
             ConstValueBigInt* v = (ConstValueBigInt*)value;
-            FixedInt* fixed = createFixedIntFromBigInt(getIntRealTypeSize(v->type), v->val);
+            FixedInt* fixed = createFixedIntFromBigInt(LLVMGetIntTypeWidth(llvm_type), v->val);
             size_t length = 0;
             uint64_t* words = convertTo64BitWordsZeroExtend(fixed, &length);
             freeFixedInt(fixed);
