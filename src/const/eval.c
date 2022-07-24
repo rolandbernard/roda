@@ -5,6 +5,7 @@
 #include "text/format.h"
 #include "types/check.h"
 #include "types/infer.h"
+#include "util/alloc.h"
 
 #include "const/eval.h"
 
@@ -345,6 +346,24 @@ ConstValue* evaluateConstExpr(CompilerContext* context, AstNode* node) {
                 res = createConstBool(node->res_type, n->value);
                 break;
             }
+            case AST_VOID: {
+                res = createConstVoid(node->res_type);
+                break;
+            }
+            case AST_ARRAY_LIT:
+            case AST_TUPLE_LIT: {
+                AstList* n = (AstList*)node;
+                ConstValue** vals = ALLOC(ConstValue*, n->count);
+                for (size_t i = 0; i < n->count; i++) {
+                    vals[i] = evaluateConstExpr(context, n->nodes[i]);
+                }
+                if (n->kind == AST_ARRAY_LIT) {
+                    res = createConstArray(n->res_type, vals, n->count);
+                } else {
+                    res = createConstTuple(n->res_type, vals, n->count);
+                }
+                break;
+            }
             default:
                 UNREACHABLE("should not evaluate");
         }
@@ -416,12 +435,29 @@ bool checkValidInConstExpr(CompilerContext* context, AstNode* node) {
                 AstUnary* n = (AstUnary*)node;
                 return checkValidInConstExpr(context, n->op);
             }
+            case AST_VOID:
             case AST_CHAR:
             case AST_INT:
             case AST_REAL:
             case AST_BOOL: {
                 return true;
             }
+            case AST_ARRAY_LIT:
+            case AST_TUPLE_LIT: {
+                AstList* n = (AstList*)node;
+                for (size_t i = 0; i < n->count; i++) {
+                    if (!checkValidInConstExpr(context, n->nodes[i])) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            case AST_STRUCT_LIT:
+            case AST_INDEX:
+            case AST_TUPLE_INDEX:
+            case AST_STRUCT_INDEX:
+            case AST_CONSTDEF:
+                // TODO
             default: {
                 // None of these are allowed in constant expressions.
                 raiseOpErrorNotInConst(context, node);

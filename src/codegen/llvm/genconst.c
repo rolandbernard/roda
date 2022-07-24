@@ -54,7 +54,9 @@ LLVMValueRef generateLlvmConstValue(LlvmCodegenContext* context, ConstValue* val
             for (size_t i = 0; i < v->count; i++) {
                 elems[i] = generateLlvmConstValue(context, v->values[i]);
             }
-            return LLVMConstArray(LLVMGetElementType(llvm_type), elems, v->count);
+            LLVMValueRef res = LLVMConstArray(LLVMGetElementType(llvm_type), elems, v->count);
+            FREE(elems);
+            return res;
         }
         case CONST_TUPLE: {
             ConstValueList* v = (ConstValueList*)value;
@@ -63,7 +65,9 @@ LLVMValueRef generateLlvmConstValue(LlvmCodegenContext* context, ConstValue* val
                 size_t idx = CODEGEN(v->type)->struct_mapping[i];
                 elems[idx] = generateLlvmConstValue(context, v->values[i]);
             }
-            return LLVMConstStructInContext(context->llvm_cxt, elems, v->count, false);
+            LLVMValueRef res = LLVMConstStructInContext(context->llvm_cxt, elems, v->count, false);
+            FREE(elems);
+            return res;
         }
         case CONST_STRUCT: {
             ConstValueStruct* v = (ConstValueStruct*)value;
@@ -74,7 +78,9 @@ LLVMValueRef generateLlvmConstValue(LlvmCodegenContext* context, ConstValue* val
                 idx = CODEGEN(v->type)->struct_mapping[idx];
                 elems[idx] = generateLlvmConstValue(context, v->values[i]);
             }
-            return LLVMConstStructInContext(context->llvm_cxt, elems, v->count, false);
+            LLVMValueRef res = LLVMConstStructInContext(context->llvm_cxt, elems, v->count, false);
+            FREE(elems);
+            return res;
         }
     }
     UNREACHABLE("unknown const value");
