@@ -36,14 +36,14 @@ static bool checkNotExisting(CompilerContext* context, SymbolTable* scope, AstVa
     }
 }
 
-static void buildLocalSymbolTables(CompilerContext* context, AstNode* node, SymbolTable* scope, bool type) {
+static void buildLocalSymbolTables(CompilerContext* context, AstNode* node, SymbolTable* scope, bool type, SymbolVariable* func) {
     if (node != NULL) {
         switch (node->kind) {
             case AST_ROOT: {
                 AstRoot* n = (AstRoot*)node;
                 n->vars.parent = scope;
                 scope = &n->vars;
-                buildLocalSymbolTables(context, (AstNode*)n->nodes, scope, type);
+                buildLocalSymbolTables(context, (AstNode*)n->nodes, scope, type, func);
                 break;
             }
             case AST_BLOCK_EXPR:
@@ -51,32 +51,32 @@ static void buildLocalSymbolTables(CompilerContext* context, AstNode* node, Symb
                 AstBlock* n = (AstBlock*)node;
                 n->vars.parent = scope;
                 scope = &n->vars;
-                buildLocalSymbolTables(context, (AstNode*)n->nodes, scope, type);
+                buildLocalSymbolTables(context, (AstNode*)n->nodes, scope, type, func);
                 break;
             }
             case AST_FN: {
                 AstFn* n = (AstFn*)node;
                 n->vars.parent = scope;
-                buildLocalSymbolTables(context, n->ret_type, scope, true);
+                buildLocalSymbolTables(context, n->ret_type, scope, true, func);
                 scope = &n->vars;
-                buildLocalSymbolTables(context, (AstNode*)n->arguments, scope, type);
-                buildLocalSymbolTables(context, n->body, scope, type);
+                buildLocalSymbolTables(context, (AstNode*)n->arguments, scope, type, (SymbolVariable*)n->name->binding);
+                buildLocalSymbolTables(context, n->body, scope, type, (SymbolVariable*)n->name->binding);
                 break;
             }
             case AST_ARGDEF: {
                 AstArgDef* n = (AstArgDef*)node;
-                buildLocalSymbolTables(context, n->type, scope, true);
+                buildLocalSymbolTables(context, n->type, scope, true, func);
                 if (checkNotExisting(context, scope, n->name, SYMBOL_VARIABLE)) {
-                    n->name->binding = (SymbolEntry*)createVariableSymbol(n->name->name, n->name, false);
+                    n->name->binding = (SymbolEntry*)createVariableSymbol(n->name->name, n->name, false, func);
                     addSymbolToTable(scope, n->name->binding);
                 }
                 break;
             }
             case AST_VARDEF: {
                 AstVarDef* n = (AstVarDef*)node;
-                buildLocalSymbolTables(context, n->type, scope, true);
-                buildLocalSymbolTables(context, n->val, scope, type);
-                n->name->binding = (SymbolEntry*)createVariableSymbol(n->name->name, n->name, false);
+                buildLocalSymbolTables(context, n->type, scope, true, func);
+                buildLocalSymbolTables(context, n->val, scope, type, func);
+                n->name->binding = (SymbolEntry*)createVariableSymbol(n->name->name, n->name, false, func);
                 addSymbolToTable(scope, n->name->binding);
                 break;
             }
@@ -97,6 +97,36 @@ static void buildLocalSymbolTables(CompilerContext* context, AstNode* node, Symb
                     } else {
                         addMessageToContext(&context->msgs, createMessage(ERROR_UNDEFINED, err_msg, 1, err_frag));
                     }
+                } else if (!type) {
+                    SymbolVariable* var_func = ((SymbolVariable*)n->binding)->function;
+                    if (var_func != NULL && var_func != func) {
+                        String message = createFormattedString(
+                            "can not capture variable `%s` from outer function", n->name
+                        );
+                        MessageFragment* error = createMessageFragment(
+                            MESSAGE_ERROR, copyFromCString("can not capture variable"), n->location
+                        );
+                        if (n->binding->def != NULL) {
+                            addMessageToContext(
+                                &context->msgs,
+                                createMessage(
+                                    ERROR_ALREADY_DEFINED, message, 2, error,
+                                    createMessageFragment(
+                                        MESSAGE_NOTE,
+                                        copyFromCString("note: variable defined here"),
+                                        n->binding->def->location
+                                    )
+                                )
+                            );
+                        } else {
+                            addMessageToContext(
+                                &context->msgs,
+                                createMessage(ERROR_UNDEFINED, message, 1, error)
+                            );
+                        }
+                    } else {
+                        addSymbolReference(n->binding, n);
+                    }
                 } else {
                     addSymbolReference(n->binding, n);
                 }
@@ -104,7 +134,7 @@ static void buildLocalSymbolTables(CompilerContext* context, AstNode* node, Symb
             }
             default:
                 AST_FOR_EACH_CHILD(node, type, true, true, {
-                    buildLocalSymbolTables(context, child, scope, is_type);
+                    buildLocalSymbolTables(context, child, scope, is_type, func);
                 });
                 break;
         }
@@ -132,7 +162,7 @@ static void buildRootSymbolTables(CompilerContext* context, AstNode* node, Symbo
             case AST_FN: {
                 AstFn* n = (AstFn*)node;
                 if (checkNotExisting(context, scope, n->name, SYMBOL_VARIABLE)) {
-                    n->name->binding = (SymbolEntry*)createVariableSymbol(n->name->name, n->name, false);
+                    n->name->binding = (SymbolEntry*)createVariableSymbol(n->name->name, n->name, false, NULL);
                     addSymbolToTable(scope, n->name->binding);
                 }
                 scope = &n->vars;
@@ -152,7 +182,7 @@ static void buildRootSymbolTables(CompilerContext* context, AstNode* node, Symbo
             case AST_CONSTDEF: {
                 AstVarDef* n = (AstVarDef*)node;
                 if (checkNotExisting(context, scope, n->name, SYMBOL_VARIABLE)) {
-                    n->name->binding = (SymbolEntry*)createVariableSymbol(n->name->name, n->name, node->kind == AST_CONSTDEF);
+                    n->name->binding = (SymbolEntry*)createVariableSymbol(n->name->name, n->name, node->kind == AST_CONSTDEF, NULL);
                     addSymbolToTable(scope, n->name->binding);
                 }
                 buildRootSymbolTables(context, n->val, scope);
@@ -169,7 +199,7 @@ static void buildRootSymbolTables(CompilerContext* context, AstNode* node, Symbo
 
 void runSymbolResolution(CompilerContext* context) {
     FOR_ALL_MODULES({ buildRootSymbolTables(context, file->ast, &context->buildins); });
-    FOR_ALL_MODULES({ buildLocalSymbolTables(context, file->ast, &context->buildins, false); });
+    FOR_ALL_MODULES({ buildLocalSymbolTables(context, file->ast, &context->buildins, false, NULL); });
 }
 
 typedef struct {

@@ -24,11 +24,12 @@ typedef struct SymbolEntry {
     SYMBOL_ENTRY_BASE
 } SymbolEntry;
 
-typedef struct {
+typedef struct SymbolVariable {
     SYMBOL_ENTRY_BASE
     Type* type;
-    bool constant;
     ConstValue* value;
+    struct SymbolVariable* function;
+    bool constant;
     bool evaluated;
 } SymbolVariable;
 
@@ -47,7 +48,7 @@ typedef struct SymbolType {
 
 void freeSymbolEntry(SymbolEntry* var);
 
-SymbolVariable* createVariableSymbol(Symbol name, struct AstVar* def, bool constant);
+SymbolVariable* createVariableSymbol(Symbol name, struct AstVar* def, bool constant, SymbolVariable* function);
 
 SymbolType* createTypeSymbol(Symbol name, struct AstVar* def);
 

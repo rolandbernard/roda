@@ -13,12 +13,13 @@ static void initSymbolEntry(SymbolEntry* entry, SymbolEntryKind kind, Symbol nam
     entry->codegen = NULL;
 }
 
-SymbolVariable* createVariableSymbol(Symbol name, struct AstVar* def, bool constant) {
+SymbolVariable* createVariableSymbol(Symbol name, struct AstVar* def, bool constant, SymbolVariable* function) {
     SymbolVariable* sym = NEW(SymbolVariable);
     initSymbolEntry((SymbolEntry*)sym, SYMBOL_VARIABLE, name, def);
     sym->type = NULL;
-    sym->constant = constant;
     sym->value = NULL;
+    sym->function = function;
+    sym->constant = constant;
     sym->evaluated = false;
     return sym;
 }
