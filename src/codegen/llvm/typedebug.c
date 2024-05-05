@@ -6,8 +6,8 @@
 #include "ast/ast.h"
 #include "codegen/llvm/gentype.h"
 #include "errors/fatalerror.h"
+#include "text/format.h"
 #include "util/alloc.h"
-#include "util/sort.h"
 
 #include "codegen/llvm/typedebug.h"
 

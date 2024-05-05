@@ -4,7 +4,6 @@
 #include <stddef.h>
 #include <stdnoreturn.h>
 
-#include "text/format.h"
 #include "text/string.h"
 #include "util/macro.h"
 

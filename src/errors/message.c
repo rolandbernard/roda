@@ -3,7 +3,6 @@
 
 #include "errors/message.h"
 
-#include "util/console.h"
 #include "util/alloc.h"
 
 void initMessageFragment(MessageFragment* fragment, MessageCategory category, String message, Span position) {

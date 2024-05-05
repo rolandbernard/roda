@@ -1,6 +1,6 @@
 
 #include "ast/astwalk.h"
-#include "errors/fatalerror.h"
+#include "text/format.h"
 #include "types/check.h"
 #include "types/eval.h"
 #include "util/alloc.h"

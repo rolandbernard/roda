@@ -3,7 +3,6 @@
 
 #include "ast/ast.h"
 #include "compiler/context.h"
-#include "errors/msgcontext.h"
 
 typedef struct {
     AstNode* result;

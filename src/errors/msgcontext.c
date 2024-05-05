@@ -3,8 +3,6 @@
 
 #include "errors/msgcontext.h"
 
-#include "util/alloc.h"
-
 void initMessageContext(MessageContext* message_context, const MessageFilter* filter) {
     message_context->messages = NULL;
     message_context->messages_last = NULL;

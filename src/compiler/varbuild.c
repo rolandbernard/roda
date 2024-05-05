@@ -2,8 +2,6 @@
 #include "ast/ast.h"
 #include "ast/astprinter.h"
 #include "ast/astwalk.h"
-#include "const/eval.h"
-#include "errors/fatalerror.h"
 #include "text/format.h"
 #include "text/string.h"
 

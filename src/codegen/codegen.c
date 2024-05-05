@@ -7,6 +7,7 @@
 #include "ast/astprinter.h"
 #include "errors/fatalerror.h"
 #include "files/fs.h"
+#include "text/format.h"
 #include "util/debug.h"
 
 #ifdef LLVM

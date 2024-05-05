@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "errors/fatalerror.h"
+#include "text/format.h"
 #include "util/alloc.h"
 
 #include "codegen/llvm/context.h"

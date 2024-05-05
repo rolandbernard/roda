@@ -4,7 +4,6 @@
 #include <string.h>
 
 #include "ast/ast.h"
-#include "errors/fatalerror.h"
 #include "files/fs.h"
 #include "text/string.h"
 #include "text/utf8.h"

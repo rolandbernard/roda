@@ -4,7 +4,6 @@
 #include <stdbool.h>
 #include <string.h>
 
-#include "tests/test.h"
 #include "tests/testrun.h"
 
 #define ASSERT_FAIL(KIND, MSG) \

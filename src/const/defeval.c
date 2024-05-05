@@ -2,9 +2,7 @@
 #include "ast/ast.h"
 #include "ast/astwalk.h"
 #include "const/eval.h"
-#include "types/check.h"
 #include "types/infer.h"
-#include "types/eval.h"
 
 #include "const/defeval.h"
 

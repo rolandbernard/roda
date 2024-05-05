@@ -3,7 +3,6 @@
 
 #include "util/alloc.h"
 #include "util/console.h"
-#include "tests/testrun.h"
 
 #include "tests/test.h"
 

@@ -3,8 +3,6 @@
 
 #include "types/types.h"
 #include "const/value.h"
-#include "files/file.h"
-#include "text/string.h"
 #include "text/symbol.h"
 
 typedef enum {

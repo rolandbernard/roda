@@ -1,8 +1,6 @@
 
 #include "errors/msgkind.h"
 
-#include "util/alloc.h"
-
 static const char* message_kind_strings[] = {
     [ERROR_UNKNOWN] = "unknown",
     [ERROR_SYNTAX] = "syntax",

@@ -7,7 +7,6 @@
 
 #include "files/file.h"
 #include "text/format.h"
-#include "util/alloc.h"
 
 #include "parser/wrapper.h"
 
@@ -46,7 +45,7 @@ AstNode* parseStdin(CompilerContext* context) {
     return parseFromFileStream(stdin, NULL, context);
 }
 
-void yyerror(YYLTYPE* yyllocp, yyscan_t scanner, ParserContext* context, const char* msg) {
+void yyerror(YYLTYPE* _yyllocp, yyscan_t _scanner, ParserContext* context, const char* msg) {
     addMessageToContext(&context->context->msgs, createMessage(ERROR_UNKNOWN, copyFromCString(msg), 0));
 }
 

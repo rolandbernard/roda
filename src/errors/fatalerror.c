@@ -3,7 +3,6 @@
 #include <stdlib.h>
 
 #include "errors/msgkind.h"
-#include "util/alloc.h"
 #include "util/console.h"
 
 #include "errors/fatalerror.h"

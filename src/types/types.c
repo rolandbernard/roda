@@ -3,11 +3,10 @@
 #include <string.h>
 
 #include "compiler/variable.h"
-#include "types/eval.h"
+#include "ast/ast.h"
 #include "errors/fatalerror.h"
 #include "text/format.h"
 #include "util/alloc.h"
-#include "util/hash.h"
 #include "util/sort.h"
 
 #include "types/types.h"

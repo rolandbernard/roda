@@ -1,8 +1,6 @@
 
 #include "text/utf8.h"
 
-#include "util/alloc.h"
-
 size_t decodeUTF8(CodePoint* code, const char* data, size_t max_length) {
     if (max_length <= 0) {
         *code = INVALID_CODEPOINT;

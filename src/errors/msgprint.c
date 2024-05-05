@@ -1,5 +1,4 @@
 
-#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,7 +7,6 @@
 
 #include "text/string.h"
 #include "text/utf8.h"
-#include "util/alloc.h"
 #include "util/console.h"
 
 #define NUM_SURROUNDING_LINES 1

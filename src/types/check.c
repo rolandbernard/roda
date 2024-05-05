@@ -1,6 +1,7 @@
 
 #include "ast/astprinter.h"
 #include "ast/astwalk.h"
+#include "text/format.h"
 #include "types/eval.h"
 #include "errors/fatalerror.h"
 

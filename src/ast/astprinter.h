@@ -3,7 +3,6 @@
 
 #include <stdio.h>
 
-#include "compiler/context.h"
 #include "ast/ast.h"
 
 const char* getAstPrintName(AstNodeKind kind);

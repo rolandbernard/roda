@@ -5,7 +5,6 @@
 
 #include "errors/message.h"
 #include "errors/msgcontext.h"
-#include "errors/msgkind.h"
 
 typedef enum {
     MESSAGE_STYLE_MINIMAL,
