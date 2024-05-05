@@ -82,7 +82,9 @@ static void handleLlvmDiagnosticMessage(LLVMDiagnosticInfoRef info, void* udata)
 }
 
 void initLlvmBackend(CompilerContext* context) {
+#if LLVM_VERSION_MAJOR < 17
     LLVMInitializeCore(LLVMGetGlobalPassRegistry());
+#endif
     LLVMInitializeAllTargetInfos();
     LLVMInitializeAllTargets();
     LLVMInitializeAllAsmPrinters();

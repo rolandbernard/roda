@@ -55,7 +55,7 @@ void initLlvmCodegenContext(LlvmCodegenContext* context, CompilerContext* cxt) {
         const char* cpu;
         char* llvm_cpu = NULL;
         if (cxt->settings.cpu.data == NULL) {
-            cpu = NULL;
+            cpu = "";
         } else if(compareStrings(tocnstr(cxt->settings.cpu), str("native")) == 0) {
             llvm_cpu = LLVMGetHostCPUName();
             cpu = llvm_cpu;
@@ -65,7 +65,7 @@ void initLlvmCodegenContext(LlvmCodegenContext* context, CompilerContext* cxt) {
         const char* features;
         char* llvm_features = NULL;
         if (cxt->settings.features.data == NULL) {
-            features = NULL;
+            features = "";
         } else if(compareStrings(tocnstr(cxt->settings.features), str("native")) == 0) {
             llvm_features = LLVMGetHostCPUFeatures();
             features = llvm_features;

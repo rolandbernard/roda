@@ -10,7 +10,7 @@ LlvmCodegenValue createLlvmCodegenValue(LLVMValueRef value, bool is_reference) {
     return ret;
 }
 
-LlvmCodegenValue createLlvmCodegenVoidValue(LlvmCodegenContext* context) {
+LlvmCodegenValue createLlvmCodegenVoidValue() {
     return createLlvmCodegenValue(NULL, false);
 }
 
@@ -36,7 +36,7 @@ LLVMValueRef getCodegenReference(LlvmCodegenContext* context, LlvmCodegenModuleC
     return value.value;
 }
 
-void buildLlvmStore(LlvmCodegenContext* context, LlvmCodegenModuleContext* data, Type* type, LLVMValueRef value, LLVMValueRef ptr) {
+void buildLlvmStore(LlvmCodegenModuleContext* data, LLVMValueRef value, LLVMValueRef ptr) {
     if (value != NULL) {
         LLVMTypeRef ptr_type = LLVMPointerType(LLVMTypeOf(value), 0);
         LLVMValueRef cast_ptr = LLVMBuildPointerCast(data->builder, ptr, ptr_type, "ptr_cast");

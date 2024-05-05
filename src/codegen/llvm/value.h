@@ -11,7 +11,7 @@ typedef struct {
 
 LlvmCodegenValue createLlvmCodegenValue(LLVMValueRef value, bool is_reference);
 
-LlvmCodegenValue createLlvmCodegenVoidValue(LlvmCodegenContext* context);
+LlvmCodegenValue createLlvmCodegenVoidValue();
 
 LlvmCodegenValue toNonReferenceCodegenValue(LlvmCodegenContext* context, LlvmCodegenModuleContext* data, Type* type, LlvmCodegenValue value);
 
@@ -21,6 +21,6 @@ LLVMValueRef getCodegenValue(LlvmCodegenContext* context, LlvmCodegenModuleConte
 
 LLVMValueRef getCodegenReference(LlvmCodegenContext* context, LlvmCodegenModuleContext* data, AstNode* node);
 
-void buildLlvmStore(LlvmCodegenContext* context, LlvmCodegenModuleContext* data, Type* type, LLVMValueRef value, LLVMValueRef ptr);
+void buildLlvmStore(LlvmCodegenModuleContext* data, LLVMValueRef value, LLVMValueRef ptr);
 
 #endif
