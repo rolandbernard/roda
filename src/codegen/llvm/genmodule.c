@@ -725,11 +725,19 @@ static void buildFunctionVariables(LlvmCodegenContext* context, LlvmCodegenModul
                         context->llvm_cxt, n->location.begin.line + 1,
                         n->location.begin.column + 1, data->scope_metadata, NULL
                     );
+#if LLVM_VERSION_MAJOR >= 19
+                    LLVMDIBuilderInsertDeclareRecordAtEnd(
+                        data->debug_bulder, value, param_meta,
+                        LLVMDIBuilderCreateExpression(data->debug_bulder, NULL, 0), param_loc,
+                        LLVMGetInsertBlock(data->builder)
+                    );
+#else
                     LLVMDIBuilderInsertDeclareAtEnd(
                         data->debug_bulder, value, param_meta,
                         LLVMDIBuilderCreateExpression(data->debug_bulder, NULL, 0), param_loc,
                         LLVMGetInsertBlock(data->builder)
                     );
+#endif
                 }
                 buildFunctionVariables(context, data, n->val);
                 break;
@@ -751,11 +759,19 @@ static void buildFunctionVariables(LlvmCodegenContext* context, LlvmCodegenModul
                         context->llvm_cxt, n->location.begin.line + 1,
                         n->location.begin.column + 1, data->scope_metadata, NULL
                     );
+#if LLVM_VERSION_MAJOR >= 19
+                    LLVMDIBuilderInsertDeclareRecordAtEnd(
+                        data->debug_bulder, value, param_meta,
+                        LLVMDIBuilderCreateExpression(data->debug_bulder, NULL, 0), param_loc,
+                        LLVMGetInsertBlock(data->builder)
+                    );
+#else
                     LLVMDIBuilderInsertDeclareAtEnd(
                         data->debug_bulder, value, param_meta,
                         LLVMDIBuilderCreateExpression(data->debug_bulder, NULL, 0), param_loc,
                         LLVMGetInsertBlock(data->builder)
                     );
+#endif
                 }
                 break;
             }
